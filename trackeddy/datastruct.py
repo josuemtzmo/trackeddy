@@ -263,7 +263,7 @@ def jointimetrack(ts,eddydt,eddys,t0track,t1track):
     return eddydt
 
 
-def dict_eddyz(data,x,y,ts,ll,maxlevel,eddys,eddz='',threshold=1.5,diagnostics=False):
+def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold=1.5,diagnostics=False):
     '''
     ********************** dict_eddyz **********************
     Create a dictionary with all the eddies and it's develop in delta eta, 
@@ -297,9 +297,13 @@ def dict_eddyz(data,x,y,ts,ll,maxlevel,eddys,eddz='',threshold=1.5,diagnostics=F
     '''
     athresh=1000
     threshold=7
-    if eddz=='' or maxlevel==ll:
+    if type(diagnostics) !=list:
+        diagnostics=[diagnostics]
+    if eddz=='' or maxlevel==levellist[levelindex]:
         eddz=eddys
         #print(eddz['PositionExtreme'])
+    elif levellist[levelindex-1]!=eddz['Level'][-1]:
+        eddz=eddys
     else:         
         #Always check in the next one because probable we will have more contours if we get closer to 0.
         contour=eddz['Contour']
@@ -318,7 +322,7 @@ def dict_eddyz(data,x,y,ts,ll,maxlevel,eddys,eddz='',threshold=1.5,diagnostics=F
         #print eddys['EddyN']
         #print np.shape(eddys['Contour'])
         if type(eddys['EddyN'][0])==int and type(eddz['EddyN'][0])==int:
-            #print('int - int')
+            print('int - int')
             nn0=0
             n=0
             eddysmaskdata={str(eddys['EddyN'][0]):''}
@@ -393,7 +397,7 @@ def dict_eddyz(data,x,y,ts,ll,maxlevel,eddys,eddz='',threshold=1.5,diagnostics=F
                 
             
         elif type(eddys['EddyN'][0])==int and type(eddz['EddyN'][0])!=int:
-            #print('int - no int')
+            print('int - no int')
             eddysmaskdata={str(eddys['EddyN'][0]):''}
             eddyzmaskdata={str(ii): '' for ii in range(0,len(eddz['EddyN']))}
             
@@ -474,7 +478,7 @@ def dict_eddyz(data,x,y,ts,ll,maxlevel,eddys,eddz='',threshold=1.5,diagnostics=F
                 number=np.vstack((number,[len(number)]))
 
         elif type(eddys['EddyN'][0])!=int and type(eddz['EddyN'][0])==int:
-            #print('no int - int')
+            print('no int - int')
             eddysmaskdata={str(ii): '' for ii in range(0,len(eddys['EddyN']))}
             eddyzmaskdata={str(eddz['EddyN'][0]):''}
             
@@ -551,7 +555,7 @@ def dict_eddyz(data,x,y,ts,ll,maxlevel,eddys,eddz='',threshold=1.5,diagnostics=F
                 number=np.vstack((number,[len(number)]))
                 
         else:
-            #print('no int - no int')
+            print('no int - no int')
             eddysmaskdata={str(ii): '' for ii in range(0,len(eddys['EddyN']))}
             eddyzmaskdata={str(ii): '' for ii in range(0,len(eddz['EddyN']))}
 
@@ -631,7 +635,7 @@ def dict_eddyz(data,x,y,ts,ll,maxlevel,eddys,eddz='',threshold=1.5,diagnostics=F
                     else:    
                         n=n+1
                 if replacecontour==True:
-                    if diagnostics==True:
+                    if ("levels" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
                         if xidmin<7 and yidmin>7:
                             plt.pcolormesh(x[xidmin:xidmax+threshold],y[yidmin-threshold+1:yidmax+threshold],data[yidmin-threshold+1:yidmax+threshold,xidmin:xidmax+threshold])
                         elif yidmin<7 and xidmin>7:

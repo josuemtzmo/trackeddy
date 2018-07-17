@@ -60,7 +60,7 @@ def vorticity2D(u,v,lon,lat):
 #    w=dv_x-du_y
 #    return w
 
-def geovelfield(ssha,lon,lat,mask=None,anomval=100):
+def geovelfield(ssha,lon,lat,mask='',anomval=100):
     try:
         ma.filled(ssha,np.nan)
     except:
@@ -87,7 +87,7 @@ def geovelfield(ssha,lon,lat,mask=None,anomval=100):
     v[v>anomval]=np.nan
     u[u<-anomval]=np.nan
     v[v<-anomval]=np.nan
-    if mask != None:
+    if mask != '':
         u= np.ma.masked_array(u, mask)
         v= np.ma.masked_array(v, mask)
     return u,v
@@ -127,14 +127,14 @@ def ssh2ke(data,x,y,mask,anomval=100):
 def checkmesoscalearea(checkarea,lat,ellipsex,ellipsey,contourx,contoury):
     if checkarea==True:
         areachecker=rossbyR(np.mean(lat),g=9.81, D=3688)**2
-        ellipsarea=sw.dist(0,[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
-                   sw.dist(0,[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
-        contarea=sw.dist(0,[contourx.max(),contourx.min()],'km')[0][:]*1000*\
-                 sw.dist(0,[contoury.max(),contoury.min()],'km')[0][:]*1000
+        ellipsarea=sw.dist(contoury.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
+                   sw.dist(contoury.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
+        contarea=sw.dist(contoury.mean(),[contourx.max(),contourx.min()],'km')[0][:]*1000*\
+                 sw.dist(contoury.mean(),[contoury.max(),contoury.min()],'km')[0][:]*1000
     else:
         areachecker=np.inf
-        ellipsarea=sw.dist(0,[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
-                   sw.dist(0,[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
-        contarea=sw.dist(0,[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
-                   sw.dist(0,[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
+        ellipsarea=sw.dist(contoury.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
+                   sw.dist(contoury.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
+        contarea=sw.dist(contoury.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
+                   sw.dist(contoury.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
     return areachecker,ellipsarea,contarea

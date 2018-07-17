@@ -18,7 +18,7 @@ import sys
 import time
 
 
-def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',ellipsrsquarefit=0.95,eccenfit=0.85,gaussrsquarefit=0.65,mode='gaussian',basemap=False,checkgauss=True,checkarea=True,usefullfit=False,diagnostics=False,plotdata=False,pprint=True):
+def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',maskopt='contour',ellipsrsquarefit=0.95,eccenfit=0.85,gaussrsquarefit=0.65,mode='gaussian',basemap=False,checkgauss=True,checkarea=True,usefullfit=False,diagnostics=False,plotdata=False,pprint=True):
     '''
     *************Scan Eddym***********
     Function to identify each eddy using closed contours,
@@ -49,6 +49,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     minoraxis_eddy=[]
     gaussianfitdict=[]
     shapedata=np.shape(ssh)
+    if type(diagnostics) !=list:
+        diagnostics=[diagnostics]
     if ssh is ma.masked:
         print('Invalid ssh data, must be masked')
         return
@@ -124,8 +126,6 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
         CONTSlvls=CONTS[ii]
         numbereddies=np.shape(CONTSlvls)[0]
         for jj in range(0,numbereddies):
-            if diagnostics==True:
-                print("----- New Eddy -----")
             CONTeach=CONTSlvls[jj]
             #print(len(CONTeach[:,1]))
             if (len(CONTeach[:,0]) | len(CONTeach[:,1])) <= 10:
@@ -138,9 +138,14 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                 checke=False
                 if status==True:
                     checke=False
-                    ellipseadjust,checke=ellipsoidfit(CONTeach[:,1],ellipse['ellipse'][1],\
+                    ellipseadjust,checke=ellipsefit(CONTeach[:,1],ellipse['ellipse'][1],\
                                                   ellipsrsquarefit=ellipsrsquarefit,\
                                                   diagnostics=diagnostics)
+                if (False not in diagnostics) or ("all" in diagnostics):
+                    print("----- New Eddy -----")
+                    #plt.plot(CONTeach[:,0],CONTeach[:,1])
+                    #plt.plot(ellipse['ellipse'][0],ellipse['ellipse'][1])
+                    #plt.show()
                 if checke==True:
                     xidmin,xidmax=find2l(lon,lon,CONTeach[:,0].min(),CONTeach[:,0].max())
                     yidmin,yidmax=find2l(lat,lat,CONTeach[:,1].min(),CONTeach[:,1].max())
@@ -165,10 +170,10 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                     
                     if len(shapedata)==3:
                         ssh4gauss=sshnan[date,yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
-                        ssh_in_contour=insideness_contour(ssh4gauss,centertop,levels,maskopt='contour',diagnostics=diagnostics)
+                        ssh_in_contour=insideness_contour(ssh4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
                     else:
                         ssh4gauss=sshnan[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
-                        ssh_in_contour=insideness_contour(ssh4gauss,centertop,levels,maskopt='contour',diagnostics=diagnostics)
+                        ssh_in_contour=insideness_contour(ssh4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
                     
                     
 #                    f, (ax1, ax2) = plt.subplots(1, 2,figsize=(8, 4))
@@ -272,7 +277,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                                gaus='One',kind='linear',\
                                                                gaussrsquarefit=gaussrsquarefit,\
                                                                diagnostics=diagnostics)
-                                        #print('Time elapsed ellipsoidfit:',str(time.time()-tic))
+                                        #print('Time elapsed ellipsefit:',str(time.time()-tic))
                                         if checkM==True and checkm==True: 
                                             check=True
                                             if levels[0] > 0:
@@ -285,13 +290,14 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                             #initial_guess=[extremvalue,center_extrem[0],center_extrem[1],\
                                             #               a,b,phi,0,0,0]
                                             initial_guess=[a,b,phi,0,0,0]
-                                            #initial_guess=[1,1,0,0,0,0]
+                                            #initial_guess=[1.0,1.0,0.0,0,0,0]
                                             gausssianfitp,R2=fit2Dcurve(ssh_in_contour,\
                                                           lon_contour,lat_contour,\
                                                           extremvalue,center_extrem[0],center_extrem[1],\
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
-                                            if R2 < gaussrsquarefit and R2 < 1:
+                                            fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
+                                            if R2 < gaussrsquarefit or fiteccen > eccenfit: #and R2 < 1:
                                                 check=False
                                             #syntetic_ssha[yidmin-6:yidmax+7,xidmin-6:xidmax+7]=\
                                             #        syntetic_ssha[yidmin-6:yidmax+7,xidmin-\
@@ -341,7 +347,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                                gaus='One',kind='linear',\
                                                                gaussrsquarefit=gaussrsquarefit,\
                                                                diagnostics=diagnostics)
-                                      #print('Time elapsed ellipsoidfit:',str(time.time()-tic))
+                                      #print('Time elapsed ellipsefit:',str(time.time()-tic))
                                         if checkM==True and checkm==True:
                                             check=True
                                             if levels[0] > 0:
@@ -360,7 +366,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                           extremvalue,center_extrem[0],center_extrem[1],\
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
-                                            if R2 < gaussrsquarefit and R2 < 1:
+                                            fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
+                                            if R2 < gaussrsquarefit or fiteccen > eccenfit:
                                                 check=False
                                             #syntetic_ssha[yidmin-6:yidmax+7,xidmin-6:xidmax+7]=\
                                             #        syntetic_ssha[yidmin-6:yidmax+7,xidmin-\
@@ -420,7 +427,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                             
                         eddyn=eddyn+1
                     #diagnostics=True
-                    if diagnostics == True:# and  check == True:
+                    if ("ellipse" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):# and  check == True:
                         print("Eddy Number (No time tracking):", eddyn)
                         print("Ellipse parameters")
                         print("Ellipse center = ",  center)
@@ -434,9 +441,10 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         print("Minor Gauss fit = ",checkm)
                         print("Conditions | Area | Ellipse | Eccen | Gaussians ")
                         print("           | ", ellipsarea < areachecker and contarea < areachecker ,\
-                              " | ", checke ,"| ", eccen<eccenfit ,"| ",checkM == True and checkm == True)
+                              " | ", checke ,"| ", eccen < eccenfit and fiteccen < eccenfit ,\
+                              " | ", checkM == True and checkm == True)
                         
-                    if diagnostics == True: #and plotdata == True:
+                    if ("all" in diagnostics) or (True in diagnostics): #and plotdata == True:
                         f, (ax1, ax2) = plt.subplots(1, 2,figsize=(13, 6))
                         if len(shapedata)==3:
                             ax1.contourf(lon[areamap[0,0]:areamap[0,1]],lat[areamap[1,0]:areamap[1,1]],\
@@ -647,7 +655,6 @@ def exeddydt(eddydt,lat,lon,data,threshold,inside='',diagnostics=False):
             justeddy[tt,mimcy-threshold:mamcy+1+threshold,mimcx-threshold:mamcx+1+threshold]=justeddy[tt,mimcy-threshold:mamcy+1+threshold,mimcx-threshold:mamcx+1+threshold]+datacm
             
             ct=ct+1 
-    diagnostics=True
     if diagnostics==True:
         plt.figure()
         plt.pcolormesh(justeddy[0,:,:])
@@ -655,7 +662,7 @@ def exeddydt(eddydt,lat,lon,data,threshold,inside='',diagnostics=False):
     print('*******End the Removing of eddies******')
     return justeddy
 
-def exeddy(eddydt,lat,lon,data,ct,threshold,inside='',diagnostics=False):
+def exeddy(eddydt,lat,lon,data,ct,threshold,inside=None,diagnostics=False):
     '''*************Extract Eddy***********
     Function to extract the values of the eddies inside the closed contours.
     Usage:
@@ -698,15 +705,8 @@ def exeddy(eddydt,lat,lon,data,ct,threshold,inside='',diagnostics=False):
             mimcx=1
         if mimcy==0:
             mimcy=1
-        if inside == '':
-            datacm=data[mimcy-threshold:mamcy+1+threshold,mimcx-threshold:mamcx+1+threshold]-level
-            if level > 0:
-                datacm[datacm<=0]=0
-                datacm[datacm>=1000]=0
-            elif level < 0:
-                datacm[datacm>=0]=0
-                datacm[datacm<=-1000]=0
-        else:
+            
+        if inside != None:
             datacm=data[mimcy-threshold:mamcy+1+threshold,mimcx-threshold:mamcx+1+threshold]*1
             insidecm=inside[mimcy-threshold:mamcy+1+threshold,mimcx-threshold:mamcx+1+threshold]*1
             if level > 0:
@@ -719,6 +719,14 @@ def exeddy(eddydt,lat,lon,data,ct,threshold,inside='',diagnostics=False):
             #    print('Inside and general field should have the same shape')
             #else:
             datacm=datacm*insidecm
+        else:
+            datacm=data[mimcy-threshold:mamcy+1+threshold,mimcx-threshold:mamcx+1+threshold]-level
+            if level > 0:
+                datacm[datacm<=0]=0
+                datacm[datacm>=1000]=0
+            elif level < 0:
+                datacm[datacm>=0]=0
+                datacm[datacm<=-1000]=0
             
         if diagnostics==True:
             plt.figure()
@@ -736,7 +744,7 @@ def exeddy(eddydt,lat,lon,data,ct,threshold,inside='',diagnostics=False):
         justeddy[mimcy-threshold:mamcy+1+threshold,mimcx-threshold:mamcx+1+threshold]=datacm
     print('*******End the Removing of eddies******')
     return justeddy
-def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',areamap='',mask='',physics='',eddycenter='masscenter',eccenfit=0.95,gaussrsquarefit=0.5,ellipsrsquarefit=0.9,checkgauss=True,checkarea=True,mode='gaussian',sfilter='none',destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
+def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',areamap='',mask='',physics='',eddycenter='masscenter',eccenfit=0.95,gaussrsquarefit=0.8,ellipsrsquarefit=0.85,checkgauss=True,checkarea=True,maskopt='contour',mode='gaussian',sfilter='none',sfsize=70,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
     '''
     *************Analys eddy in z and t ***********
     Function to identify each eddy using closed contours, 
@@ -780,33 +788,33 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
                 dataanomaly = ma.masked_array(data[ii,:,:], mask)
             elif sfilter=='uniform':
                 nofilterdata=data[ii,:,:]
-                nofilterdata = nofilterdata - ndimage.uniform_filter(nofilterdata, size=70)
+                nofilterdata = nofilterdata - ndimage.uniform_filter(nofilterdata, size=sfsize)
                 dataanomaly = ma.masked_array(nofilterdata, mask)
             elif sfilter=='gaussian':
                 nofilterdata=data[ii,:,:]
-                nofilterdata = nofilterdata - ndimage.gaussian_filter(nofilterdata, sigma=20)
+                nofilterdata = nofilterdata - ndimage.gaussian_filter(nofilterdata, sigma=sfsize)
                 dataanomaly = ma.masked_array(nofilterdata, mask)
         else:
             if sfilter=='none' or sfilter=='':
                 dataanomaly=ma.masked_array(data[ii,:,:]-data_meant, mask)
             elif sfilter=='uniform':
                 nofilterdata=data[ii,:,:]-data_meant
-                nofilterdata = nofilterdata- ndimage.uniform_filter(nofilterdata, size=70)
+                nofilterdata = nofilterdata- ndimage.uniform_filter(nofilterdata, size=sfsize)
                 dataanomaly = ma.masked_array(nofilterdata, mask)
             elif sfilter=='gaussian':
                 nofilterdata=data[ii,:,:]-data_meant
-                nofilterdata =  nofilterdata - ndimage.gaussian_filter(nofilterdata, sigma=20)
+                nofilterdata =  nofilterdata - ndimage.gaussian_filter(nofilterdata, sigma=sfsize)
                 dataanomaly = ma.masked_array(nofilterdata, mask)
                 
-        for ll in levellist:
+        for ll in range(0,len(levellist)):
             if minlevel<0 and maxlevel<0:
-                levels=[-500,ll]
+                levels=[-500,levellist[ll]]
             elif minlevel>0 and maxlevel>0:
-                levels=[ll,500]
+                levels=[levellist[ll],500]
             #tic=time.time()
             eddies,check,numbereddies=scan_eddym(dataanomaly,x,y,levels,ii\
                           ,areamap,mask=mask,destdir=destdir\
-                          ,physics=physics,eddycenter=eddycenter\
+                          ,physics=physics,eddycenter=eddycenter,maskopt=maskopt\
                           ,checkgauss=checkgauss,checkarea=checkarea\
                           ,eccenfit=eccenfit,ellipsrsquarefit=ellipsrsquarefit\
                           ,gaussrsquarefit=gaussrsquarefit,mode=mode\
@@ -820,11 +828,11 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
                 eddzcheck=False
             #print('--------'+str(checkcount)+'---------')
             if eddies!=0 and check==True:
-                if ll == farlevel or eddzcheck==True:
-                    eddz = dict_eddyz(dataanomaly,x,y,ii,ll,farlevel,eddies,diagnostics=diagnostics)
+                if levellist[ll] == farlevel or eddzcheck==True:
+                    eddz = dict_eddyz(dataanomaly,x,y,ii,ll,levellist,farlevel,eddies,diagnostics=diagnostics)
                 else:
                     #tic=time.time()
-                    eddz = dict_eddyz(dataanomaly,x,y,ii,ll,farlevel,eddies,eddz,diagnostics=diagnostics)
+                    eddz = dict_eddyz(dataanomaly,x,y,ii,ll,levellist,farlevel,eddies,eddz,diagnostics=diagnostics)
                     #print('ellapse dz:',time.time()-tic)
                 #print(eddies['EddyN'])
                 #print(eddz['EddyN'])
@@ -846,7 +854,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
             np.save(destdir+str(level)+'.npy',eddytd)
     return eddytd
 
-def analyseddyt(data,x,y,level,t0,t1,tstep,data_meant='',areamap='',mask='',physics='',eddycenter='masscenter',eccenfit=0.95,gaussrsquarefit=0.5,ellipsrsquarefit=0.9,mode='gaussian',sfilter='none',checkgauss=True,checkarea=True,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
+def analyseddyt(data,x,y,level,t0,t1,tstep,data_meant='',areamap='',mask='',physics='',eddycenter='masscenter',eccenfit=0.95,gaussrsquarefit=0.8,ellipsrsquarefit=0.85,mode='gaussian',sfilter='none',checkgauss=True,checkarea=True,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
     '''
     *************Analys eddy in t ***********
     Function to identify each eddy using closed contours, 

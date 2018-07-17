@@ -53,16 +53,16 @@ def basemap_mplot(x,y,data,title,projection='ortho',lat_0=-90,lon_0=-100,boundin
                 map.drawcoastlines()
                 m=ax[jj]
             else:
-                ttl=ax[ii,jj].set_title(title[count], fontsize=fontsize)
+                ttl=ax[jj,ii].set_title(title[count], fontsize=fontsize)
                 ttl.set_position([.5, 1.05+fontsize*0.001])
-                map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution,ax=ax[ii,jj])
+                map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution,ax=ax[jj,ii])
                 lonm,latm=map(X,Y)
                 map.drawmeridians(np.arange(0,360,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
                 map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
                 map.fillcontinents(color='black',lake_color='aqua')
                 map.drawcoastlines()
                 map.drawcoastlines()
-                m=ax[ii,jj]
+                m=ax[jj,ii]
                 
             lonm,latm=map(X,Y)
             if scale =='Lin' and vmin == '' and vmax == '':

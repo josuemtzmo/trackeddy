@@ -8,6 +8,7 @@ from scipy.optimize import curve_fit,leastsq,least_squares
 from scipy import ndimage
 from scipy.stats import pearsonr
 from scipy import stats
+import cartopy.crs as ccrs
 
 def fit_ellipse(x,y,diagnostics=False):
     '''
@@ -98,7 +99,7 @@ def fit_ellipse(x,y,diagnostics=False):
         cos_phi = np.cos( orientation_rad );
         sin_phi = np.sin( orientation_rad );
     test = a*c;
-    if test>0 and r2>0.8 and r2<1:
+    if test>0 :#and r2>0.8 and r2<1:
         detect='Ellipse'
         status=True
     elif test==0:
@@ -156,7 +157,7 @@ def fit_ellipse(x,y,diagnostics=False):
                      'short_axis':'','minoraxis':'',\
                      'majoraxis':'','ellipse':'',\
                      'status':detect}
-    if diagnostics==True and status==True:
+    if (("ellipse" in diagnostics) or ("all" in diagnostics) or (True in diagnostics)) and status==True:
         # draw
         plt.plot( x,y,'b',label='data');
         plt.plot( new_ver_line[0],new_ver_line[1],'k',label='minor axis' )
@@ -205,11 +206,13 @@ def eccentricity(a,b):
         b=0.3
         eccen=eccentricity(a,b)
     '''
+    a=abs(a)
+    b=abs(b)
     if b>a:
         b1=a
         a=b
         b=b1
-    eccen=np.sqrt(1-(b**2/a**2))
+    eccen=np.sqrt(1-(abs(b)**2/abs(a)**2))
     return eccen
 
 def find2l(arrayx,arrayy,valuex,valuey):
@@ -497,7 +500,7 @@ def twoD_Paraboloid(coords, amplitude, xo, yo, a, b,offset):
     
     #g =offset - amplitude * (a*((x-xo)**2) + 2*b*(x-xo)*(y-yo) + c*((y-yo)**2))
     
-    g = offset - amplitude * (((x-xo)/a)**2 + ((y-yo)/b)**2)
+    g = -amplitude*(((x-x0)/a)**2+((y-y0)/b)**2) + offset
     
     return g.ravel()
 
@@ -529,7 +532,7 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
     
     xo = float(xo)
     yo = float(yo)
-    
+    #print(sigma_y,sigma_x,sigma_y/sigma_x)
     if sigma_y or sigma_x != 0:
         a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
         b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
@@ -609,9 +612,9 @@ def fit2Dcurve(var,lon,lat,extrem,longuess,latguess,level,initial_guess='',date=
         #    longuess=lon[xguess]
         #    latguess=lat[yguess]
         #initial_guess = [extrem,longuess,latguess,1,1,0,0,0,0]   
-        
+
     if mode == 'parabolic':
-        popt, pcov, infodict,mesg,ier = leastsq(paraboloid2Dresidual, initial_guess[0:3],\
+        popt, pcov, infodict,mesg,ier = leastsq(paraboloid2Dresidual, initial_guess,\
                                                 args=(coords, varm.ravel()),full_output=True)#,\
 #                                                xtol=1e-1000,maxfev=10000000)
         fitdict = popt
@@ -627,7 +630,7 @@ def fit2Dcurve(var,lon,lat,extrem,longuess,latguess,level,initial_guess='',date=
     else:
         popt, pcov, infodict,mesg,ier = leastsq(gaussian2Dresidual, initial_guess,\
                                                 args=(coords, varm.ravel()),full_output=True,\
-                                                xtol=1e-1000,maxfev=10000000) 
+                                                ftol=1e-10,gtol=1e-10,xtol=1e-10,maxfev=10000000) 
         fitdict = popt
         fitted_curve = twoD_Gaussian(coords, *fitdict)
     
@@ -638,55 +641,29 @@ def fit2Dcurve(var,lon,lat,extrem,longuess,latguess,level,initial_guess='',date=
         R2=1/correlation_coefficient(varm,fittedata)
     except:
         R2=0
-        
-        
-    #print(R2)
-    #print(sum(fitted_curve),sum(sum(varm)))
-    #
-    #print(np.nansum(twoD_Gaussian(coords,*popt)),np.nansum(np.nansum(varm)))
     
-    ###RESOLVE BUG WITH R2
-    
-    
-    #if fitdict[0]/3 > initial_guess[0] or fitdict[1]/3 > initial_guess[1]:
-    #    fitdict[0]=initial_guess[0]
-    #    fitdict[1]=initial_guess[1]
-    
-    
-    #if R2 < 0.8 or ((np.nansum(fittedata)/np.nansum(varm))<0.8 or (np.nansum(fittedata)/np.nansum(varm)) > 1.2 ):
-    #    fitdict[0]=0
-    #    fitdict[1]=0
-    #    fitdict[2]=0
-    #    fitdict[3]=0
-    #    fitdict[4]=0
-    #    fitdict[5]=0
-    
-    #else:
-    #    print('saved',R2,sum(twoD_Gaussian(coords,*popt))/sum(sum(varm)))
-    #    print("lololo",fitdict)
-    
-    if diagnostics==True:
+    if ("2dfit" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
         print('R^2 2D fitting:',R2)
         print('OPT steps:',infodict['nfev'])
         print("             |amplitud|x0|y0|sigmaX|sigmaY|Theta|slopeX|slopeY|")
         print("initial guess|" + ''.join(str(e)+'|' for e in initial_guess))
         print("Fit.         |" + ''.join(str(e)+'|' for e in fitdict))
-        plt.pcolormesh(lon,lat,varm)
-        plt.title('Original Field')
-        plt.axis('equal')
-        plt.colorbar()
-        plt.show()
-        plt.pcolormesh(lon,lat,fittedata)
-        plt.title('2D Gauss Fit')
-        plt.axis('equal')
-        plt.colorbar()
-        plt.show()
-        plt.pcolormesh(lon,lat,varm-fittedata,\
+        f, (ax1, ax2,ax3) = plt.subplots(1, 3,figsize=(15,7), sharey=True)
+        p=ax1.pcolormesh(lon,lat,varm,vmin=varm.min(),vmax=varm.max())
+        ax1.set_title('Original Field')
+        ax1.axis('equal')
+        plt.colorbar(p,ax=ax1)
+        p=ax2.pcolormesh(lon,lat,fittedata,vmin=fittedata.min(),vmax=fittedata.max())
+        ax2.set_title('2D Gauss Fit')
+        ax2.axis('equal')
+        plt.colorbar(p,ax=ax2)
+        p=ax3.pcolormesh(lon,lat,varm-fittedata,\
                        cmap=cm.cm.balance)
-        plt.axis('equal')
-        plt.title('Difference between Fit & Original')
-        plt.colorbar()
+        ax3.axis('equal')
+        ax3.set_title('Difference between Fit & Original')
+        plt.colorbar(p,ax=ax3)
         plt.show()
+        plt.close()
     return fitdict,R2
 
 def rsquard(y,yfit):
@@ -717,10 +694,10 @@ def rsquard(y,yfit):
     R2=pearsonr(y,yfit)[0]**2
     return R2 
 
-def ellipsoidfit(y,yfit,ellipsrsquarefit=0.85,diagnostics=False):
+def ellipsefit(y,yfit,ellipsrsquarefit=0.85,diagnostics=False):
     '''
-    *************** ellipsoidfit *******************
-    Check the fitness of an ellipsoid in a curve.
+    *************** ellipsefit *******************
+    Check the fitness of an ellipse in a curve.
     Notes:
         
     Args:
@@ -753,7 +730,7 @@ def ellipsoidfit(y,yfit,ellipsrsquarefit=0.85,diagnostics=False):
     for ii in range(len(yfit)):
         eddyfitdisplace[ii]=eddy2fit[indxrd-indxed+ii]
     Rsquard=rsquard(eddyfitdisplace,yfit)
-    if diagnostics==True:
+    if ("ellipse" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
         plt.figure()
         plt.title('Ellipse Fit')
         plt.plot(yfit,'-b')
@@ -836,7 +813,7 @@ def extractprofeddy(axis,field,lon,lat,n,gaus='One',kind='linear',gaussrsquarefi
     else:
         check=False
         
-    if diagnostics==True:
+    if ("all" in diagnostics) or ("gauss" in diagnostics) or (True in diagnostics):
         plt.plot(xcoord,ycoord)
         plt.title('Gauss_fit')
         plt.pcolormesh(xcoord,ycoord,field_interp)
@@ -882,7 +859,7 @@ def eddylandcheck(contour,center,lon,lat,var):
         checkland=False
     return checkland
 
-def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',usefullfit=False,diagnostics=False):
+def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,usefullfit=False,diagnostics=False):
     '''
     *************** reconstruct_syntetic *******************
     Recunstruct the syntetic field using the gaussian 
@@ -898,7 +875,8 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',usefullfit=Fals
     '''
     Lon,Lat=np.meshgrid(lon,lat)
     fieldfit=np.zeros(varshape)
-   
+    if type(diagnostics) !=list:
+        diagnostics=[diagnostics]
     for key in eddytd.keys():
         counter=0
         #print(key)
@@ -918,7 +896,7 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',usefullfit=Fals
                 curvefit=eddytd[key]['2dgaussianfit']
             #Remove the slope and constant in the reconstruction of the eddy.
             if mode == 'parabolic':
-                fittedcurve=twoD_Paraboloid(maxposition, *curvefit[0:3])
+                fittedcurve=twoD_Paraboloid(maxposition, *curvefit[:])
                 #print(level)
                 if level>0:
                     fittedcurve[fittedcurve<0]=0
@@ -937,6 +915,8 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',usefullfit=Fals
                 fittedcurve=twoD_Gaussian(maxposition, *curvefit)
             #print(fittedcurve[0])
             if np.isnan(fittedcurve[0]):
+            #or (curvefit[0]/curvefit[1]+curvefit[1]/curvefit[0])/2>1.7:
+            #or curvefit[0]/curvefit[1]>1.7 or curvefit[1]/curvefit[0]>1.7:
                 fittedcurve=np.zeros(np.shape(fittedcurve))
             else:
                 fieldfit[ttt,:,:]=fieldfit[ttt,:,:]+fittedcurve.reshape(len(lat),len(lon))
@@ -944,9 +924,11 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',usefullfit=Fals
             #plt.pcolormesh(fieldfit[ttt,:,:])
             #plt.show()
             counter=counter+1
-        if diagnostics==True:
+        if ("reconstruct" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
+            ax = plt.axes(projection=ccrs.PlateCarree())
             print('key: ',key,'Level: ',level)
             plt.pcolormesh(Lon,Lat,fieldfit[0,:,:])
+            ax.coastlines()
             plt.colorbar()
             plt.show()
     return fieldfit
@@ -992,7 +974,8 @@ def insideness_contour(data,center,levels,mask=False,maskopt='none',diagnostics=
             markers[markers!=markers[center[0]-1,center[1]]]=0
         else:
             markers[markers!=markers[center[0],center[1]]]=0
-        markers=1-markers
+        markers=markers.max()-markers
+#                markers=1-markers
         returnmasked=True 
             
     elif maskopt=='max':
@@ -1009,12 +992,13 @@ def insideness_contour(data,center,levels,mask=False,maskopt='none',diagnostics=
         
     maskeddata=ma.masked_array(data, markers)
     #diagnostics=True
-    if diagnostics==True:
+    if ("contours" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
         print('markerceter:',markers[center[0],center[1]])
         f, (ax1, ax2,ax3) = plt.subplots(1, 3,figsize=(15,7), sharey=True)
         ax1.pcolormesh(data)
         ax1.set_title('original data')
-        ax2.pcolormesh(markers)
+        m=ax2.pcolormesh(markers)
+        plt.colorbar(m,ax=ax2)
         msk=ax2.plot(center[1],center[0],'or')
         ax2.set_title('identified eddy mask')
         ax3.pcolormesh(maskeddata)
