@@ -107,9 +107,7 @@ def PVort(S,T,P,U,V):
     Q=(1/rho)*(zeta)*np.gradient(theta)
 
 def coriolis(lat):
-    omega=7.2921159e-5
-    f=2*omega*np.sin(np.deg2rad(lat))
-    return f
+    return sw.f(lat)
     
 def rossbyR(lat,g=9.81, D=3688):
     '''
@@ -124,17 +122,23 @@ def ssh2ke(data,x,y,mask,anomval=100):
     u,v = geovelfield(data,x,y,mask,anomval)
     return KE(u,v)
 
-def checkmesoscalearea(checkarea,lat,ellipsex,ellipsey,contourx,contoury):
+def checkmesoscalearea(checkarea,lat,ellipsex,ellipsey,contourx='',contoury=''):
     if checkarea==True:
         areachecker=rossbyR(np.mean(lat),g=9.81, D=3688)**2
-        ellipsarea=sw.dist(contoury.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
-                   sw.dist(contoury.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
-        contarea=sw.dist(contoury.mean(),[contourx.max(),contourx.min()],'km')[0][:]*1000*\
-                 sw.dist(contoury.mean(),[contoury.max(),contoury.min()],'km')[0][:]*1000
+        ellipsarea=sw.dist(ellipsey.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
+                   sw.dist(ellipsey.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
+        if contourx!='' or contoury!='':
+            contarea=sw.dist(contoury.mean(),[contourx.max(),contourx.min()],'km')[0][:]*1000*\
+                     sw.dist(contoury.mean(),[contoury.max(),contoury.min()],'km')[0][:]*1000
+        else:
+            contarea=None
     else:
         areachecker=np.inf
-        ellipsarea=sw.dist(contoury.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
-                   sw.dist(contoury.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
-        contarea=sw.dist(contoury.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
-                   sw.dist(contoury.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
+        ellipsarea=sw.dist(ellipsey.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
+                   sw.dist(ellipsey.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
+        if contourx!='' or contoury!='':
+            contarea=sw.dist(contoury.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
+                       sw.dist(contoury.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
+        else:
+            contarea=None
     return areachecker,ellipsarea,contarea

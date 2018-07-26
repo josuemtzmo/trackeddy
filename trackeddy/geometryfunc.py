@@ -9,6 +9,7 @@ from scipy import ndimage
 from scipy.stats import pearsonr
 from scipy import stats
 import cartopy.crs as ccrs
+from trackeddy.physics import *
 
 def fit_ellipse(x,y,diagnostics=False):
     '''
@@ -57,35 +58,12 @@ def fit_ellipse(x,y,diagnostics=False):
     a=np.sum(X,axis=0)
     b=np.dot(X.T,X)
     
-    #print(b,a)
-    
-    # xb = a: solve b.T x.T = a.T instead 
-    #x2,res = np.linalg.lstsq(b.T, a.T)[:2]
-    
     x2=np.linalg.solve(b.T, a.T)
-
-    #print(linalg.lstsq(b.T,a.T))
     
     res=[np.linalg.norm(ii) for ii in b-a*x2]
     
     r2 = np.mean(1 - res / (a.T.size * a.T.var()))
     
-    #plt.plot(x,y)
-    #plt.show()
-    
-    #print(r2)
-    
-    #for ii in len(b):
-    #    res=b[ii,:]-a[ii]*x[ii]
-    #    print(res)
-    #print(np.linalg.norm(x2))
-    
-    #print(x2,np.shape(b.T),np.shape(a.T))
-    # print(np.linalg.lstsq(b.T, a.T))
-    # print(1 - res / (len(x) * a.T.var()))
-    
-    #x2 = np.dot(a, np.linalg.pinv(b))
-    #print(x2)
     a,b,c,d,e=x2
     if ( min(abs(b/a),abs(b/c)) > orientation_tolerance ):
         orientation_rad = 1/2 * np.arctan( b/(c-a) )
@@ -491,8 +469,10 @@ def twoD_Paraboloid(coords, amplitude, xo, yo, a, b,offset):
     '''
     x=coords[0]
     y=coords[1]
-    xo = float(xo)
-    yo = float(yo)
+    amplitude = coords[2]
+    
+    xo = float(coords[3])
+    yo = float(coords[4])
     
     #a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
     #b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
@@ -573,7 +553,7 @@ def correlation_coefficient(data, data1):
         return product
 
 
-def fit2Dcurve(var,lon,lat,extrem,longuess,latguess,level,initial_guess='',date='',mode='gaussian',diagnostics=False):
+def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnostics=False):
     '''
     *************** fit2Dgaussian *******************
     Fit a surface to the data.
@@ -586,8 +566,8 @@ def fit2Dcurve(var,lon,lat,extrem,longuess,latguess,level,initial_guess='',date=
     Usage:
         
     '''
-    Lon, Lat = np.meshgrid(lon, lat)
-    coords=[Lon,Lat,extrem,longuess,latguess]
+    Lon, Lat = np.meshgrid(values[0], values[1])
+    coords=(Lon,Lat,values[2],values[3],values[4])
     if date!='':
         varm=var[date,:,:]*1
     else:
@@ -632,10 +612,9 @@ def fit2Dcurve(var,lon,lat,extrem,longuess,latguess,level,initial_guess='',date=
                                                 args=(coords, varm.ravel()),full_output=True,\
                                                 ftol=1e-10,gtol=1e-10,xtol=1e-10,maxfev=10000000) 
         fitdict = popt
-        fitted_curve = twoD_Gaussian(coords, *fitdict)
     
-    fittedata=fitted_curve.reshape(len(lat), len(lon))
-    fittedata = ma.masked_array(fittedata, mask)
+    fitted_curve = twoD_Gaussian(coords, *fitdict)
+    fittedata=fitted_curve.reshape(len(values[1]), len(values[0]))
     
     try:
         R2=1/correlation_coefficient(varm,fittedata)
@@ -649,15 +628,15 @@ def fit2Dcurve(var,lon,lat,extrem,longuess,latguess,level,initial_guess='',date=
         print("initial guess|" + ''.join(str(e)+'|' for e in initial_guess))
         print("Fit.         |" + ''.join(str(e)+'|' for e in fitdict))
         f, (ax1, ax2,ax3) = plt.subplots(1, 3,figsize=(15,7), sharey=True)
-        p=ax1.pcolormesh(lon,lat,varm,vmin=varm.min(),vmax=varm.max())
+        p=ax1.pcolormesh(values[0], values[1],varm,vmin=varm.min(),vmax=varm.max())
         ax1.set_title('Original Field')
         ax1.axis('equal')
         plt.colorbar(p,ax=ax1)
-        p=ax2.pcolormesh(lon,lat,fittedata,vmin=fittedata.min(),vmax=fittedata.max())
+        p=ax2.pcolormesh(values[0], values[1],fittedata,vmin=fittedata.min(),vmax=fittedata.max())
         ax2.set_title('2D Gauss Fit')
         ax2.axis('equal')
         plt.colorbar(p,ax=ax2)
-        p=ax3.pcolormesh(lon,lat,varm-fittedata,\
+        p=ax3.pcolormesh(values[0], values[1],varm-fittedata,\
                        cmap=cm.cm.balance)
         ax3.axis('equal')
         ax3.set_title('Difference between Fit & Original')
@@ -737,6 +716,7 @@ def ellipsefit(y,yfit,ellipsrsquarefit=0.85,diagnostics=False):
         plt.plot(eddyfitdisplace,'-r')
         plt.text(0, np.mean(yfit), str(round(Rsquard,2)))
         plt.show()
+        print(sum(yfit),sum(eddyfitdisplace))
     if Rsquard>=ellipsrsquarefit:
         check=True
     else:
@@ -774,6 +754,9 @@ def extractprofeddy(axis,field,lon,lat,n,gaus='One',kind='linear',gaussrsquarefi
     except:
         field[~np.isfinite(field)]=np.nan
         fieldnan=field
+        
+    if type(diagnostics) !=list:
+        diagnostics=[diagnostics]
 
     #fieldnan=field
     #print(nanmax(field),nanmin(field))
@@ -1010,3 +993,29 @@ def insideness_contour(data,center,levels,mask=False,maskopt='none',diagnostics=
         return maskeddata
               
     
+def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y=None):
+    Lon, Lat = np.meshgrid(values[0], values[1])
+    coords=(Lon,Lat,values[2],values[3],values[4])
+    fitted_curve = twoD_Gaussian(coords, *gauss2dfit)
+    fittedata = fitted_curve.reshape(len(values[1]),len(values[0]))
+    #fittedata = ma.masked_array(fittedata, mask)
+    
+    if level>0:
+        CS=plt.contour(values[0],values[1],fittedata,levels=[0,level])
+    else:
+        CS=plt.contour(values[0],values[1],fittedata,levels=[level,0])
+    plt.close()
+    CONTS=CS.allsegs[0][0]
+    area = checkmesoscalearea(False,np.mean(CONTS[:,0]),CONTS[:,0],CONTS[:,1])
+    
+    #print('gauss',area[1],'contour',contour_area)
+    
+    if contour_area*2 < area[1]:
+        #print('Too big',contour_area*1.5, area[1])
+        test=True
+    elif contour_area/2 > area[1]:
+        #print('Too small',contour_area/1.5, area[1])
+        test=True
+    else:
+        test=False
+    return test

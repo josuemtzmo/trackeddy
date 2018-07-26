@@ -302,8 +302,6 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
     if eddz=='' or maxlevel==levellist[levelindex]:
         eddz=eddys
         #print(eddz['PositionExtreme'])
-    elif levellist[levelindex-1]!=eddz['Level'][-1]:
-        eddz=eddys
     else:         
         #Always check in the next one because probable we will have more contours if we get closer to 0.
         contour=eddz['Contour']
@@ -322,7 +320,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
         #print eddys['EddyN']
         #print np.shape(eddys['Contour'])
         if type(eddys['EddyN'][0])==int and type(eddz['EddyN'][0])==int:
-            print('int - int')
+            #print('int - int',level)
             nn0=0
             n=0
             eddysmaskdata={str(eddys['EddyN'][0]):''}
@@ -347,18 +345,16 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
             coordmxz=eddz['PositionExtreme'][n][0]
             coordmyz=eddz['PositionExtreme'][n][1]
             magmz=eddz['PositionExtreme'][n][2]
-                        
-            if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms:#and areas/areaz < athresh:
+            if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]==eddz['Level'][-1] and levellist[levelindex]==eddys['Level'][-1]):# and areas/areaz < athresh:
                 eddysmaskdata[str(nn0)]='Done'
                 eddyzmaskdata[str(n)]='Done'
                 replacecontour=True
                 eddysindex=n
-            elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms:#and areas/areaz > athresh:
+            elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]!=eddz['Level'][-1] or levellist[levelindex]!=eddys['Level'][-1]):
                 eddysindex=n
                 eddysmaskdata[str(nn0)]='Done'
                 eddyzmaskdata[str(n)]='Done'
                 replacecontour=False
-                n=-1
             else:
                 replacecontour=False
                 neweddies.append([len(neweddies)+1,nn0])
@@ -397,7 +393,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                 
             
         elif type(eddys['EddyN'][0])==int and type(eddz['EddyN'][0])!=int:
-            print('int - no int')
+            #print('int - no int',level)
             eddysmaskdata={str(eddys['EddyN'][0]):''}
             eddyzmaskdata={str(ii): '' for ii in range(0,len(eddz['EddyN']))}
             
@@ -412,6 +408,12 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                 
             coordmxs=eddys['PositionExtreme'][nn0][0]
             coordmys=eddys['PositionExtreme'][nn0][1]
+            magms=eddys['PositionExtreme'][nn0][2]
+            idxmxs=int(eddys['PositionExtreme'][nn0][3])
+            idxmys=int(eddys['PositionExtreme'][nn0][4])
+            
+            xidmin,xidmax=find2l(x,x,xscontour.min(),xscontour.max())
+            yidmin,yidmax=find2l(y,y,yscontour.min(),yscontour.max())
                 
             replacecontour=False
             n=0
@@ -429,13 +431,13 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                     coordmyz=eddz['PositionExtreme'][n][1]
                     magmz=eddz['PositionExtreme'][n][2]
                     
-                    if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms:# and areas/areaz < athresh:
+                    if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]==eddz['Level'][-1] and levellist[levelindex]==eddys['Level'][-1]):# and areas/areaz < athresh:
                         eddysindex=n
                         eddysmaskdata[str(nn0)]='Done'
                         eddyzmaskdata[str(n)]='Done'
                         replacecontour=True
                         n=-1
-                    elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms:# and areas/areaz > athresh:
+                    elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]!=eddz['Level'][-1] or levellist[levelindex]!=eddys['Level'][-1]):
                         eddysindex=n
                         eddysmaskdata[str(nn0)]='Done'
                         eddyzmaskdata[str(n)]='Done'
@@ -478,7 +480,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                 number=np.vstack((number,[len(number)]))
 
         elif type(eddys['EddyN'][0])!=int and type(eddz['EddyN'][0])==int:
-            print('no int - int')
+            #print('no int - int',level)
             eddysmaskdata={str(ii): '' for ii in range(0,len(eddys['EddyN']))}
             eddyzmaskdata={str(eddz['EddyN'][0]):''}
             
@@ -505,12 +507,13 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                 coordmyz=eddz['PositionExtreme'][n][1]
                 magmz=eddz['PositionExtreme'][n][2]
                         
-                if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms:# and areas/areaz < athresh:
+                if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]==eddz['Level'][-1] and levellist[levelindex]==eddys['Level'][-1]):# and areas/areaz < athresh:
                     eddysmaskdata[str(nn0)]='Done'
                     eddyzmaskdata[str(n)]='Done'
                     replacecontour=True
                     eddysindex=n
-                elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms:# and areas/areaz > athresh:
+                    n=-1
+                elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]!=eddz['Level'][-1] or levellist[levelindex]!=eddys['Level'][-1]):
                     eddysindex=n
                     eddysmaskdata[str(nn0)]='Done'
                     eddyzmaskdata[str(n)]='Done'
@@ -555,7 +558,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                 number=np.vstack((number,[len(number)]))
                 
         else:
-            print('no int - no int')
+            #print('no int - no int',level)
             eddysmaskdata={str(ii): '' for ii in range(0,len(eddys['EddyN']))}
             eddyzmaskdata={str(ii): '' for ii in range(0,len(eddz['EddyN']))}
 
@@ -574,30 +577,8 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                 idxmxs=int(eddys['PositionExtreme'][nn0][3])
                 idxmys=int(eddys['PositionExtreme'][nn0][4])
                 
-                
-                
                 xidmin,xidmax=find2l(x,x,xscontour.min(),xscontour.max())
                 yidmin,yidmax=find2l(y,y,yscontour.min(),yscontour.max())
-            
-                #datacontours=data[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
-                #if levels>0:
-                #    datacontours[datacontours<levels]=0
-                #    datacontours[datacontours>=levels]=1
-                #else:
-                #    datacontours[datacontours>levels]=0
-                #    datacontours[datacontours<=levels]=1
-            
-                #markers=ndimage.label(datacontours)[0]
-                #print(idxmxs,idxmys)
-                #print(idxmxs-xidmin-threshold+1,idxmys-yidmin-threshold+1)
-                #markervalues=markers[idxmxs-xidmin-threshold+1,idxmys-yidmin-threshold+1]
-                #print(markers.max(),markervalues)
-                #plt.pcolormesh(markers)
-                #plt.plot(idxmxs-xidmin+threshold-1,idxmys-yidmin+threshold-1,'or')
-                #plt.show()
-                
-                
-                
                 
                 replacecontour=False
                 n=0
@@ -610,18 +591,16 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                         yzcontour=eddz['Contour'][n][1]
                         levelz=eddz['Level'][n]
                         areaz=eddz['Area'][n][0]
-                        
                         coordmxz=eddz['PositionExtreme'][n][0]
                         coordmyz=eddz['PositionExtreme'][n][1]
                         magmz=eddz['PositionExtreme'][n][2]
-                        #print(areas/areaz)
-                        if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms:# and areas/areaz < athresh:
+                        if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]==eddz['Level'][-1] and levellist[levelindex]==eddys['Level'][-1]):# and areas/areaz < athresh:
                             eddysindex=n
                             eddysmaskdata[str(nn0)]='Done'
                             eddyzmaskdata[str(n)]='Done'
                             replacecontour=True
                             n=-1
-                        elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms:# and areas/areaz > athresh:
+                        elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]!=eddz['Level'][-1] or levellist[levelindex]!=eddys['Level'][-1]):
                             eddysindex=n
                             eddysmaskdata[str(nn0)]='Done'
                             eddyzmaskdata[str(n)]='Done'
@@ -630,8 +609,6 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                         else:
                             replacecontour=False
                             n=n+1
-                            
-                        #print(n,nn0,'--',coordmxz,coordmxs,'|',coordmyz,coordmys)
                     else:    
                         n=n+1
                 if replacecontour==True:
@@ -648,8 +625,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                         
                         plt.show()
                         print('Area:',areas/areaz)
-                    
-                    #print('Contour Replaced')
+                        
                     contour[eddysindex]=eddys['Contour'][nn0]
                     ellipse[eddysindex]=eddys['Ellipse'][nn0]
                     position[eddysindex]=eddys['Position'][nn0]
@@ -679,8 +655,6 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                 level=np.vstack((level,eddys['Level'][jj]))
                 gauss2d=np.vstack((gauss2d,[eddys['2DGaussianFit'][jj]]))
                 number=np.vstack((number,[len(number)]))
-                
-            
                 
         eddz={'Contour':contour,'Ellipse':ellipse,'Position':position,'PositionExtreme':position_max,\
               'PositionEllipse':position_ellipse,'Area':area,'MajorAxis':majoraxis,\

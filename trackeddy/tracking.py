@@ -121,6 +121,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     eddyn=0
     threshold=7
     numverlevels=np.shape(CONTS)[0]
+    fiteccen=1
+    gaussarea=True
     #print(time.time()-tic)
     for ii in range(0,numverlevels):
         CONTSlvls=CONTS[ii]
@@ -291,13 +293,16 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                             #               a,b,phi,0,0,0]
                                             initial_guess=[a,b,phi,0,0,0]
                                             #initial_guess=[1.0,1.0,0.0,0,0,0]
+                                            fixvalues=(lon_contour,lat_contour,extremvalue,\
+                                                       center_extrem[0],center_extrem[1])
                                             gausssianfitp,R2=fit2Dcurve(ssh_in_contour,\
-                                                          lon_contour,lat_contour,\
-                                                          extremvalue,center_extrem[0],center_extrem[1],\
+                                                          fixvalues,\
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
                                             fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
-                                            if R2 < gaussrsquarefit or fiteccen > eccenfit: #and R2 < 1:
+                                            gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
+                                                                      contarea)
+                                            if R2 < gaussrsquarefit or fiteccen > eccenfit or gaussarea: #and R2 < 1:
                                                 check=False
                                             #syntetic_ssha[yidmin-6:yidmax+7,xidmin-6:xidmax+7]=\
                                             #        syntetic_ssha[yidmin-6:yidmax+7,xidmin-\
@@ -361,13 +366,16 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                             #               a,b,phi,0,0,0]
                                             initial_guess=[a,b,phi,0,0,0]
                                             #initial_guess=[1,1,0,0,0,0]
+                                            fixvalues=(lon_contour,lat_contour,extremvalue,\
+                                                       center_extrem[0],center_extrem[1])
                                             gausssianfitp,R2=fit2Dcurve(ssh_in_contour,\
-                                                          lon_contour,lat_contour,\
-                                                          extremvalue,center_extrem[0],center_extrem[1],\
+                                                          fixvalues,\
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
                                             fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
-                                            if R2 < gaussrsquarefit or fiteccen > eccenfit:
+                                            gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
+                                                                      contarea)
+                                            if R2 < gaussrsquarefit or fiteccen > eccenfit or gaussarea:
                                                 check=False
                                             #syntetic_ssha[yidmin-6:yidmax+7,xidmin-6:xidmax+7]=\
                                             #        syntetic_ssha[yidmin-6:yidmax+7,xidmin-\
@@ -440,7 +448,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         print("Mayor Gauss fit = ",checkM)
                         print("Minor Gauss fit = ",checkm)
                         print("Conditions | Area | Ellipse | Eccen | Gaussians ")
-                        print("           | ", ellipsarea < areachecker and contarea < areachecker ,\
+                        print("           | ", ellipsarea < areachecker and contarea < areachecker and not gaussarea,\
                               " | ", checke ,"| ", eccen < eccenfit and fiteccen < eccenfit ,\
                               " | ", checkM == True and checkm == True)
                         
