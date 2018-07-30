@@ -284,10 +284,10 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                             check=True
                                             if levels[0] > 0:
                                                 level=levels[0]
-                                                extremvalue=ssh_in_contour.max()
+                                                extremvalue=np.nanmax(ssh_in_contour)
                                             else:
                                                 level=levels[1]
-                                                extremvalue=ssh_in_contour.min()
+                                                extremvalue=np.nanmin(ssh_in_contour)
                                             
                                             #initial_guess=[extremvalue,center_extrem[0],center_extrem[1],\
                                             #               a,b,phi,0,0,0]
@@ -300,6 +300,11 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
                                             fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
+                                            
+                                            #plt.pcolormesh(ssh_in_contour)
+                                            #plt.show()
+                                            #print(extremvalue,ssh_in_contour.min(),ssh_in_contour.max())
+                                            
                                             gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
                                                                       contarea)
                                             if R2 < gaussrsquarefit or fiteccen > eccenfit or gaussarea: #and R2 < 1:
@@ -357,10 +362,10 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                             check=True
                                             if levels[0] > 0:
                                                 level=levels[0]
-                                                extremvalue=ssh_in_contour.max()
+                                                extremvalue=np.nanmax(ssh_in_contour)
                                             else:
                                                 level=levels[1]
-                                                extremvalue=ssh_in_contour.min()
+                                                extremvalue=np.nanmin(ssh_in_contour)
                                                 
                                             #initial_guess=[extremvalue,center_extrem[0],center_extrem[1],\
                                             #               a,b,phi,0,0,0]
@@ -373,6 +378,11 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
                                             fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
+                                            
+                                            #plt.pcolormesh(ssh_in_contour)
+                                            #plt.show()
+                                            #print(extremvalue,ssh_in_contour.min(),ssh_in_contour.max())
+                                            
                                             gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
                                                                       contarea)
                                             if R2 < gaussrsquarefit or fiteccen > eccenfit or gaussarea:

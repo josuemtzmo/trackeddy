@@ -1,8 +1,9 @@
 import numpy as np
-import seawater as sw
 from sympy.physics.vector import curl
 import numpy.ma as ma
 from trackeddy.init import *
+import gsw as gs
+import seawater as sw
 
 def okuboweissparm(u,v,lat,lon,z):
     if z==0:
@@ -15,8 +16,8 @@ def okuboweissparm(u,v,lat,lon,z):
         dv=np.gradient(v[z,:,:],axis=1)
         du=np.gradient(u[z,:,:],axis=0)
         dv=np.gradient(v[z,:,:],axis=0)
-    distmlon=sw.dist(0,lon,'km')[0][:]*1000
-    distmlat=sw.dist(0,lat,'km')[0][:]*1000
+    distmlon=ws.distance(lon,0)[0][:]
+    distmlat=ws.distance(0,lat)[0][:]
     mlon=np.cumsum(distmlon)
     mlat=np.cumsum(distmlat)
     mlon = np.hstack((mlon,mlon[-1]))
@@ -38,8 +39,8 @@ def okuboweissparm(u,v,lat,lon,z):
 def vorticity2D(u,v,lon,lat):
     dv=np.gradient(v[:,:],axis=1)
     du=np.gradient(u[:,:],axis=0)
-    distmlon=sw.dist(0,lon,'km')[0][:]*1000
-    distmlat=sw.dist(0,lat,'km')[0][:]*1000
+    distmlon=ws.distance(lon,0)[0][:]
+    distmlat=ws.distance(0,lat)[0][:]
     mlon=np.cumsum(distmlon)
     mlat=np.cumsum(distmlat)
     mlon = np.hstack((mlon,mlon[-1]))
@@ -65,8 +66,8 @@ def geovelfield(ssha,lon,lat,mask='',anomval=100):
         ma.filled(ssha,np.nan)
     except:
         pass
-    distmlon=sw.dist(0,lon,'km')[0][:]*1000
-    distmlat=sw.dist(0,lat,'km')[0][:]*1000
+    distmlon=ws.distance(lon,0)[0][:]
+    distmlat=ws.distance(0,lat)[0][:]
     mlon=np.cumsum(distmlon)
     mlat=np.cumsum(distmlat)
     dy=np.gradient(mlat)
@@ -107,7 +108,7 @@ def PVort(S,T,P,U,V):
     Q=(1/rho)*(zeta)*np.gradient(theta)
 
 def coriolis(lat):
-    return sw.f(lat)
+    return gs.f(lat)
     
 def rossbyR(lat,g=9.81, D=3688):
     '''
@@ -125,20 +126,20 @@ def ssh2ke(data,x,y,mask,anomval=100):
 def checkmesoscalearea(checkarea,lat,ellipsex,ellipsey,contourx='',contoury=''):
     if checkarea==True:
         areachecker=rossbyR(np.mean(lat),g=9.81, D=3688)**2
-        ellipsarea=sw.dist(ellipsey.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
-                   sw.dist(ellipsey.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
+        ellipsarea=gs.distance([[ellipsex.max()],[ellipsex.min()]],[[ellipsey.mean()],[ellipsey.mean()]],axis=0)[0][0]*\
+                   gs.distance([[ellipsey.mean()],[ellipsey.mean()]],[[ellipsey.max()],[ellipsey.min()]],axis=0)[0][0]
         if contourx!='' or contoury!='':
-            contarea=sw.dist(contoury.mean(),[contourx.max(),contourx.min()],'km')[0][:]*1000*\
-                     sw.dist(contoury.mean(),[contoury.max(),contoury.min()],'km')[0][:]*1000
+            contarea=gs.distance([[contoury.max()],[contoury.min()]],[[contoury.mean()],[contoury.mean()]],axis=0)[0][0]*\
+                   gs.distance([[contoury.mean()],[contoury.mean()]],[[contoury.max()],[contoury.min()]],axis=0)[0][0]
         else:
             contarea=None
     else:
         areachecker=np.inf
-        ellipsarea=sw.dist(ellipsey.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
-                   sw.dist(ellipsey.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
+        ellipsarea=gs.distance([[ellipsex.max()],[ellipsex.min()]],[[ellipsey.mean()],[ellipsey.mean()]],axis=0)[0][0]*\
+                   gs.distance([[ellipsey.mean()],[ellipsey.mean()]],[[ellipsey.max()],[ellipsey.min()]],axis=0)[0][0]
         if contourx!='' or contoury!='':
-            contarea=sw.dist(contoury.mean(),[ellipsex.max(),ellipsex.min()],'km')[0][:]*1000*\
-                       sw.dist(contoury.mean(),[ellipsey.max(),ellipsey.min()],'km')[0][:]*1000
+            contarea=gs.distance([[contoury.max()],[contoury.min()]],[[contoury.mean()],[contoury.mean()]],axis=0)[0][0]*\
+                   gs.distance([[contoury.mean()],[contoury.mean()]],[[contoury.max()],[contoury.min()]],axis=0)[0][0]
         else:
             contarea=None
     return areachecker,ellipsarea,contarea

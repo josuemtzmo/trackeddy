@@ -331,7 +331,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
             yscontour=eddys['Contour'][nn0][1]
             levels=eddys['Level'][nn0]
             
-            areas=eddys['Area'][nn0][0]
+            areas=eddys['Area'][nn0]
             
             coordmxs=eddys['PositionExtreme'][nn0][0]
             coordmys=eddys['PositionExtreme'][nn0][1]
@@ -340,7 +340,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
             xzcontour=eddz['Contour'][n][0]
             yzcontour=eddz['Contour'][n][1]
             levelz=eddz['Level'][n]
-            areaz=eddz['Area'][n][0]
+            areaz=eddz['Area'][n]
             
             coordmxz=eddz['PositionExtreme'][n][0]
             coordmyz=eddz['PositionExtreme'][n][1]
@@ -404,7 +404,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
             yscontour=eddys['Contour'][nn0][1]
             magms=eddys['PositionExtreme'][nn0][2]
             levels=eddys['Level'][nn0]
-            areas=eddys['Area'][nn0][0]
+            areas=eddys['Area'][nn0]
                 
             coordmxs=eddys['PositionExtreme'][nn0][0]
             coordmys=eddys['PositionExtreme'][nn0][1]
@@ -425,7 +425,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                     xzcontour=eddz['Contour'][n][0]
                     yzcontour=eddz['Contour'][n][1]
                     levelz=eddz['Level'][n]
-                    areaz=eddz['Area'][n][0]
+                    areaz=eddz['Area'][n]
                     
                     coordmxz=eddz['PositionExtreme'][n][0]
                     coordmyz=eddz['PositionExtreme'][n][1]
@@ -492,7 +492,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                 xscontour=eddys['Contour'][nn0][0]
                 yscontour=eddys['Contour'][nn0][1]
                 levels=eddys['Level'][nn0]
-                areas=eddys['Area'][nn0][0]
+                areas=eddys['Area'][nn0]
                 
                 coordmxs=eddys['PositionExtreme'][nn0][0]
                 coordmys=eddys['PositionExtreme'][nn0][1]
@@ -501,7 +501,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                 xzcontour=eddz['Contour'][n][0]
                 yzcontour=eddz['Contour'][n][1]
                 levelz=eddz['Level'][n]
-                areaz=eddz['Area'][n][0]
+                areaz=eddz['Area'][n]
                         
                 coordmxz=eddz['PositionExtreme'][n][0]
                 coordmyz=eddz['PositionExtreme'][n][1]
@@ -569,7 +569,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                 xscontour=eddys['Contour'][nn0][0]
                 yscontour=eddys['Contour'][nn0][1]
                 levels=eddys['Level'][nn0]
-                areas=eddys['Area'][nn0][0]
+                areas=eddys['Area'][nn0]
                 
                 coordmxs=eddys['PositionExtreme'][nn0][0]
                 coordmys=eddys['PositionExtreme'][nn0][1]
@@ -590,7 +590,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                         xzcontour=eddz['Contour'][n][0]
                         yzcontour=eddz['Contour'][n][1]
                         levelz=eddz['Level'][n]
-                        areaz=eddz['Area'][n][0]
+                        areaz=eddz['Area'][n]
                         coordmxz=eddz['PositionExtreme'][n][0]
                         coordmyz=eddz['PositionExtreme'][n][1]
                         magmz=eddz['PositionExtreme'][n][2]
