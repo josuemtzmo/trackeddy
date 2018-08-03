@@ -13,6 +13,8 @@ setup(
         'numpy',
         'matplotlib',
         'netCDF4',
+        'gsw',
+        'seawater',
     ],
     #packages=['trackeddy'],
     #ext_package='trackeddy', 

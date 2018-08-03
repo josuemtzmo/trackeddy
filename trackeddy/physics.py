@@ -1,9 +1,12 @@
 import numpy as np
 from sympy.physics.vector import curl
 import numpy.ma as ma
-from trackeddy.init import *
+#from trackeddy.init import *
 import gsw as gs
 import seawater as sw
+from netCDF4 import Dataset
+import os
+import xarray
 
 def okuboweissparm(u,v,lat,lon,z):
     if z==0:
@@ -16,8 +19,8 @@ def okuboweissparm(u,v,lat,lon,z):
         dv=np.gradient(v[z,:,:],axis=1)
         du=np.gradient(u[z,:,:],axis=0)
         dv=np.gradient(v[z,:,:],axis=0)
-    distmlon=ws.distance(lon,0)[0][:]
-    distmlat=ws.distance(0,lat)[0][:]
+    distmlon=sw.dist(0,lon,'km')[0][:]*1000
+    distmlat=sw.dist(lat,0,'km')[0][:]*1000
     mlon=np.cumsum(distmlon)
     mlat=np.cumsum(distmlat)
     mlon = np.hstack((mlon,mlon[-1]))
@@ -39,8 +42,8 @@ def okuboweissparm(u,v,lat,lon,z):
 def vorticity2D(u,v,lon,lat):
     dv=np.gradient(v[:,:],axis=1)
     du=np.gradient(u[:,:],axis=0)
-    distmlon=ws.distance(lon,0)[0][:]
-    distmlat=ws.distance(0,lat)[0][:]
+    distmlon=sw.dist(0,lon,'km')[0][:]*1000
+    distmlat=sw.dist(lat,0,'km')[0][:]*1000
     mlon=np.cumsum(distmlon)
     mlat=np.cumsum(distmlat)
     mlon = np.hstack((mlon,mlon[-1]))
@@ -66,8 +69,8 @@ def geovelfield(ssha,lon,lat,mask='',anomval=100):
         ma.filled(ssha,np.nan)
     except:
         pass
-    distmlon=ws.distance(lon,0)[0][:]
-    distmlat=ws.distance(0,lat)[0][:]
+    distmlon=sw.dist(0,lon,'km')[0][:]*1000
+    distmlat=sw.dist(lat,0,'km')[0][:]*1000
     mlon=np.cumsum(distmlon)
     mlat=np.cumsum(distmlat)
     dy=np.gradient(mlat)
@@ -110,22 +113,27 @@ def PVort(S,T,P,U,V):
 def coriolis(lat):
     return gs.f(lat)
     
-def rossbyR(lat,g=9.81, D=3688):
+def rossbyR(lon,lat):
     '''
     **************rossbyR***************
     Barotropic Rossby radius
     '''
-    f = coriolis(lat)
-    Lr = np.sqrt(g*D)/f
-    return abs(Lr)
+    path=os.path.expanduser(os.path.dirname(os.path.realpath(__file__)))
+    RrD_file=xarray.open_mfdataset(path+'/../input/rossby_g.nc')
+    lon=round(lon,2)
+    lat=round(lat,2)
+    if lon<0:
+        lon=360+lon
+    RrD = RrD_file.RrD.sel(lon=[lon],lat=[lat],method='nearest').values
+    return 2*np.pi*RrD[0][0]*1000
 
 def ssh2ke(data,x,y,mask,anomval=100):
     u,v = geovelfield(data,x,y,mask,anomval)
     return KE(u,v)
 
-def checkmesoscalearea(checkarea,lat,ellipsex,ellipsey,contourx='',contoury=''):
+def checkmesoscalearea(checkarea,lon,lat,ellipsex,ellipsey,contourx='',contoury=''):
     if checkarea==True:
-        areachecker=rossbyR(np.mean(lat),g=9.81, D=3688)**2
+        areachecker=(rossbyR(np.mean(lon),np.mean(lat)))**2
         ellipsarea=gs.distance([[ellipsex.max()],[ellipsex.min()]],[[ellipsey.mean()],[ellipsey.mean()]],axis=0)[0][0]*\
                    gs.distance([[ellipsey.mean()],[ellipsey.mean()]],[[ellipsey.max()],[ellipsey.min()]],axis=0)[0][0]
         if contourx!='' or contoury!='':

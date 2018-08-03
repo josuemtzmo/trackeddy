@@ -234,7 +234,7 @@ def addtimetrack(ts,eddydt,eddys,neweddies):
                             'position_eddy':eddys['PositionEllipse'][neweddy],\
                             'ellipse':[eddys['Ellipse'][neweddy]],\
                             'contour':[eddys['Contour'][neweddy]],\
-                            'level':eddys['Level'][neweddy],\
+                            'level':[eddys['Level'][neweddy]],\
                             'minoraxis':eddys['MinorAxis'][neweddy],\
                             'majoraxis':eddys['MajorAxis'][neweddy],\
                             '2dgaussianfit':eddys['2DGaussianFit'][neweddy],\

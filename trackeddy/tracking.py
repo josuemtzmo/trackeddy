@@ -130,7 +130,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
         for jj in range(0,numbereddies):
             CONTeach=CONTSlvls[jj]
             #print(len(CONTeach[:,1]))
-            if (len(CONTeach[:,0]) | len(CONTeach[:,1])) <= 10:
+            if (len(CONTeach[:,0]) | len(CONTeach[:,1])) <= 8:
                 xx=np.nan
                 yy=np.nan
                 center=[np.nan,np.nan]
@@ -217,7 +217,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                     #Check coverage of land 
                     checkland=eddylandcheck(CONTeach,center,lon_contour,lat_contour,ssh_in_contour)
                     #Check Rossby Area (Rossby_radius^2)
-                    areachecker,ellipsarea,contarea=checkmesoscalearea(checkarea,lat_contour,\
+                    areachecker,ellipsarea,contarea=checkmesoscalearea(checkarea,lon_contour,lat_contour,\
                                                                        xx,yy,\
                                                                        CONTeach[:,0],CONTeach[:,1])
                     if eddycenter == 'maximum':
