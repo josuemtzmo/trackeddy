@@ -45,7 +45,7 @@ def gaussfit():
     gaussian=twoD_Gaussian((X,Y,1,0,0),  2.5, 2.5, 0, 0, 0 , 0)
     zz=gaussian.reshape(50,50)
     # Checking fitting:
-    gausssianfitp,R2=fit2Dcurve(zz,x,y,0.1,1,0,0,initial_guess='',\
+    gausssianfitp,R2=fit2Dcurve(zz,(x,y,0.1,1,0),0,initial_guess='',\
                                 date='',diagnostics=diagnostics)
     gaussianfit=twoD_Gaussian((X,Y,1,0,0),*gausssianfitp)
     return R2

@@ -118,13 +118,16 @@ def rossbyR(lon,lat):
     **************rossbyR***************
     Barotropic Rossby radius
     '''
-    path=os.path.expanduser(os.path.dirname(os.path.realpath(__file__)))
-    RrD_file=xarray.open_mfdataset(path+'/../input/rossby_g.nc')
-    lon=round(lon,2)
-    lat=round(lat,2)
-    if lon<0:
-        lon=360+lon
-    RrD = RrD_file.RrD.sel(lon=[lon],lat=[lat],method='nearest').values
+    try:
+        path=os.path.expanduser(os.path.dirname(os.path.realpath(__file__)))
+        RrD_file=xarray.open_mfdataset(path+'/../input/rossby_g.nc')
+        lon=round(lon,2)
+        lat=round(lat,2)
+        if lon<0:
+            lon=360+lon
+        RrD = RrD_file.RrD.sel(lon=[lon],lat=[lat],method='nearest').values
+    except:
+        RrD=[[np.inf]]
     return 2*np.pi*RrD[0][0]*1000
 
 def ssh2ke(data,x,y,mask,anomval=100):
