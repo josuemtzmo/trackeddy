@@ -15,7 +15,7 @@ setup(
         'netCDF4',
         'gsw',
         'seawater',
-        'array',
+        'xarray',
     ],
     #packages=['trackeddy'],
     #ext_package='trackeddy', 
