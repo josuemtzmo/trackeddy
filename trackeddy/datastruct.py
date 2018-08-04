@@ -189,7 +189,9 @@ def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue=
             t1track=str(find(eddydist,eddydist.min()))
             t0track=str(eddydt['eddyn_'+str(t0key)]['neddy'][0])
             L_R=rossbyR(np.mean((eddys['PositionExtreme'][int(t1track)][1],\
-                eddydt['eddyn_'+t0track]['position_'+maxvalue][-1][1])))
+                        eddydt['eddyn_'+t0track]['position_'+maxvalue][-1][1])),\
+                        np.mean((eddys['PositionExtreme'][int(t1track)][1],\
+                        eddydt['eddyn_'+t0track]['position_'+maxvalue][-1][1])))
             majoraxdist= sw.dist(eddys['MajorAxis'][t1key][1],eddys['MajorAxis'][t1key][0],'km')[0][0]*1000 
             sw.dist((t1position[1],t0position[1]),\
                              (t1position[0],t0position[0]),'km')[0][0]*1000
