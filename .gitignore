@@ -97,7 +97,9 @@ phd_research/
 *_bk.ipynb
 *.ipynb_bk
 _*/
+*.bk
 #docs/Makefile
 docs/make.bat
 test/*.ipynb
 *.xml
+version_control/
