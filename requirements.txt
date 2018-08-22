@@ -8,5 +8,4 @@ pandas
 netcdf4 
 pytest 
 cartopy
-seawater
 xarray
