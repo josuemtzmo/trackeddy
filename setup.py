@@ -9,7 +9,7 @@ setup(
     author_email='josue.martinezmoreno@anu.edu.au',
     license='MIT License',
     packages=find_packages(),
-    install_requires=[],
+    install_requires=[gsw],
     #packages=['trackeddy'],
     #ext_package='trackeddy', 
     zip_safe=False,
