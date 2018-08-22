@@ -10,7 +10,6 @@ diagnostics=False
 ##      Import packages        ##
 #################################
 import sys
-import trackeddy
 
 from trackeddy.tracking import *
 from trackeddy.datastruct import *
