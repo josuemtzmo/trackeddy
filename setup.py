@@ -10,9 +10,7 @@ setup(
     license='MIT License',
     packages=find_packages(),
     install_requires=['gsw','seawater'],
-    packages=['trackeddy'],
-    ext_package='trackeddy', 
     zip_safe=False,
-    test_suite='nose.collector',
-    tests_require=['nose'],
+    #test_suite='nose.collector',
+    #tests_require=['testme'],
  )
