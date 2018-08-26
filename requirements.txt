@@ -7,7 +7,6 @@ distributed
 pandas 
 netcdf4 
 pytest 
-cartopy
 gsw
 seawater
 xarray

@@ -123,18 +123,19 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     numverlevels=np.shape(CONTS)[0]
     fiteccen=1
     gaussarea=True
+    
     #print(time.time()-tic)
     for ii in range(0,numverlevels):
         CONTSlvls=CONTS[ii]
         numbereddies=np.shape(CONTSlvls)[0]
         for jj in range(0,numbereddies):
+            check=False
             CONTeach=CONTSlvls[jj]
             #print(len(CONTeach[:,1]))
             if (len(CONTeach[:,0]) | len(CONTeach[:,1])) <= 8:
                 xx=np.nan
                 yy=np.nan
                 center=[np.nan,np.nan]
-                check=False
             else:
                 ellipse,status=fit_ellipse(CONTeach[:,0],CONTeach[:,1],diagnostics=diagnostics)
                 checke=False
@@ -242,9 +243,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         #except:
                         #    center_extrem=center_eddy
                     #print(center_extrem[:2],lon[center_extrem[3]],lat[center_extrem[4]])
-                    if checkland==False:
-                        check=False
-                    else:
+                    if checkland!=False:
                         checkM=False
                         checkm=False 
                         if contarea>=ellipsarea:
@@ -281,7 +280,6 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                                diagnostics=diagnostics)
                                         #print('Time elapsed ellipsefit:',str(time.time()-tic))
                                         if checkM==True and checkm==True: 
-                                            check=True
                                             if levels[0] > 0:
                                                 level=levels[0]
                                                 extremvalue=np.nanmax(ssh_in_contour)
@@ -289,45 +287,37 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                 level=levels[1]
                                                 extremvalue=np.nanmin(ssh_in_contour)
                                             
-                                            #initial_guess=[extremvalue,center_extrem[0],center_extrem[1],\
-                                            #               a,b,phi,0,0,0]
                                             initial_guess=[a,b,phi,0,0,0]
-                                            #initial_guess=[1.0,1.0,0.0,0,0,0]
-                                            fixvalues=(lon_contour,lat_contour,extremvalue,\
-                                                       center_extrem[0],center_extrem[1])
+                                            
+                                            fixvalues=[lon_contour,lat_contour,extremvalue,\
+                                                       center_extrem[0],center_extrem[1]]
                                             gausssianfitp,R2=fit2Dcurve(ssh_in_contour,\
                                                           fixvalues,\
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
                                             fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
                                             
-                                            #plt.pcolormesh(ssh_in_contour)
-                                            #plt.show()
-                                            #print(extremvalue,ssh_in_contour.min(),ssh_in_contour.max())
-                                            
-                                            gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
+                                            if R2 > gaussrsquarefit or fiteccen < eccenfit or gaussarea: #and R2 < 1:
+                                                if xidmin <= 20:
+                                                    xidmin=20
+                                                if yidmin <= 20:
+                                                    xidmin=20
+                                                fixvalues[0]=lon[xidmin-20+1:xidmax+20]
+                                                fixvalues[1]=lat[yidmin-20+1:yidmax+20]
+                                                gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
                                                                       contarea)
-                                            if R2 < gaussrsquarefit or fiteccen > eccenfit or gaussarea: #and R2 < 1:
-                                                check=False
+                                                if gaussarea: 
+                                                    check=True
                                             #syntetic_ssha[yidmin-6:yidmax+7,xidmin-6:xidmax+7]=\
                                             #        syntetic_ssha[yidmin-6:yidmax+7,xidmin-\
                                             #                      6:xidmax+7]+gausssianfitp
                                             #USE ALL THE DOMAIN    
                                             #syntetic_ssha=gausssianfitp
                                             
-                                        else:
-                                            check=False
                                     else:
                                         print('Checkgauss need to be True to reconstruct the field.')
-                                else:
-                                    check=False
-                            else:
-                                check=False
+                                        
                         elif contarea<ellipsarea:
-                            #if contarea<ellipsarea/1.5:
-                                #print 'Removing contour, thisone is really overestimate'
-                            #    check=False
-                            #elif eccen<0.95 and eccen>0.4:
                             if eccen<eccenfit and eccen>0:
                                 if ellipsarea < areachecker and contarea<areachecker:
                                     if checkgauss==True:
@@ -359,7 +349,6 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                                diagnostics=diagnostics)
                                       #print('Time elapsed ellipsefit:',str(time.time()-tic))
                                         if checkM==True and checkm==True:
-                                            check=True
                                             if levels[0] > 0:
                                                 level=levels[0]
                                                 extremvalue=np.nanmax(ssh_in_contour)
@@ -367,43 +356,34 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                 level=levels[1]
                                                 extremvalue=np.nanmin(ssh_in_contour)
                                                 
-                                            #initial_guess=[extremvalue,center_extrem[0],center_extrem[1],\
-                                            #               a,b,phi,0,0,0]
                                             initial_guess=[a,b,phi,0,0,0]
-                                            #initial_guess=[1,1,0,0,0,0]
-                                            fixvalues=(lon_contour,lat_contour,extremvalue,\
-                                                       center_extrem[0],center_extrem[1])
+                                            
+                                            fixvalues=[lon_contour,lat_contour,extremvalue,\
+                                                       center_extrem[0],center_extrem[1]]
                                             gausssianfitp,R2=fit2Dcurve(ssh_in_contour,\
                                                           fixvalues,\
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
                                             fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
                                             
-                                            #plt.pcolormesh(ssh_in_contour)
-                                            #plt.show()
-                                            #print(extremvalue,ssh_in_contour.min(),ssh_in_contour.max())
-                                            
-                                            gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
+                                            if R2 > gaussrsquarefit or fiteccen < eccenfit:
+                                                if xidmin <= 20:
+                                                    xidmin=20
+                                                if yidmin <= 20:
+                                                    xidmin=20
+                                                fixvalues[0]=lon[xidmin-20+1:xidmax+20]
+                                                fixvalues[1]=lat[yidmin-20+1:yidmax+20]
+                                                gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
                                                                       contarea)
-                                            if R2 < gaussrsquarefit or fiteccen > eccenfit or gaussarea:
-                                                check=False
-                                            #syntetic_ssha[yidmin-6:yidmax+7,xidmin-6:xidmax+7]=\
-                                            #        syntetic_ssha[yidmin-6:yidmax+7,xidmin-\
-                                            #                      6:xidmax+7]+gausssianfitp
-                                            #USE ALL THE DOMAIN
-                                            #syntetic_ssha=gausssianfitp
-                                        else:
-                                            check=False
+                                                if gaussarea: 
+                                                    check=True
+                                                    
                                     else:
                                         print('Checkgauss need to be True')
-                                else:
-                                    check=False
+                                        
                             else:
-                                #print 'Removing contour, thisone is really underestimate'
-                                check=False
                                 ellipseadjust=np.nan
-                        else:
-                            check=False
+                                
                     if check==True:# or check==False:
                         if usefullfit==False and mode=='gaussian':
                             gausssianfitp[-1]=0
@@ -542,11 +522,11 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
             check=True
             
         except:
-            eddys=0
             check=False
+            eddys=0
         #if destdir!='':
         #    save_data(destdir+'day'+str(date)+'_one_step_cont'+str(total_contours)+'.dat', variable)
-    return eddys,check,numbereddies
+    return eddys,check,total_contours
     
 def scan_eddyt(ssh,lat,lon,levels,date,areamap,destdir='',okparm='',diagnostics=False):
     '''
@@ -773,6 +753,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
 
     Author: Josue Martinez Moreno, 2017
     '''
+    pp =  Printer(); 
     if len(np.shape(data))<3:
         print('If you whant to analyze in time the data need to be 3d [i.e. data(t,x,y)]')
         #return
@@ -791,6 +772,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
                 mask=np.zeros(np.shape(data[:,:]))
             else:
                 mask=np.zeros(np.shape(data[0,:,:]))
+    pp.timepercentprint(0,1,1,0,"Init time")
     pp =  Printer(); 
     numbereddieslevels=0
     for ii in range(t0,t1,tstep):

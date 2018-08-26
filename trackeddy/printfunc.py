@@ -16,8 +16,13 @@ class Printer():
         sys.stdout.flush()
         
     def timepercentprint(self,minv,maxv,step,i,neddies):
-        percent=round((float(i+1)/maxv)*100.0)
-        sys.stdout.write("\r 0% [{0}>]{1}% Time Elapsed: {2} s  Number of contours analysed: {3} ".format("="*int(i),percent,round((time.clock()-self.tic)),neddies))
+        percent=(float(i+1)/maxv)*100.0
+        etime=round(time.clock()-self.tic)
+        stmtime=round((etime/percent)*100)
+        
+        progress=int(20/(maxv/(step*(i+1))))
+        emptyprog=20-progress
+        sys.stdout.write("\r 0% [{0}>{1}]{2}% | Elapsed Time:{3} s | Estimated Time:{4} s | Info: {5} |".format("="*progress,' '*emptyprog,round(percent),etime,stmtime,neddies))
         if percent != 100:
             sys.stdout.flush()
         else:

@@ -128,7 +128,7 @@ def rossbyR(lon,lat):
         RrD = RrD_file.RrD.sel(lon=[lon],lat=[lat],method='nearest').values
     except:
         RrD=[[np.inf]]
-    return 2*np.pi*RrD[0][0]*1000
+    return RrD[0][0]*1000
 
 def ssh2ke(data,x,y,mask,anomval=100):
     u,v = geovelfield(data,x,y,mask,anomval)
@@ -136,7 +136,7 @@ def ssh2ke(data,x,y,mask,anomval=100):
 
 def checkmesoscalearea(checkarea,lon,lat,ellipsex,ellipsey,contourx='',contoury=''):
     if checkarea==True:
-        areachecker=(rossbyR(np.mean(lon),np.mean(lat)))**2
+        areachecker=(2*np.pi*(rossbyR(np.mean(lon),np.mean(lat))))**2
         ellipsarea=gs.distance([[ellipsex.max()],[ellipsex.min()]],[[ellipsey.mean()],[ellipsey.mean()]],axis=0)[0][0]*\
                    gs.distance([[ellipsey.mean()],[ellipsey.mean()]],[[ellipsey.max()],[ellipsey.min()]],axis=0)[0][0]
         if contourx!='' or contoury!='':

@@ -8,8 +8,9 @@ from scipy.optimize import curve_fit,leastsq,least_squares
 from scipy import ndimage
 from scipy.stats import pearsonr
 from scipy import stats
-import cartopy.crs as ccrs
+#import cartopy.crs as ccrs
 from trackeddy.physics import *
+from trackeddy.printfunc import *
 
 def fit_ellipse(x,y,diagnostics=False):
     '''
@@ -860,7 +861,11 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
     fieldfit=np.zeros(varshape)
     if type(diagnostics) !=list:
         diagnostics=[diagnostics]
-    for key in eddytd.keys():
+    pp =  Printer(); 
+    keys=tuple(eddytd.keys())
+    loop_len=len(keys)
+    for xx in range(0,loop_len):
+        key=keys[xx]
         counter=0
         #print(key)
         for tt in range(0,len(eddytd[key]['time'])):
@@ -914,6 +919,7 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
             ax.coastlines()
             plt.colorbar()
             plt.show()
+        pp.timepercentprint(0,loop_len,1,xx,key)
     return fieldfit
 
 def phase_angle(v,u,lon,lat):
