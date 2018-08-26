@@ -8,22 +8,29 @@ Welcome to trackeddy's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Quick Start:
 
    getting_started
    using_trackeddy
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Dive in!
+
    pages/Build_Process
    pages/Introduction
    pages/Background
    pages/Methods
+   pages/Applications
    pages/Results
    about
-
-.. toctree::  
-   :caption: Help & References:
    
+
+.. toctree::
+   :caption: Help & References:
+
    related_projects
-   references  
+   references
 
 Indices and tables
 ==================

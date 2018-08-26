@@ -2,7 +2,42 @@
 Introduction
 ============
 
-Mesoscale ocean eddies are coherent rotating vortices of water with radial scales from 25-250 km and a lifetime of 10 to 100 days [4]. Eddies play a significant role in the mixing and transport of heat, salt, tracers across the global ocean. Moreover, eddies have influence in the atmospheric conditions within their vicinity as well as marine ecosystems. This mesoscale turbulence modifies the response of the global ocean circulation and changes in climate. Thus, understanding global ocean eddy dynamics and their role in influencing the oceanic hydrosphere, atmosphere and biosphere is on the top of the scientific interest.
+The ocean regulates Earth’s climate through different spatial-temporal scales
+varying from a few millimetres or seconds to thousands of kilometres or years.
+Each scale contributes to the control of the carbon cycle, heat balance,
+global circulation, oceanic biology and energy balance. Ocean processes with
+spatial scales of 10 to 100 km and temporal scales of days to years are known
+as mesoscale processes, and include eddies, jets and waves. Mesoscale processes
+play important roles in energy transfer, biologic dynamics and heat, momentum
+and tracers transport (Lèvy et al., 2012; Thomas et al., 2008). However, even
+though mesoscale circulation has been studied since the 1970s
+(Zhang et al., 2014; Wyrtki et al., 1976; Gill et al., 1974), the global scale
+interaction and impact of each mesoscale process remains unknown.
+Mesoscale processes constitute a significant component of the oceanic kinetic
+and available potential energy. In the case of kinetic energy, a Reynolds
+decomposition separates the flow into a perturbation, or transient, state and
+a temporal mean state. These two components are commonly defined as the mean
+kinetic energy (MKE) and eddy kinetic energy (EKE)
 
-Mesoscale eddies constitute one of the principal components of oceanic energy balance. In many parts of the ocean, transient processes contain more kinetic energy (EKE) than the mean kinetic energy (MKE). Hogg *et. al.* showed an intensification of the Southern Ocean eddy field that could lead to changes in overturning circulation, carbon cycling and climate change. However, one difficulty in determining the role of eddies in the oceanic transient adjustment to climate change is the lack of a process-based definition of EKE.
+(Kang and Curchitser, 2017; Wyrtki et al., 1976). Analogous to the case of
+the KE, the available potential energy (APE) can be decomposed into the time
+mean available potential energy (MAPE) and the eddy available potential
+energy (EAPE) (Oort et al., 1989). These decompositions provide the mean
+background and the time-variation energy budget, but do not differentiate
+between mesoscale and non-mesoscale processes, which are present in both mean
+and transient fields.
 
+In many parts of the ocean, mesoscale processes contain more EKE and EAPE
+than the tem- poral mean state (Barthel et al., 2017; Chen et al., 2014).
+Despite the name EKE and EAPE, both decompositions contain all transient
+processes, not just eddies. This lack of a process-based definition of EKE and
+EAPE makes it difficult to understand each process in the oceanic transient
+adjustment to climate change. Thus, the contribution of eddies and jets in the
+oceanic energy budget remains unknown.
+
+Additionally, Hogg et al. (2015) found a decadal increase in EKE in the
+Southern Ocean. The present study will explore the consequences of the
+increasing trend in EKE in more detail. As the mesoscale variability forms a
+crucial component of the ocean circulation dynamics, including the large-scale
+and time-mean circulation, this study will be focused on each mesoscale process
+to understand it on a global scale.

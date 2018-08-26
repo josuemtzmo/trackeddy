@@ -13,19 +13,4 @@ Modules available in trackeddy include:
 
 __all__ = ['datastruct', 'init','geometryfunc','physics','plotfunc','tracking']
 
-#import tracking
-#import datastruct
-#import init
-#import geometryfunc
-#import physics
-#import plotfunc
-
-#from tracking import *
-#from datastruct import *
-#from init import *
-#from geometryfunc import *
-#from physics import *
-#from plotfunc import *
-#import numpy as np
-
 __authors__ = ['Josue Martinez Moreno <josue.martinezmoreno@anu.edu.au>']
