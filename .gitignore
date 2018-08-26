@@ -94,6 +94,7 @@ phd_research/
 # Git
 .DS_Store
 #.gitignore
+*_bk
 *_bk.ipynb
 *.ipynb_bk
 _*/
