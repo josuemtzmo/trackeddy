@@ -99,6 +99,7 @@ phd_research/
 *.ipynb_bk
 _*/
 *.bk
+*.nfs*
 #docs/Makefile
 docs/make.bat
 test/*.ipynb
