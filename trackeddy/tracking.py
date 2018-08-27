@@ -273,7 +273,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                           mode=mode,diagnostics=diagnostics)
                                             fiteccen=eccentricity(gausssianfitp[1],gausssianfitp[2])
                                             
-                                            if R2 > gaussrsquarefit or fiteccen < eccenfit or gaussarea: #and R2 < 1:
+                                            if R2 > gaussrsquarefit and fiteccen < eccenfit: #and R2 < 1:
                                                 if xidmin <= 20:
                                                     xidmin=20
                                                 if yidmin <= 20:
@@ -336,7 +336,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                           mode=mode,diagnostics=diagnostics)
                                             fiteccen=eccentricity(gausssianfitp[1],gausssianfitp[2])
                                             
-                                            if R2 > gaussrsquarefit or fiteccen < eccenfit:
+                                            if R2 > gaussrsquarefit and fiteccen < eccenfit:
                                                 if xidmin <= 20:
                                                     xidmin=20
                                                 if yidmin <= 20:

@@ -8,7 +8,7 @@ from scipy.optimize import curve_fit,leastsq,least_squares
 from scipy import ndimage
 from scipy.stats import pearsonr
 from scipy import stats
-#import cartopy.crs as ccrs
+import cartopy.crs as ccrs
 from trackeddy.physics import *
 from trackeddy.printfunc import *
 
@@ -913,10 +913,10 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
             #plt.show()
             counter=counter+1
         if ("reconstruct" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
-            #ax = plt.axes(projection=ccrs.PlateCarree())
+            ax = plt.axes(projection=ccrs.PlateCarree())
             print('key: ',key,'Level: ',level)
             plt.pcolormesh(Lon,Lat,fieldfit[0,:,:])
-            #ax.coastlines()
+            ax.coastlines()
             plt.colorbar()
             plt.show()
         pp.timepercentprint(0,loop_len,1,xx,key)

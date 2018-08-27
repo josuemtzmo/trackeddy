@@ -9,3 +9,6 @@ pandas
 netCDF4 
 pytest 
 xarray
+seawater
+cmocean
+cartopy
