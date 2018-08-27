@@ -42,71 +42,50 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     I used some auxilar functions, each one has his respective author.
     Author: Josue Martinez Moreno, 2017
     '''
-    #tic=time.time()
+    # Defining lists inside dictionary 
     ellipse_path=[]
     contour_path=[]
     mayoraxis_eddy=[]
     minoraxis_eddy=[]
     gaussianfitdict=[]
+    # Data shape
     shapedata=np.shape(ssh)
+    # Diagnostics to list, which allows to print multiple diagnostics at the same time. 
+    # (Be carefull because it uses a lot of memory)
     if type(diagnostics) !=list:
         diagnostics=[diagnostics]
-    if ssh is ma.masked:
+    # Check if data is masked
+    elif ssh is ma.masked:
         print('Invalid ssh data, must be masked')
         return
-    if shapedata == [len(lat), len(lon)]:
+    # Make sure the shape of the data is identical to the grid.
+    elif shapedata == [len(lat), len(lon)]:
         print('Invalid ssh data size, should be [length(lat) length(lon]')
         return
-    if np.shape(areamap) == shapedata:
+    #Check that area to analyze is valid
+    elif np.shape(areamap) == shapedata:
         if np.shape(areamap) == [1, 1] | len(areamap) != len(lat):
             print('Invalid areamap, using NaN for eddy surface area')
         return
-    if len(levels)!= 2:
+    #Check the number of levels is valid.
+    elif len(levels)!= 2:
         print('Invalid len of levels, please use the function for multiple levels or use len(levels)==2')
         return
     #Saving mask for future post-processing.  
-    
     if mask!='':
         ssh=np.ma.masked_array(ssh, mask)
     sshnan=ssh.filled(np.nan)
-    
-    #Join sintetic fields for each level (Not useful for the final goal)
-    #if len(shapedata)==3:
-    #    syntetic_ssha=np.zeros(shapedata[1],shapedata[2])
-    #else:
-    #    syntetic_ssha=np.zeros(shapedata)
-    
-    #Obtain the contours of a surface (contourf), this aproach is better than the contour.
+    # Obtain the contours of a surface (contourf), this aproach is better than the contour.
     if len(np.shape(lon))== 1 and len(np.shape(lat)) == 1:
         Lon,Lat=np.meshgrid(lon,lat)
     else:
         Lon,Lat=lon,lat
-    
+    # Extract min value and max value from the coordinates.
     min_x=Lon[0,0]
     min_y=Lat[0,0]
     max_x=Lon[-1,-1]
     max_y=Lat[-1,-1]
-    
-    if basemap==True:
-        fig, ax = plt.subplots(figsize=(10,10))
-        m = Basemap(projection='ortho',lat_0=-90,lon_0=-100,resolution='c')
-        m.drawcoastlines()
-        m.fillcontinents(color='black',lake_color='aqua')
-        m.drawmeridians(np.arange(0,360,30),labels=[1,1,0,0],fontsize=10)
-        lonm,latm=m(Lon,Lat)
-    
-        if len(shapedata)==3:
-            m.contourf(lonm[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
-                       latm[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
-                    sshnan[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
-            plt.show()
-
-        else:
-            m.contourf(lonm[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
-                       latm[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
-                    sshnan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
-            plt.show()
-            
+    # Plot contours according to the data.   
     if len(shapedata)==3:
         CS=plt.contourf(lon[areamap[0,0]:areamap[0,1]],lat[areamap[1,0]:areamap[1,1]],\
                 sshnan[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
@@ -115,23 +94,23 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                 sshnan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
     # Close the contour plot.
     plt.close()
+    # Extracting detected contours.
     CONTS=CS.allsegs[:][:]
-    #Loop in contours of the levels defined.
+    # Define variables used in the main loop.
     total_contours=0
     eddyn=0
     threshold=7
     numverlevels=np.shape(CONTS)[0]
     fiteccen=1
     gaussarea=True
-    
-    #print(time.time()-tic)
+    # Loop in contours of the levels defined.
     for ii in range(0,numverlevels):
         CONTSlvls=CONTS[ii]
         numbereddies=np.shape(CONTSlvls)[0]
+        # Loop over all the close contours.
         for jj in range(0,numbereddies):
             check=False
             CONTeach=CONTSlvls[jj]
-            #print(len(CONTeach[:,1]))
             if (len(CONTeach[:,0]) | len(CONTeach[:,1])) <= 8:
                 xx=np.nan
                 yy=np.nan
@@ -146,9 +125,6 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                   diagnostics=diagnostics)
                 if (False not in diagnostics) or ("all" in diagnostics):
                     print("----- New Eddy -----")
-                    #plt.plot(CONTeach[:,0],CONTeach[:,1])
-                    #plt.plot(ellipse['ellipse'][0],ellipse['ellipse'][1])
-                    #plt.show()
                 if checke==True:
                     xidmin,xidmax=find2l(lon,lon,CONTeach[:,0].min(),CONTeach[:,0].max())
                     yidmin,yidmax=find2l(lat,lat,CONTeach[:,1].min(),CONTeach[:,1].max())
@@ -295,7 +271,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                           fixvalues,\
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
-                                            fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
+                                            fiteccen=eccentricity(gausssianfitp[1],gausssianfitp[2])
                                             
                                             if R2 > gaussrsquarefit or fiteccen < eccenfit or gaussarea: #and R2 < 1:
                                                 if xidmin <= 20:
@@ -307,13 +283,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                 gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
                                                                       contarea)
                                                 if gaussarea: 
-                                                    check=True
-                                            #syntetic_ssha[yidmin-6:yidmax+7,xidmin-6:xidmax+7]=\
-                                            #        syntetic_ssha[yidmin-6:yidmax+7,xidmin-\
-                                            #                      6:xidmax+7]+gausssianfitp
-                                            #USE ALL THE DOMAIN    
-                                            #syntetic_ssha=gausssianfitp
-                                            
+                                                    check=True                                            
                                     else:
                                         print('Checkgauss need to be True to reconstruct the field.')
                                         
@@ -364,7 +334,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                           fixvalues,\
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
-                                            fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
+                                            fiteccen=eccentricity(gausssianfitp[1],gausssianfitp[2])
                                             
                                             if R2 > gaussrsquarefit or fiteccen < eccenfit:
                                                 if xidmin <= 20:
@@ -401,7 +371,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                             position_max=[center_extrem]
                             position_ellipse=[center]
                             total_eddy=[eddyn]
-                            area=[contarea]
+                            area=[contarea,areachecker,gaussarea[1]]
                             angle=[phi]
                             if CS.levels[0] > 0:
                                 level=CS.levels[0]
@@ -413,7 +383,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                             position_max=np.vstack((position_max,center_extrem))
                             position_ellipse=np.vstack((position_ellipse,center))
                             total_eddy=np.vstack((total_eddy,eddyn))
-                            area=np.vstack((area,contarea))
+                            area=np.vstack((area,[contarea,areachecker,gaussarea[1]]))
                             angle=np.vstack((angle,phi))
                             
                             if CS.levels[0] > 0:

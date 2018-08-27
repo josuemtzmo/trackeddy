@@ -8,10 +8,4 @@ distributed
 pandas 
 netcdf4 
 pytest 
-<<<<<<< HEAD
-gsw
-seawater
-=======
-cartopy
->>>>>>> 967cce582bc7dbc9d437f1549b035ae723623c0c
 xarray
