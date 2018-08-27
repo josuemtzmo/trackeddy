@@ -6,6 +6,6 @@ matplotlib
 bokeh 
 distributed 
 pandas 
-netcdf4 
+netCDF4 
 pytest 
 xarray
