@@ -524,14 +524,14 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
     return g.ravel()
 
 def gaussian2Dresidual(popt, coords, varm):
-    residual =(twoD_Gaussian(coords,*popt)-varm)**2
+    residual =(varm - twoD_Gaussian(coords,*popt))**2
     #residual = sum(twoD_Gaussian(coords,*popt))-sum(varm)
     #print( sum(twoD_Gaussian(coords,*popt)),sum(varm))
     #print('RES MEAN: ',residual.mean())
     return residual
 
 def paraboloid2Dresidual(popt,coords,varm):
-    residual = ( twoD_Paraboloid(coords,*popt)-varm)**2
+    residual = (varm - twoD_Paraboloid(coords,*popt))**2
     #residual = sum(twoD_Paraboloid(coords,*popt))-sum(varm)
     #print('RES MEAN: ',residual.mean())
     #ss_err=((twoD_Paraboloid(coords,*popt))**2).sum()
