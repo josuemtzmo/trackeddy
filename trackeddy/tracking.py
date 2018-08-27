@@ -52,7 +52,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     shapedata=np.shape(ssh)
     # Diagnostics to list, which allows to print multiple diagnostics at the same time. 
     # (Be carefull because it uses a lot of memory)
-    if type(diagnostics) !=list:
+    if type(diagnostics) != list:
         diagnostics=[diagnostics]
     # Check if data is masked
     elif ssh is ma.masked:

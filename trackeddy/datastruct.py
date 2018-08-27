@@ -299,7 +299,7 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
     '''
     athresh=1000
     threshold=7
-    if type(diagnostics) !=list:
+    if type(diagnostics) != list:
         diagnostics=[diagnostics]
     if eddz=='' or maxlevel==levellist[levelindex]:
         eddz=eddys

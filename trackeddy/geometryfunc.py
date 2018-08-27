@@ -567,6 +567,8 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
     Usage:
         
     '''
+    if type(diagnostics) != list:
+        diagnostics=[diagnostics]
     Lon, Lat = np.meshgrid(values[0], values[1])
     coords=(Lon,Lat,values[2],values[3],values[4])
     if date!='':
@@ -756,7 +758,7 @@ def extractprofeddy(axis,field,lon,lat,n,gaus='One',kind='linear',gaussrsquarefi
         field[~np.isfinite(field)]=np.nan
         fieldnan=field
         
-    if type(diagnostics) !=list:
+    if type(diagnostics) != list:
         diagnostics=[diagnostics]
 
     #fieldnan=field
@@ -859,7 +861,7 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
     '''
     Lon,Lat=np.meshgrid(lon,lat)
     fieldfit=np.zeros(varshape)
-    if type(diagnostics) !=list:
+    if type(diagnostics) != list:
         diagnostics=[diagnostics]
     pp =  Printer(); 
     keys=tuple(eddytd.keys())
