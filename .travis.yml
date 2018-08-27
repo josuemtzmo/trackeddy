@@ -14,8 +14,9 @@ install:
   - conda install --file ./requirements.txt
   - source activate test-environment
   - conda install -c conda-forge seawater cmocean cartopy
+  - conda install pytest
   - pip install -e .
-  - which python
+  - which pytest
 script: pytest -m testme
 notifications:
   slack:
