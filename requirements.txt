@@ -12,3 +12,4 @@ xarray
 seawater
 cmocean
 cartopy
+gsw

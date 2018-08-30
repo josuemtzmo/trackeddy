@@ -9,7 +9,7 @@ setup(
     author_email='josue.martinezmoreno@anu.edu.au',
     license='MIT License',
     packages=find_packages(),
-    install_requires=['gsw','seawater','cartopy'],
+    install_requires=[],
     zip_safe=False,
     #test_suite='nose.collector',
     #tests_require=['testme'],
