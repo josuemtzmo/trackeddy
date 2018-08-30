@@ -524,14 +524,14 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
     return g.ravel()
 
 def gaussian2Dresidual(popt, coords, varm):
-    residual =(varm - twoD_Gaussian(coords,*popt))**2
+    residual =(twoD_Gaussian(coords,*popt)-varm)**2
     #residual = sum(twoD_Gaussian(coords,*popt))-sum(varm)
     #print( sum(twoD_Gaussian(coords,*popt)),sum(varm))
     #print('RES MEAN: ',residual.mean())
     return residual
 
 def paraboloid2Dresidual(popt,coords,varm):
-    residual = (varm - twoD_Paraboloid(coords,*popt))**2
+    residual = (twoD_Paraboloid(coords,*popt)-varm)**2
     #residual = sum(twoD_Paraboloid(coords,*popt))-sum(varm)
     #print('RES MEAN: ',residual.mean())
     #ss_err=((twoD_Paraboloid(coords,*popt))**2).sum()
@@ -627,7 +627,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
     if ("2dfit" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
         print('R^2 2D fitting:',R2)
         print('OPT steps:',infodict['nfev'])
-        print("             |amplitud|x0|y0|sigmaX|sigmaY|Theta|slopeX|slopeY|")
+        print("             |sigmaX|sigmaY|Theta|slopeX|slopeY|")
         print("initial guess|" + ''.join(str(e)+'|' for e in initial_guess))
         print("Fit.         |" + ''.join(str(e)+'|' for e in fitdict))
         f, (ax1, ax2,ax3) = plt.subplots(1, 3,figsize=(15,7), sharey=True)
@@ -1016,14 +1016,12 @@ def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y
         CS=plt.contour(values[0],values[1],fittedata,levels=[level,0])
     plt.close()
     CONTS=CS.allsegs[0][0]
-    area = checkmesoscalearea(False,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
+    area = checkmesoscalearea(True,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
     
     #print('gauss',area[1],'contour',contour_area)
-    if contour_area*2 < area[1]:
+#    print(contour_area*2 < area[1] , contour_area/2 > area[1] ,  area[1] < area[0])
+    if (contour_area*1.5 > area[1] and contour_area/1.5 > area[1]) and  area[1] > area[0]:
         #print('Too big',contour_area*1.5, area[1])
-        test=True
-    elif contour_area/2 > area[1]:
-        #print('Too small',contour_area/1.5, area[1])
         test=True
     else:
         test=False

@@ -100,6 +100,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     total_contours=0
     eddyn=0
     threshold=7
+    threshold2D=20
     numverlevels=np.shape(CONTS)[0]
     fiteccen=1
     gaussarea=True
@@ -271,15 +272,19 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                           fixvalues,\
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
-                                            fiteccen=eccentricity(gausssianfitp[1],gausssianfitp[2])
+                                            fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
                                             
-                                            if R2 > gaussrsquarefit and fiteccen < eccenfit: #and R2 < 1:
-                                                if xidmin <= 20:
-                                                    xidmin=20
-                                                if yidmin <= 20:
-                                                    xidmin=20
-                                                fixvalues[0]=lon[xidmin-20+1:xidmax+20]
-                                                fixvalues[1]=lat[yidmin-20+1:yidmax+20]
+                                            if R2 > gaussrsquarefit and fiteccen < eccenfit: #and R2 < 1:if xidmin <= threshold2D:
+                                                if xidmin <= threshold2D:
+                                                    xidmin= threshold2D
+                                                elif xidmax>=len(lon)-threshold2D:
+                                                    xidmax=len(lon)-threshold2D
+                                                if yidmin <= threshold2D:
+                                                    xidmin= threshold2D
+                                                elif yidmax>=len(lat)-threshold2D:
+                                                    yidmax=len(lat)-threshold2D
+                                                fixvalues[0]=lon[xidmin-threshold2D+1:xidmax+threshold2D]
+                                                fixvalues[1]=lat[yidmin-threshold2D+1:yidmax+threshold2D]
                                                 gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
                                                                       contarea)
                                                 if gaussarea: 
@@ -287,8 +292,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                     else:
                                         print('Checkgauss need to be True to reconstruct the field.')
                                         
-                        elif contarea<ellipsarea:
-                            if eccen<eccenfit and eccen>0:
+                        elif contarea < ellipsarea:
+                            if eccen < eccenfit and eccen>0:
                                 if ellipsarea < areachecker and contarea<areachecker:
                                     if checkgauss==True:
                                         if len(shapedata)==3:
@@ -334,15 +339,19 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                           fixvalues,\
                                                           level,initial_guess=initial_guess,date='',\
                                                           mode=mode,diagnostics=diagnostics)
-                                            fiteccen=eccentricity(gausssianfitp[1],gausssianfitp[2])
+                                            fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
                                             
                                             if R2 > gaussrsquarefit and fiteccen < eccenfit:
-                                                if xidmin <= 20:
-                                                    xidmin=20
-                                                if yidmin <= 20:
-                                                    xidmin=20
-                                                fixvalues[0]=lon[xidmin-20+1:xidmax+20]
-                                                fixvalues[1]=lat[yidmin-20+1:yidmax+20]
+                                                if xidmin <= threshold2D:
+                                                    xidmin= threshold2D
+                                                elif xidmax>=len(lon)-threshold2D:
+                                                    xidmax=len(lon)-threshold2D
+                                                if yidmin <= threshold2D:
+                                                    xidmin= threshold2D
+                                                elif yidmax>=len(lat)-threshold2D:
+                                                    yidmax=len(lat)-threshold2D
+                                                fixvalues[0]=lon[xidmin-threshold2D+1:xidmax+threshold2D]
+                                                fixvalues[1]=lat[yidmin-threshold2D+1:yidmax+threshold2D]
                                                 gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
                                                                       contarea)
                                                 if gaussarea: 
@@ -402,11 +411,12 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         print("Mass center = ",  center_eddy)
                         print("angle of rotation = ",  phi)
                         print("axes (a,b) = ", axes)
-                        print("Eccentricity = ",eccen)
-                        print("Area (cont,ellips) = ",contarea,ellipsarea)
+                        print("Eccentricity = ",eccen,fiteccen)
+                        print("Area (rossby,cont,ellips) = ",areachecker,contarea,ellipsarea)
                         print("Ellipse adjust = ",ellipseadjust,checke)
                         print("Mayor Gauss fit = ",checkM)
                         print("Minor Gauss fit = ",checkm)
+                        print("2D Gauss fit =",gausssianfitp)
                         print("Conditions | Area | Ellipse | Eccen | Gaussians ")
                         print("           | ", ellipsarea < areachecker and contarea < areachecker and not gaussarea,\
                               " | ", checke ,"| ", eccen < eccenfit and fiteccen < eccenfit ,\
