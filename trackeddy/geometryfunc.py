@@ -868,13 +868,20 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
     loop_len=len(keys)
     for xx in range(0,loop_len):
         key=keys[xx]
+        counter=0
+        #print(key)
         for tt in range(0,len(eddytd[key]['time'])):
             ttt=eddytd[key]['time'][tt]
             level=eddytd[key]['level'][tt]
-            maxposition=[Lon,Lat,eddytd[key]['position_maxvalue'][xx][2],\
-                         eddytd[key]['position_maxvalue'][xx][0],\
-                         eddytd[key]['position_maxvalue'][xx][1]]
-            curvefit=eddytd[key]['2dgaussianfit'][xx]
+            maxposition=[Lon,Lat,eddytd[key]['position_maxvalue'][counter][2],\
+                         eddytd[key]['position_maxvalue'][counter][0],\
+                         eddytd[key]['position_maxvalue'][counter][1]]
+            #print(eddytd[key]['position_maxvalue'][counter][2],\
+            #             eddytd[key]['position_maxvalue'][counter][0],\
+            #             eddytd[key]['position_maxvalue'][counter][1])
+            #print(Lon,Lat,eddytd[key]['position_maxvalue'][2:])
+            #maxposition=np.vstack((Lon,Lat,eddytd[key]['position_maxvalue'][counter]))
+            curvefit=eddytd[key]['2dgaussianfit'][counter]
             if isinstance(curvefit, np.float64):
                 curvefit=eddytd[key]['2dgaussianfit']
             #Remove the slope and constant in the reconstruction of the eddy.
@@ -890,12 +897,23 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
             elif mode == 'both':
                 print('Work in progress')
             else:
+                #if usefullfit==False:
+                #    curvefit[-1]=0
+                #    curvefit[-2]=0
+                #    curvefit[-3]=0
+                #print(gaussfit)
                 fittedcurve=twoD_Gaussian(maxposition, *curvefit)
+            #print(fittedcurve[0])
             if np.isnan(fittedcurve[0]):
+            #or (curvefit[0]/curvefit[1]+curvefit[1]/curvefit[0])/2>1.7:
+            #or curvefit[0]/curvefit[1]>1.7 or curvefit[1]/curvefit[0]>1.7:
                 fittedcurve=np.zeros(np.shape(fittedcurve))
             else:
                 fieldfit[ttt,:,:]=fieldfit[ttt,:,:]+fittedcurve.reshape(len(lat),len(lon))
-
+            #print(fieldfit[ttt,:,:])
+            #plt.pcolormesh(fieldfit[ttt,:,:])
+            #plt.show()
+            counter=counter+1
         if ("reconstruct" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
             ax = plt.axes(projection=ccrs.PlateCarree())
             print('key: ',key,'Level: ',level)
@@ -1001,7 +1019,7 @@ def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y
     
     #print('gauss',area[1],'contour',contour_area)
 #    print(contour_area*2 < area[1] , contour_area/2 > area[1] ,  area[1] < area[0])
-    if (contour_area*1.1 > area[1] and contour_area/1.1 > area[1]) and  area[1] > area[0]:
+    if (contour_area*1.5 > area[1] and contour_area/1.5 > area[1]) and  area[1] > area[0]:
         #print('Too big',contour_area*1.5, area[1])
         test=True
     else:
