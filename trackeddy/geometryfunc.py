@@ -524,14 +524,14 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
     return g.ravel()
 
 def gaussian2Dresidual(popt, coords, varm):
-    residual =(twoD_Gaussian(coords,*popt)-varm)**2
+    residual =(varm - twoD_Gaussian(coords,*popt))**2
     #residual = sum(twoD_Gaussian(coords,*popt))-sum(varm)
     #print( sum(twoD_Gaussian(coords,*popt)),sum(varm))
     #print('RES MEAN: ',residual.mean())
     return residual
 
 def paraboloid2Dresidual(popt,coords,varm):
-    residual = (twoD_Paraboloid(coords,*popt)-varm)**2
+    residual = (varm - twoD_Paraboloid(coords,*popt))**2
     #residual = sum(twoD_Paraboloid(coords,*popt))-sum(varm)
     #print('RES MEAN: ',residual.mean())
     #ss_err=((twoD_Paraboloid(coords,*popt))**2).sum()
@@ -868,13 +868,20 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
     loop_len=len(keys)
     for xx in range(0,loop_len):
         key=keys[xx]
+        counter=0
+        #print(key)
         for tt in range(0,len(eddytd[key]['time'])):
             ttt=eddytd[key]['time'][tt]
             level=eddytd[key]['level'][tt]
-            maxposition=[Lon,Lat,eddytd[key]['position_maxvalue'][xx][2],\
-                         eddytd[key]['position_maxvalue'][xx][0],\
-                         eddytd[key]['position_maxvalue'][xx][1]]
-            curvefit=eddytd[key]['2dgaussianfit'][xx]
+            maxposition=[Lon,Lat,eddytd[key]['position_maxvalue'][counter][2],\
+                         eddytd[key]['position_maxvalue'][counter][0],\
+                         eddytd[key]['position_maxvalue'][counter][1]]
+            #print(eddytd[key]['position_maxvalue'][counter][2],\
+            #             eddytd[key]['position_maxvalue'][counter][0],\
+            #             eddytd[key]['position_maxvalue'][counter][1])
+            #print(Lon,Lat,eddytd[key]['position_maxvalue'][2:])
+            #maxposition=np.vstack((Lon,Lat,eddytd[key]['position_maxvalue'][counter]))
+            curvefit=eddytd[key]['2dgaussianfit'][counter]
             if isinstance(curvefit, np.float64):
                 curvefit=eddytd[key]['2dgaussianfit']
             #Remove the slope and constant in the reconstruction of the eddy.
@@ -890,12 +897,23 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
             elif mode == 'both':
                 print('Work in progress')
             else:
+                #if usefullfit==False:
+                #    curvefit[-1]=0
+                #    curvefit[-2]=0
+                #    curvefit[-3]=0
+                #print(gaussfit)
                 fittedcurve=twoD_Gaussian(maxposition, *curvefit)
+            #print(fittedcurve[0])
             if np.isnan(fittedcurve[0]):
+            #or (curvefit[0]/curvefit[1]+curvefit[1]/curvefit[0])/2>1.7:
+            #or curvefit[0]/curvefit[1]>1.7 or curvefit[1]/curvefit[0]>1.7:
                 fittedcurve=np.zeros(np.shape(fittedcurve))
             else:
                 fieldfit[ttt,:,:]=fieldfit[ttt,:,:]+fittedcurve.reshape(len(lat),len(lon))
-
+            #print(fieldfit[ttt,:,:])
+            #plt.pcolormesh(fieldfit[ttt,:,:])
+            #plt.show()
+            counter=counter+1
         if ("reconstruct" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
             ax = plt.axes(projection=ccrs.PlateCarree())
             print('key: ',key,'Level: ',level)
@@ -989,20 +1007,19 @@ def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y
     coords=(Lon,Lat,values[2],values[3],values[4])
     fitted_curve = twoD_Gaussian(coords, *gauss2dfit)
     fittedata = fitted_curve.reshape(len(values[1]),len(values[0]))
-    
     #fittedata = ma.masked_array(fittedata, mask)
-    
     if level>0:
-        CS=plt.contour(values[0],values[1],fittedata,levels=[0,level])
+        CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf,])
     else:
-        CS=plt.contour(values[0],values[1],fittedata,levels=[level,0])
+        CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
     plt.close()
     CONTS=CS.allsegs[0][0]
+    #plt.plot(CONTS[:,0],CONTS[:,1],'--k')
     area = checkmesoscalearea(True,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
     
     #print('gauss',area[1],'contour',contour_area)
 #    print(contour_area*2 < area[1] , contour_area/2 > area[1] ,  area[1] < area[0])
-    if (contour_area*1.1 > area[1] and contour_area/1.1 > area[1]) and  area[1] > area[0]:
+    if (contour_area*1.5 > area[1] and contour_area/1.5 > area[1]) and  area[1] > area[0]:
         #print('Too big',contour_area*1.5, area[1])
         test=True
     else:

@@ -177,56 +177,58 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                     axes = [ellipse['a'],ellipse['b']]
                     R = np.arange(0,2.1*np.pi, 0.1)
                     a,b = axes
-                    #Ellipse coordinates.
-                    xx = ellipse['ellipse'][0]
-                    yy = ellipse['ellipse'][1]
-                    
-                    mayoraxis = ellipse['majoraxis']
-                    minoraxis = ellipse['minoraxis']
-                    
-                    #Area of Contours (contarea) and ellipse (ellipsarea)
-                    #contarea=PolyArea(CONTeach[:,0],CONTeach[:,1])
-                    #ellipsarea=PolyArea(xx,yy)
-                    
-                    # Linear Eccentricity check
                     eccen=eccentricity(a,b)
-                    #Record and check how many grid points have land or masked values
-                    
-                    #Check coverage of land 
-                    checkland=eddylandcheck(CONTeach,center,lon_contour,lat_contour,ssh_in_contour)
-                    #Check Rossby Area (Rossby_radius^2)
-                    areachecker,ellipsarea,contarea=checkmesoscalearea(checkarea,lon_contour,lat_contour,\
-                                                                       xx,yy,\
-                                                                       CONTeach[:,0],CONTeach[:,1])
-                    if eddycenter == 'maximum':
-                        center_eddy=contourmaxvalue(ssh_in_contour,lon_contour,\
-                                             lat_contour,levels,date,threshold)
-                        center_eddy[3]=center_eddy[3]+xidmin-threshold+1
-                        center_eddy[4]=center_eddy[4]+yidmin-threshold+1
-                        
-                        center_extrem=center_eddy
-                        
-                    elif eddycenter == 'masscenter':
-                        center_eddy=centroidvalue(CONTeach[:,0],CONTeach[:,1],\
-                                            ssh_in_contour,lon_contour,\
-                                            lat_contour,levels,date,threshold)
-                        center_extrem=contourmaxvalue(ssh_in_contour,lon_contour,\
-                                                    lat_contour,levels,date)
-                        center_extrem[3]=center_extrem[3]+xidmin-threshold+1
-                        center_extrem[4]=center_extrem[4]+yidmin-threshold+1
-                        #try:
-                        #    center_extrem=contourmaxvalue(ssh_in_contour,lon_contour,\
-                        #                            lat_contour,levels,date)
-                        #except:
-                        #    center_extrem=center_eddy
-                    #print(center_extrem[:2],lon[center_extrem[3]],lat[center_extrem[4]])
-                    if checkland!=False:
-                        checkM=False
-                        checkm=False 
-                        if contarea>=ellipsarea:
-                            #if contarea/1.5>ellipsarea:
-                            #    check=False
-                            if eccen<eccenfit and eccen>0:
+                    if eccen<eccenfit and eccen>0:
+                        #Ellipse coordinates.
+                        xx = ellipse['ellipse'][0]
+                        yy = ellipse['ellipse'][1]
+
+                        mayoraxis = ellipse['majoraxis']
+                        minoraxis = ellipse['minoraxis']
+
+                        #Area of Contours (contarea) and ellipse (ellipsarea)
+                        #contarea=PolyArea(CONTeach[:,0],CONTeach[:,1])
+                        #ellipsarea=PolyArea(xx,yy)
+
+                        # Linear Eccentricity check
+
+                        #Record and check how many grid points have land or masked values
+
+                        #Check coverage of land 
+                        checkland=eddylandcheck(CONTeach,center,lon_contour,lat_contour,ssh_in_contour)
+                        #Check Rossby Area (Rossby_radius^2)
+                        areachecker,ellipsarea,contarea=checkmesoscalearea(checkarea,lon_contour,lat_contour,\
+                                                                           xx,yy,\
+                                                                           CONTeach[:,0],CONTeach[:,1])
+                        if eddycenter == 'maximum':
+                            center_eddy=contourmaxvalue(ssh_in_contour,lon_contour,\
+                                                 lat_contour,levels,date,threshold)
+                            center_eddy[3]=center_eddy[3]+xidmin-threshold+1
+                            center_eddy[4]=center_eddy[4]+yidmin-threshold+1
+
+                            center_extrem=center_eddy
+
+                        elif eddycenter == 'masscenter':
+                            center_eddy=centroidvalue(CONTeach[:,0],CONTeach[:,1],\
+                                                ssh_in_contour,lon_contour,\
+                                                lat_contour,levels,date,threshold)
+                            center_extrem=contourmaxvalue(ssh_in_contour,lon_contour,\
+                                                        lat_contour,levels,date)
+                            center_extrem[3]=center_extrem[3]+xidmin-threshold+1
+                            center_extrem[4]=center_extrem[4]+yidmin-threshold+1
+                            #try:
+                            #    center_extrem=contourmaxvalue(ssh_in_contour,lon_contour,\
+                            #                            lat_contour,levels,date)
+                            #except:
+                            #    center_extrem=center_eddy
+                        #print(center_extrem[:2],lon[center_extrem[3]],lat[center_extrem[4]])
+                        if checkland!=False:
+                            checkM=False
+                            checkm=False 
+                            if contarea>=ellipsarea:
+                                #if contarea/1.5>ellipsarea:
+                                #    check=False
+
                                 if ellipsarea < areachecker and contarea < areachecker:
                                     if checkgauss==True:
                                         if len(shapedata)==3:
@@ -292,8 +294,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                     else:
                                         print('Checkgauss need to be True to reconstruct the field.')
                                         
-                        elif contarea < ellipsarea:
-                            if eccen < eccenfit and eccen>0:
+                            elif contarea < ellipsarea:
                                 if ellipsarea < areachecker and contarea<areachecker:
                                     if checkgauss==True:
                                         if len(shapedata)==3:
@@ -380,7 +381,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                             position_max=[center_extrem]
                             position_ellipse=[center]
                             total_eddy=[eddyn]
-                            area=[contarea,areachecker,gaussarea[1]]
+                            area=[[contarea,areachecker,gaussarea[1]]]
                             angle=[phi]
                             if CS.levels[0] > 0:
                                 level=CS.levels[0]
@@ -491,6 +492,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
 #            if type(level)==float or type(level)==int or isinstance(level, float):
 #                level=[np.array(level)]
 #            else:
+            area=np.array(area)
             levelm=np.array(levelm)
             mayoraxis_eddy=np.array(mayoraxis_eddy)
             minoraxis_eddy=np.array(minoraxis_eddy)
