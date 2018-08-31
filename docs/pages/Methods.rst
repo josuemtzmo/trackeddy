@@ -2,6 +2,23 @@
 Methods
 =======
 
+Structure
+
+1.
+Read in ssh
+     - remove anomaly
+     - detrend
+     - Filter
+
+
+One point for each flow chart
+
+
+
+#################
+Hello Merve, after we interviewed the other person, and the only reason why I decided to sublet my room to her, is the time fits better to her in terms that she is looking for 3 months. However, Olaide and myself were impressed by your application so you are welcome to come to the COOP whenever you want (You can also do some couch surfing in case you need). Additionally, If you need some help once you arrive in Canberra, I will like to help you to explore the university, the school and any other thing you may need. Also, I wanted to apologise, because I thought I said something rude during our interview without meaning it, when I referred to vulnerability, what I really meant was who may find it harder to get accommodation.
+
+
 This algorithm was developed with the main idea of decomposing oceanic Kinetic
 Energy into processes. Even when its implementation can be useful in multiple
 applications, the current version of the algorithm is primarily focused on
@@ -17,7 +34,7 @@ examples/how_it_works.ipynb>`_
 
 .. figure:: ../images/how_it_works_area.png
    :align: center
-   :scale: 50 %
+   :scale: 30 %
    :alt: Alt content
 
    Figure 1. Section of the Aghulas current used to explain how the algorithm
@@ -80,7 +97,7 @@ fitted ellipse and the close contour should be within the interval (:math:`e`) :
 
 .. figure:: ../images/contours_ellipse.png
    :align: center
-   :scale: 50 %
+   :scale: 30 %
    :alt: Alt content
 
    Figure 2. Identified contours only within the ellipse fitting interval
@@ -113,7 +130,7 @@ with sides two times the Rossby Radius.
    \left(2\pi Lr \right)^2
 
 .. figure:: ../images/Area_rossby_radius_deformation.png
-   :scale: 50 %
+   :scale: 30 %
    :alt: Eddy area based on the First-Baroclinic Rossby Radius of Deformation.
 
    Figure 3. Global eddy area based on the First-Baroclinic Rossby Radius
@@ -162,7 +179,7 @@ or
 
 .. figure:: ../images/eccent.png
    :align: center
-   :scale: 50 %
+   :scale: 30 %
    :alt:
 
    Figure 5. Eddy characterisation based on the eccentricity of the
@@ -186,7 +203,7 @@ Values around :math:`1` represent a exact fitness and the minimum value accepted
 should be higher than :math:`0.8`.
 
 .. figure:: ../images/gaussian_fitness.png
-   :scale: 100 %
+   :scale: 30 %
    :alt: Gaussian shape in the ellipse's axis for more than 500 eddies.
 
    Figure 6. Gaussian and parabolic fit over the average of 500 eddies.
@@ -202,7 +219,7 @@ should be higher than :math:`0.8`.
 
   .. figure:: ../images/contours_all.png
     :align: center
-    :scale: 50 %
+    :scale: 30 %
     :alt:
 
     Figure 7. Identified contours using all criteria.
@@ -230,7 +247,7 @@ otherwise the eddy is discarded.
      0 \leq e < 0.95
 
 .. figure:: ../images/2dgauss_fit.png
-   :scale: 100 %
+   :scale: 30 %
    :alt: 2D Gaussian fitting.
 
    Figure 8. Gaussian fitting. Left panel shows the original field (black line)
@@ -261,7 +278,7 @@ of extracting the eddy signal from Aviso's dataset.
 
 
 .. figure:: ../images/satellite_extraction.png
-   :scale: 50 %
+   :scale: 30 %
    :alt: Satellite extraction.
 
    Figure 5. Gaussian fitting in two dimensions to recreate the eddy field.

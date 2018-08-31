@@ -14,7 +14,7 @@ install:
   - source activate test-environment
   - conda install -c conda-forge --file ./requirements.txt
   - pip install -e .
-script: pytest -m testme
+script: pytest -m trackeddy
 notifications:
   slack:
     on_success: change

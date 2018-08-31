@@ -524,14 +524,14 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
     return g.ravel()
 
 def gaussian2Dresidual(popt, coords, varm):
-    residual =(twoD_Gaussian(coords,*popt)-varm)**2
+    residual =(varm - twoD_Gaussian(coords,*popt))**2
     #residual = sum(twoD_Gaussian(coords,*popt))-sum(varm)
     #print( sum(twoD_Gaussian(coords,*popt)),sum(varm))
     #print('RES MEAN: ',residual.mean())
     return residual
 
 def paraboloid2Dresidual(popt,coords,varm):
-    residual = (twoD_Paraboloid(coords,*popt)-varm)**2
+    residual = (varm - twoD_Paraboloid(coords,*popt))**2
     #residual = sum(twoD_Paraboloid(coords,*popt))-sum(varm)
     #print('RES MEAN: ',residual.mean())
     #ss_err=((twoD_Paraboloid(coords,*popt))**2).sum()
@@ -1007,15 +1007,14 @@ def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y
     coords=(Lon,Lat,values[2],values[3],values[4])
     fitted_curve = twoD_Gaussian(coords, *gauss2dfit)
     fittedata = fitted_curve.reshape(len(values[1]),len(values[0]))
-    
     #fittedata = ma.masked_array(fittedata, mask)
-    
     if level>0:
-        CS=plt.contour(values[0],values[1],fittedata,levels=[0,level])
+        CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf,])
     else:
-        CS=plt.contour(values[0],values[1],fittedata,levels=[level,0])
+        CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
     plt.close()
     CONTS=CS.allsegs[0][0]
+    #plt.plot(CONTS[:,0],CONTS[:,1],'--k')
     area = checkmesoscalearea(True,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
     
     #print('gauss',area[1],'contour',contour_area)

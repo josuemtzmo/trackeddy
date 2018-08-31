@@ -44,12 +44,12 @@ def gaussfit():
     gaussian=twoD_Gaussian((X,Y,1,0,0),  2.5, 2.5, 0, 0, 0 , 0)
     zz=gaussian.reshape(50,50)
     # Checking fitting:
-    gausssianfitp,R2=fit2Dcurve(zz,(x,y,0.1,1,0),0,initial_guess='',\
+    gausssianfitp,R2=fit2Dcurve(zz,(x,y,zz.max(),1,0),0,initial_guess='',\
                                 date='',diagnostics=diagnostics)
     gaussianfit=twoD_Gaussian((X,Y,1,0,0),*gausssianfitp)
     return R2
 
-@pytest.mark.testme
+@pytest.mark.trackeddy
 def test_gaussfit():
     assert gaussfit() <= 0.99
 
@@ -69,24 +69,20 @@ def gausstrack2():
     zz=moveGaussian(600,100,array([[x,x*0+450] for x in linspace(100,500,40)]),time)+\
        moveGaussian(600,100,array([[x,x*0+250] for x in linspace(100,500,40)]),time)
     # Replacing the coordinates of the Domain:
-    lat=linspace(0,10,600)
-    lon=linspace(0,10,600)
+    lat=linspace(0,0.1,600)
+    lon=linspace(0,0.1,600)
 
     # Tracking the eddy over the level 0.2 over 40 timesteps:
-    gaussian=analyseddyt(zz[:,:,:],lon,lat,0.2,0,time,1,data_meant='',\
+    gaussian=analyseddyt(zz[:,:,:],lon,lat,0.3,0,time,1,data_meant='',\
                      areamap='',mask='',destdir='',physics='',\
                      checkgauss=True,diagnostics=diagnostics,pprint=False)
     
     syntetic_gaussian=reconstruct_syntetic(shape(zz),lon,lat,gaussian)
     
-    gaussian=analyseddyt(zz[:,:,:],lon,lat,0.2,0,time,1,data_meant='',\
-                     areamap='',mask='',destdir='',physics='',\
-                     checkgauss=True,diagnostics=diagnostics,\
-                     pprint=False)
     positive=len(gaussian['eddyn_0']['time'])
     return positive,time
 
-@pytest.mark.testme
+@pytest.mark.trackeddy
 def test_2eddydetection():
     positive,time=gausstrack2()
     assert positive == time
@@ -127,7 +123,7 @@ def gausstrack3():
     negative=len(gaussian['eddyn_1']['time'])
     return positive,negative,time
 
-@pytest.mark.testme
+@pytest.mark.trackeddy
 def test_3eddydetection():
     positive,negative,time=gausstrack3()
     assert positive == time and negative == time
