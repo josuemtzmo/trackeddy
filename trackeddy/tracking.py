@@ -18,7 +18,7 @@ import sys
 import time
 
 
-def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',maskopt='contour',ellipsrsquarefit=0.95,eccenfit=0.85,gaussrsquarefit=0.65,mode='gaussian',basemap=False,checkgauss=True,checkarea=True,usefullfit=False,diagnostics=False,plotdata=False,pprint=True):
+def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',maskopt='contour',ellipsrsquarefit=0.95,eccenfit=0.85,gaussrsquarefit=0.65,mode='gaussian',basemap=False,checkgauss=True,checkarea=True,usefullfit=False,diagnostics=False,plotdata=False):
     '''
     *************Scan Eddym***********
     Function to identify each eddy using closed contours,
@@ -155,23 +155,6 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         ssh4gauss=sshnan[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
                         ssh_in_contour=insideness_contour(ssh4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
                     
-                    
-#                    f, (ax1, ax2) = plt.subplots(1, 2,figsize=(8, 4))
-#                    ax1.pcolormesh(ssh_in_contour)
-#                    contourgrad=np.sqrt(np.gradient(ssh_in_contour)[0]**2+np.gradient(ssh_in_contour)[1]**2)
-#                    im=ax2.contourf(contourgrad,levels=np.linspace(contourgrad.min(),contourgrad.max(),10))
-                    #print(np.where(contourgrad==contourgrad.min()))
-                    #f.colorbar(im, ax=ax2)
-                    #plt.show()
-                    
-                    #except:
-                    #    print('No detected connections')
-                    #USE ALL THE DOMAIN    
-                    #ssh_in_contour=sshnan
-                    #lon_contour=lon
-                    #lat_contour=lat
-                    #plt.pcolormesh(ssh_in_contour)
-                    #plt.show()
                     center = [ellipse['X0_in'],ellipse['Y0_in']]
                     phi = ellipse['phi']
                     axes = [ellipse['a'],ellipse['b']]
@@ -289,7 +272,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                 fixvalues[1]=lat[yidmin-threshold2D+1:yidmax+threshold2D]
                                                 gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
                                                                       contarea)
-                                                if gaussarea: 
+                                                #print(gaussarea[0])
+                                                if gaussarea[0]==True: 
                                                     check=True                                            
                                     else:
                                         print('Checkgauss need to be True to reconstruct the field.')
@@ -355,7 +339,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                 fixvalues[1]=lat[yidmin-threshold2D+1:yidmax+threshold2D]
                                                 gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
                                                                       contarea)
-                                                if gaussarea: 
+                                                #print(gaussarea)
+                                                if gaussarea[0]==True: 
                                                     check=True
                                                     
                                     else:
@@ -481,10 +466,6 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         plt.close()
                         
                 total_contours=total_contours+1
-            if pprint==True:
-                string='Total of contours was: %d -' +\
-                       'Total of eddies: %d - Level: %.1f '%(total_contours,eddyn,level)
-                pt =Printer(); pt.printtextoneline(string)
         try:
             position_selected=np.array(position_selected)
             position_max=np.array(position_max)
@@ -755,7 +736,8 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
             else:
                 mask=np.zeros(np.shape(data[0,:,:]))
     pp.timepercentprint(0,1,1,0,"Init time")
-    pp =  Printer(); 
+    if pprint==True:
+        pp =  Printer(); 
     numbereddieslevels=0
     for ii in range(t0,t1,tstep):
         checkcount=0  
@@ -800,7 +782,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
                           ,checkgauss=checkgauss,checkarea=checkarea\
                           ,eccenfit=eccenfit,ellipsrsquarefit=ellipsrsquarefit\
                           ,gaussrsquarefit=gaussrsquarefit,mode=mode\
-                          ,diagnostics=diagnostics,plotdata=plotdata,pprint=pprint)
+                          ,diagnostics=diagnostics,plotdata=plotdata)
             #print('ellapse identification:',time.time()-tic)
             #print(eddies)
             if check==True and checkcount==0:
@@ -818,7 +800,8 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
                     #print('ellapse dz:',time.time()-tic)
                 #print(eddies['EddyN'])
                 #print(eddz['EddyN'])
-
+            if pprint==True:
+                pp.timepercentprint(t0,t1,tstep,ii,numbereddies,[0,len(levellist),ll])
         if ii==0:
             eddytd=dict_eddyt(ii,eddz)
         else:
@@ -827,8 +810,9 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
             eddytd=dict_eddyt(ii,eddz,eddytd,data=dataanomaly,x=x,y=y) 
             #print('ellapse dt:',time.time()-tic)
         #print(len(eddytd.keys()))
-        numbereddieslevels=numbereddieslevels+numbereddies
-        pp.timepercentprint(t0,t1,tstep,ii,numbereddieslevels)
+        if pprint==True:
+            numbereddieslevels=numbereddieslevels+numbereddies
+            pp.timepercentprint(t0,t1,tstep,ii,numbereddieslevels)
     if destdir!='':
         if saveformat=='nc':
             eddync(destdir+str(level)+'.nc',eddytd)

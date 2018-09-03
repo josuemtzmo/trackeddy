@@ -1019,7 +1019,11 @@ def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y
     
     #print('gauss',area[1],'contour',contour_area)
 #    print(contour_area*2 < area[1] , contour_area/2 > area[1] ,  area[1] < area[0])
-    if (contour_area*1.5 > area[1] and contour_area/1.5 > area[1]) and  area[1] > area[0]:
+    #if area[1]==0:
+    #    print('invalid')
+    
+    #print(contour_area, area[1],(contour_area*1.5 > area[1] , contour_area/2 < area[1]) ,  area[1] > area[0])
+    if (contour_area*1.5 > area[1]) and  area[1] < area[0] and area[1]!=0:
         #print('Too big',contour_area*1.5, area[1])
         test=True
     else:
