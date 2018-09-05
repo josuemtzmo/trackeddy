@@ -1014,17 +1014,8 @@ def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y
         CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
     plt.close()
     CONTS=CS.allsegs[0][0]
-    #plt.plot(CONTS[:,0],CONTS[:,1],'--k')
     area = checkmesoscalearea(True,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
-    
-    #print('gauss',area[1],'contour',contour_area)
-#    print(contour_area*2 < area[1] , contour_area/2 > area[1] ,  area[1] < area[0])
-    #if area[1]==0:
-    #    print('invalid')
-    
-    #print(contour_area, area[1],(contour_area*1.5 > area[1] , contour_area/2 < area[1]) ,  area[1] > area[0])
-    if (contour_area*1.5 > area[1]) and  area[1] < area[0] and area[1]!=0:
-        #print('Too big',contour_area*1.5, area[1])
+    if (contour_area*1.2 > area[1]) and  area[1] < area[0] and area[1]!=0:
         test=True
     else:
         test=False

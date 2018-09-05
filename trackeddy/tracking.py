@@ -716,7 +716,8 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
 
     Author: Josue Martinez Moreno, 2017
     '''
-    pp =  Printer(); 
+    if pprint==True:
+        pp =  Printer(); 
     if len(np.shape(data))<3:
         print('If you whant to analyze in time the data need to be 3d [i.e. data(t,x,y)]')
         #return
@@ -735,7 +736,8 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
                 mask=np.zeros(np.shape(data[:,:]))
             else:
                 mask=np.zeros(np.shape(data[0,:,:]))
-    pp.timepercentprint(0,1,1,0,"Init time")
+    if pprint==True:
+        pp.timepercentprint(0,1,1,0,"Init time")
     if pprint==True:
         pp =  Printer(); 
     numbereddieslevels=0
@@ -878,7 +880,7 @@ def analyseddyt(data,x,y,level,t0,t1,tstep,data_meant='',areamap='',mask='',phys
                       ,physics=physics,eddycenter=eddycenter,checkgauss=checkgauss,checkarea=checkarea\
                       ,eccenfit=eccenfit,ellipsrsquarefit=ellipsrsquarefit\
                       ,gaussrsquarefit=gaussrsquarefit,mode=mode\
-                      ,diagnostics=diagnostics,plotdata=plotdata,pprint=pprint)
+                      ,diagnostics=diagnostics,plotdata=plotdata)
         if eddies!=0 and check==True:
             if ii==0:
                 eddytd=dict_eddyt(ii,eddies)
