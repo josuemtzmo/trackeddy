@@ -1015,7 +1015,7 @@ def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y
     plt.close()
     CONTS=CS.allsegs[0][0]
     area = checkmesoscalearea(True,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
-    if (contour_area*1.2 > area[1]) and  area[1] < area[0] and area[1]!=0:
+    if (contour_area*1.05 > area[1]) and  area[1] < area[0] and area[1]!=0:
         test=True
     else:
         test=False

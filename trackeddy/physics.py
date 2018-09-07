@@ -56,45 +56,25 @@ def vorticity2D(u,v,lon,lat):
     w=dv_dx-du_dy    
     return w
 
-
-    
-#def vorticity3D(u,v,w,z):
-#    dv_x=np.gradient(v[z,:,:],axis=1)
-#    du_y=np.gradient(u[z,:,:],axis=0)
-#    w=dv_x-du_y
-#    return w
-
 def geovelfield(ssha,lon,lat,mask='',anomval=100):
     try:
         ma.filled(ssha,np.nan)
     except:
         pass
-    distmlon=sw.dist(0,lon,'km')[0][:]*1000
-    distmlat=sw.dist(lat,0,'km')[0][:]*1000
-    mlon=np.cumsum(distmlon)
-    mlat=np.cumsum(distmlat)
-    dy=np.gradient(mlat)
-    dx=np.gradient(mlon)
-    detay,detax=np.gradient(ssha)
-    omega = 7.2921e-5
-    g=9.81
-    f=2*omega*np.sin(np.deg2rad(lat))
+    Lon,Lat=meshgrid(lon,lat)
     u=np.zeros(np.shape(ssha))
     v=np.zeros(np.shape(ssha))
-    for ii in range(np.shape(ssha)[1]-1):
-        detaxdy=detax[:,ii]/dx[ii]
-        v[:,ii]=(g/f)*(detaxdy)
-    for jj in range(np.shape(ssha)[0]-1):
-        detaydx=detay[jj,:]/dy[jj]
-        u[jj,:]=-(g/f[jj])*(detaydx)
-    u[u>anomval]=np.nan
-    v[v>anomval]=np.nan
-    u[u<-anomval]=np.nan
-    v[v<-anomval]=np.nan
+    for ii in range(np.shape(ssha)[0]-1):
+        v[ii,1:]=gsw.geostrophic_velocity(ssh[0,ii,:], Lon[ii,:], Lat[ii,:], p=0, axis=0)[0]
+    for jj in range(np.shape(ssha)[1]-1):
+        u[1:,jj]=gsw.geostrophic_velocity(ssh[0,:,jj], Lon[:,jj], Lat[:,jj], p=0, axis=1)[0]
+
     if mask != '':
         u= np.ma.masked_array(u, mask)
         v= np.ma.masked_array(v, mask)
     return u,v
+
+
     
 def KE(u,v):
     ke=(1/2)*(u**2+v**2)
