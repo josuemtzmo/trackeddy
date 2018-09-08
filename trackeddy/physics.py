@@ -2,7 +2,7 @@ import numpy as np
 from sympy.physics.vector import curl
 import numpy.ma as ma
 #from trackeddy.init import *
-from gsw import geostrophy
+import gsw as gs
 import seawater as sw
 from netCDF4 import Dataset
 import os
@@ -66,9 +66,9 @@ def geovelfield(ssha,lon,lat,mask='',anomval=100):
     v=np.zeros(np.shape(ssha))
     print(np.shape(ssha))
     for ii in range(np.shape(ssha)[0]):
-        v[ii,1:]=gs.geostrophic_velocity(ssha[ii,:], Lon[ii,:], Lat[ii,:], p=0, axis=0)[0]
+        v[ii,1:]=gs.geostrophic_velocity(ssha[ii,:], Lon[ii,:], Lat[ii,:], 0, axis=0)[0]
     for jj in range(np.shape(ssha)[1]):
-        u[1:,jj]=gs.geostrophic_velocity(ssha[:,jj], Lon[:,jj], Lat[:,jj], p=0, axis=1)[0]
+        u[1:,jj]=gs.geostrophic_velocity(ssha[:,jj], Lon[:,jj], Lat[:,jj], 0, axis=1)[0]
 
     if mask != '':
         u= np.ma.masked_array(u, mask)
