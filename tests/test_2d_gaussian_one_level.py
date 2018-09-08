@@ -107,7 +107,7 @@ def gausstrack3():
     zz=moveGaussian(600,50,array([[x,x*0+150] for x in linspace(100,500,40)]),40)+\
         moveGaussian(600,50,array([[x,x*0+350] for x in linspace(100,500,40)]),40)-\
         moveGaussian(600,50,array([[600-x,x*0+250] for x in linspace(100,500,40)]),40)-\
-        moveGaussian(600,50,array([600-x,x*0+450] for x in linspace(100,500,40)]),40)
+        moveGaussian(600,50,array([[600-x,x*0+450] for x in linspace(100,500,40)]),40)
     # Replacing the coordinates of the Domain:
     lat=linspace(0,10,600)
     lon=linspace(0,10,600)
