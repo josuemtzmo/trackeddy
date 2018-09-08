@@ -61,13 +61,14 @@ def geovelfield(ssha,lon,lat,mask='',anomval=100):
         ma.filled(ssha,np.nan)
     except:
         pass
-    Lon,Lat=meshgrid(lon,lat)
+    Lon,Lat=np.meshgrid(lon,lat)
     u=np.zeros(np.shape(ssha))
     v=np.zeros(np.shape(ssha))
-    for ii in range(np.shape(ssha)[0]-1):
-        v[ii,1:]=gsw.geostrophic_velocity(ssh[0,ii,:], Lon[ii,:], Lat[ii,:], p=0, axis=0)[0]
-    for jj in range(np.shape(ssha)[1]-1):
-        u[1:,jj]=gsw.geostrophic_velocity(ssh[0,:,jj], Lon[:,jj], Lat[:,jj], p=0, axis=1)[0]
+    print(np.shape(ssha))
+    for ii in range(np.shape(ssha)[0]):
+        v[ii,1:]=gs.geostrophic_velocity(ssha[ii,:], Lon[ii,:], Lat[ii,:], p=0, axis=0)[0]
+    for jj in range(np.shape(ssha)[1]):
+        u[1:,jj]=gs.geostrophic_velocity(ssha[:,jj], Lon[:,jj], Lat[:,jj], p=0, axis=1)[0]
 
     if mask != '':
         u= np.ma.masked_array(u, mask)

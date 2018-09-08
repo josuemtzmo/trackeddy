@@ -104,27 +104,27 @@ def gausstrack3():
     #Number of timesteps:
     time=40
     # Generation of a gaussian moving on the zonal direction:
-    zz=moveGaussian(600,70,array([[x,x*0+150] for x in linspace(100,500,40)]),40)+\
+    zz=moveGaussian(600,50,array([[x,x*0+150] for x in linspace(100,500,40)]),40)+\
         moveGaussian(600,50,array([[x,x*0+350] for x in linspace(100,500,40)]),40)-\
-        moveGaussian(600,50,array([[500-x,x*0+250] for x in linspace(100,500,40)]),40)-\
-        moveGaussian(600,100,array([[500-x,x*0+450] for x in linspace(100,500,40)]),40)
+        moveGaussian(600,50,array([[600-x,x*0+250] for x in linspace(100,500,40)]),40)-\
+        moveGaussian(600,50,array([600-x,x*0+450] for x in linspace(100,500,40)]),40)
     # Replacing the coordinates of the Domain:
     lat=linspace(0,10,600)
     lon=linspace(0,10,600)
 
     # Tracking the eddy over the level 0.2 over 40 timesteps:
-    gaussian=analyseddyt(zz[:,:,:],lon,lat,0.2,0,time,1,data_meant='',\
+    gaussianp=analyseddyt(zz[:,:,:],lon,lat,0.5,0,time,1,data_meant='',\
                      areamap='',mask='',destdir='',physics='',\
                      checkgauss=True,diagnostics=diagnostics,pprint=False)
     
-    syntetic_gaussian=reconstruct_syntetic(shape(zz),lon,lat,gaussian)
-    
-    gaussian=analyseddyt(zz[:,:,:],lon,lat,0.2,0,time,1,data_meant='',\
+    gaussiann=analyseddyt(zz[:,:,:],lon,lat,-0.2,0,time,1,data_meant='',\
                      areamap='',mask='',destdir='',physics='',\
-                     checkgauss=True,diagnostics=diagnostics,\
-                     pprint=False)
-    positive=len(gaussian['eddyn_0']['time'])
-    negative=len(gaussian['eddyn_1']['time'])
+                     checkgauss=True,diagnostics=diagnostics,pprint=False)
+    
+    syntetic_gaussian=reconstruct_syntetic(shape(zz),lon,lat,gaussianp)+reconstruct_syntetic(shape(zz),lon,lat,gaussiann)
+    
+    positive=len(gaussianp['eddyn_0']['time'])
+    negative=len(gaussiann['eddyn_0']['time'])
     return positive,negative,time
 
 @pytest.mark.testme
