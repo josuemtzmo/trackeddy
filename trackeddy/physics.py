@@ -2,7 +2,7 @@ import numpy as np
 from sympy.physics.vector import curl
 import numpy.ma as ma
 #from trackeddy.init import *
-import gsw as gs
+from gsw import geostrophy
 import seawater as sw
 from netCDF4 import Dataset
 import os
