@@ -917,7 +917,7 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
         if ("reconstruct" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
             ax = plt.axes(projection=ccrs.PlateCarree())
             print('key: ',key,'Level: ',level)
-            plt.pcolormesh(Lon,Lat,fieldfit[0,:,:])
+            plt.pcolormesh(lon[::5],lat[::5],fieldfit[0,::5,::5])
             ax.coastlines()
             plt.colorbar()
             plt.show()
@@ -1020,3 +1020,9 @@ def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y
     else:
         test=False
     return test,area[1]
+
+def checkgaussaxis2D(a,b,a_g,b_g):
+    if a*1.5<a_g or b*1.5<b_g:
+        return False
+    else:
+        return True
