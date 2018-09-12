@@ -443,7 +443,7 @@ def adjustMGaus(x,y):
     #v0=range(0,n,int(n/10))
     v0=[1,int(n/3),1,1,int(n/2),1,1,2*int(n/3),1]
     #v0= [1,10,1,1,30,1] #inital guesses for Gaussian Fit. - just do it around the peaks
-    out = leastsq(e_gauss_fit, v0[:], args=(x, y), maxfev=2000, full_output=1) #Gauss Fit
+    out = leastsq(e_gauss_fit, v0[:], args=(x, y), ftol=1e-10,gtol=1e-10,xtol=1e-10,maxfev=10000000, full_output=1) #Gauss Fit
     v = out[0] #fit parameters out
     covar = out[1] #covariance matrix output
 
