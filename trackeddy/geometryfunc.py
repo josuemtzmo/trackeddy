@@ -524,24 +524,11 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
     return g.ravel()
 
 def gaussian2Dresidual(popt, coords, varm):
-    residual =(varm - twoD_Gaussian(coords,*popt))**2
-    #residual = sum(twoD_Gaussian(coords,*popt))-sum(varm)
-    #print( sum(twoD_Gaussian(coords,*popt)),sum(varm))
-    #print('RES MEAN: ',residual.mean())
+    residual = 1 - np.exp(np.exp(np.abs(varm - twoD_Gaussian(coords,*popt))))
     return residual
 
 def paraboloid2Dresidual(popt,coords,varm):
-    residual = (varm - twoD_Paraboloid(coords,*popt))**2
-    #residual = sum(twoD_Paraboloid(coords,*popt))-sum(varm)
-    #print('RES MEAN: ',residual.mean())
-    #ss_err=((twoD_Paraboloid(coords,*popt))**2).sum()
-    #print(ss_err)
-    #ss_tot=np.nansum((varm-np.nanmean(varm))**2)
-    #print(ss_tot)
-    #R2=1-(ss_err/ss_tot)
-    #print(R2)
-    #residual=1-R2
-    #print('Residual (1-R2):',residual)
+    residual = 1 - np.exp(np.exp(np.abs(varm - twoD_Gaussian(coords,*popt))))
     return residual
 
 def correlation_coefficient(data, data1):
@@ -550,7 +537,7 @@ def correlation_coefficient(data, data1):
     if stds == 0:
         return 0
     else:
-        product /= stds
+        product = product/stds
         return product
 
 
@@ -579,23 +566,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
 
     if initial_guess=='':
         initial_guess = [1,1,0,0,0,0]   
-        #if level>0:
-        #    extrem=varm[:,:].max()
-        #    yguess,xguess=np.where(varm[:,:]==extrem)
-        #    varm=ma.masked_where(varm < level, varm)
-        #elif level<0:
-        #    extrem=varm[:,:].min()
-        #    yguess,xguess=np.where(varm[:,:]==extrem)
-        #    varm=ma.masked_where(varm > level, varm)
-        #    change (extrem,xguess,yguess,1,1,0,0) ones to the a and b ellipsoid fit.
-        #if type(xguess)!=int:
-        #    longuess=lon[xguess[int(len(xguess)/2)]]
-        #    latguess=lat[yguess[int(len(yguess)/2)]]
-        #else:
-        #    longuess=lon[xguess]
-        #    latguess=lat[yguess]
-        #initial_guess = [extrem,longuess,latguess,1,1,0,0,0,0]   
-
+        
     if mode == 'parabolic':
         popt, pcov, infodict,mesg,ier = leastsq(paraboloid2Dresidual, initial_guess,\
                                                 args=(coords, varm.ravel()),full_output=True)#,\
@@ -620,7 +591,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
     fittedata=fitted_curve.reshape(len(values[1]), len(values[0]))
     
     try:
-        R2=1/correlation_coefficient(varm,fittedata)
+        R2=correlation_coefficient(varm,fittedata)
     except:
         R2=0
     
@@ -635,7 +606,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
         ax1.set_title('Original Field')
         ax1.axis('equal')
         plt.colorbar(p,ax=ax1)
-        p=ax2.pcolormesh(values[0], values[1],fittedata,vmin=fittedata.min(),vmax=fittedata.max())
+        p=ax2.pcolormesh(values[0], values[1],fittedata,vmin=varm.min(),vmax=varm.max())
         ax2.set_title('2D Gauss Fit')
         ax2.axis('equal')
         plt.colorbar(p,ax=ax2)
@@ -931,7 +902,6 @@ def insideness_contour(data,center,levels,mask=False,maskopt='none',diagnostics=
     '''
     
     '''
-    
     data_rmove=np.array(np.zeros(np.shape(data)))
     if (type(levels)==int or len(levels)==1 ) and levels < 0:
         data_rmove[data<levels]=1
@@ -942,23 +912,13 @@ def insideness_contour(data,center,levels,mask=False,maskopt='none',diagnostics=
     else:
         data_rmove[data>levels[0]]=1
         
-    #data_rmove=1-data_rmove
-    
     markers,features=np.asarray(ndimage.label(data_rmove))
     
     if markers.max()!=1 and maskopt=='none':
         markers=markers*0
         returnmasked=True    
         
-    elif markers.max()!=1 and maskopt=='max':
-        if center[1]==np.shape(markers)[1]:
-            markers[markers==markers[center[0],center[1]-1]]=0
-        elif center[0]==np.shape(markers)[0]:
-            markers[markers==markers[center[0]-1,center[1]]]=0
-        else:
-            markers[markers==markers[center[0],center[1]]]=0
-        
-    elif markers.max()!=1 and maskopt=='contour':
+    elif markers.max()!=1 and maskopt=='contour' or maskopt=='forcefit':
         if center[1]==np.shape(markers)[1]:
             markers[markers!=markers[center[0],center[1]-1]]=0
         elif center[0]==np.shape(markers)[0]:
@@ -966,23 +926,25 @@ def insideness_contour(data,center,levels,mask=False,maskopt='none',diagnostics=
         else:
             markers[markers!=markers[center[0],center[1]]]=0
         markers=markers.max()-markers
-#                markers=1-markers
         returnmasked=True 
             
-    elif maskopt=='max':
-        markers[markers==markers[center[0],center[1]-1]]=0
-    elif maskopt=='contour':
+    elif maskopt=='contour' or maskopt=='forcefit':
         markers=1-markers
     else:
         markers=markers*0  
     
-    if levels[0]<0:
+    if levels[0]<0 and maskopt!='forcefit':
         markers[data>0]=1
-    else:
+    elif levels[0]>0 and maskopt!='forcefit':
         markers[data<0]=1
+    elif levels[0]<0 and maskopt=='forcefit':
+        markers[np.multiply(data<levels[1]/2, data>levels[1]-levels[0]/4)]=0
+        data[np.multiply(data<levels[1]/2, data>levels[1]-levels[0]/4)]=0
+    elif levels[0]>0 and maskopt=='forcefit':
+        markers[np.multiply(data>levels[0]/2, data<levels[0]-levels[0]/4)]=0
+        data[np.multiply(data>levels[0]/2, data<levels[0]-levels[0]/4)]=0
         
     maskeddata=ma.masked_array(data, markers)
-    #diagnostics=True
     if ("contours" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
         print('markerceter:',markers[center[0],center[1]])
         f, (ax1, ax2,ax3) = plt.subplots(1, 3,figsize=(15,7), sharey=True)
@@ -1002,7 +964,7 @@ def insideness_contour(data,center,levels,mask=False,maskopt='none',diagnostics=
               
     
 def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y=None):
-    
+    #print('gauss check')
     Lon, Lat = np.meshgrid(values[0], values[1])
     coords=(Lon,Lat,values[2],values[3],values[4])
     fitted_curve = twoD_Gaussian(coords, *gauss2dfit)
@@ -1015,14 +977,16 @@ def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y
     plt.close()
     CONTS=CS.allsegs[0][0]
     area = checkmesoscalearea(True,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
-    if (contour_area*1.05 > area[1]) and  area[1] < area[0] and area[1]!=0:
+    if (contour_area*1.05 > area[1]) and area[0] > area[1]: #and area[1]!=0:
         test=True
     else:
         test=False
+    #print('---------',test)
     return test,area[1]
 
 def checkgaussaxis2D(a,b,a_g,b_g):
-    if a*1.5<a_g or b*1.5<b_g:
+    #print('a',a,a_g,'b',b,b_g)
+    if a*2<a_g or b*2<b_g:
         return False
     else:
         return True

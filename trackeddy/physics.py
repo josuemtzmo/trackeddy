@@ -115,23 +115,37 @@ def ssh2ke(data,x,y,mask,anomval=100):
     u,v = geovelfield(data,x,y,mask,anomval)
     return KE(u,v)
 
+def PolyArea(x,y):
+    '''
+    
+    '''
+    polygon=[[x[ii],y[ii]] for ii in range(len(x))]
+    area = 0.0
+
+    n = len(polygon)
+    for i in range(n):
+        i1 = (i+1)%n
+        area += polygon[i][0]*polygon[i1][1] - polygon[i1][0]*polygon[i][1]       
+    area *= 0.5
+    return abs(area)
+
 def checkmesoscalearea(checkarea,lon,lat,ellipsex,ellipsey,contourx='',contoury=''):
     if checkarea==True:
         areachecker=(2*np.pi*(rossbyR(np.mean(lon),np.mean(lat))))**2
         ellipsarea=gs.distance([[ellipsex.max()],[ellipsex.min()]],[[ellipsey.mean()],[ellipsey.mean()]],axis=0)[0][0]*\
-                   gs.distance([[ellipsey.mean()],[ellipsey.mean()]],[[ellipsey.max()],[ellipsey.min()]],axis=0)[0][0]
+                   gs.distance([[ellipsex.mean()],[ellipsex.mean()]],[[ellipsey.max()],[ellipsey.min()]],axis=0)[0][0]
         if contourx!='' or contoury!='':
-            contarea=gs.distance([[contoury.max()],[contoury.min()]],[[contoury.mean()],[contoury.mean()]],axis=0)[0][0]*\
-                   gs.distance([[contoury.mean()],[contoury.mean()]],[[contoury.max()],[contoury.min()]],axis=0)[0][0]
+            contarea=gs.distance([[contourx.max()],[contourx.min()]],[[contoury.mean()],[contoury.mean()]],axis=0)[0][0]*\
+                   gs.distance([[contourx.mean()],[contourx.mean()]],[[contoury.max()],[contoury.min()]],axis=0)[0][0]
         else:
             contarea=None
     else:
         areachecker=np.inf
         ellipsarea=gs.distance([[ellipsex.max()],[ellipsex.min()]],[[ellipsey.mean()],[ellipsey.mean()]],axis=0)[0][0]*\
-                   gs.distance([[ellipsey.mean()],[ellipsey.mean()]],[[ellipsey.max()],[ellipsey.min()]],axis=0)[0][0]
+                   gs.distance([[ellipsex.mean()],[ellipsex.mean()]],[[ellipsey.max()],[ellipsey.min()]],axis=0)[0][0]
         if contourx!='' or contoury!='':
-            contarea=gs.distance([[contoury.max()],[contoury.min()]],[[contoury.mean()],[contoury.mean()]],axis=0)[0][0]*\
-                   gs.distance([[contoury.mean()],[contoury.mean()]],[[contoury.max()],[contoury.min()]],axis=0)[0][0]
+            contarea=gs.distance([[contourx.max()],[contourx.min()]],[[contoury.mean()],[contoury.mean()]],axis=0)[0][0]*\
+                   gs.distance([[contourx.mean()],[contourx.mean()]],[[contoury.max()],[contoury.min()]],axis=0)[0][0]
         else:
             contarea=None
     return areachecker,ellipsarea,contarea

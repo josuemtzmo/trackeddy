@@ -9,7 +9,7 @@ from trackeddy.geometryfunc import *
 from trackeddy.physics import *
 warnings.filterwarnings("ignore")
 
-def dict_eddym(contour, ellipse, position_selected,position_max,position_ellipse,majoraxis_eddy,minoraxis_eddy,area,angle,number,level,gaussianfitdict):
+def dict_eddym(contour, ellipse, position_selected,position_max,position_ellipse,majoraxis_eddy,minoraxis_eddy,area,angle,number,level,gaussianfitdict,gaussfit2d):
     '''
     ********************** dict_eddym **********************
     Create a dictionary with a basic structure of the eddies. Can contain the structure of one eddy or multple eddies.
@@ -37,7 +37,7 @@ def dict_eddym(contour, ellipse, position_selected,position_max,position_ellipse
         eddys=dict_eddym(contour_path,ellipse_path,position_selected,position_ellipse,mayoraxis_eddy,minoraxis_eddy,\
                      area,angle,total_eddy,level)
     '''
-    contour_data={'Contour':contour,'Ellipse':ellipse,'Position':position_selected,'PositionExtreme':position_max,'PositionEllipse':position_ellipse,'MajorAxis':majoraxis_eddy,'MinorAxis':minoraxis_eddy,'Area':area,'Angle':angle,'EddyN':number,'Level':level,'2DGaussianFit':gaussianfitdict}
+    contour_data={'Contour':contour,'Ellipse':ellipse,'Position':position_selected,'PositionExtreme':position_max,'PositionEllipse':position_ellipse,'MajorAxis':majoraxis_eddy,'MinorAxis':minoraxis_eddy,'Area':area,'Angle':angle,'EddyN':number,'Level':level,'2DGaussianFit':gaussianfitdict,'2DGaussianR2':gaussfit2d}
     return contour_data
 
 def datastruct_time(ts,eddys,eddydt):
@@ -303,7 +303,6 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
         diagnostics=[diagnostics]
     if eddz=='' or maxlevel==levellist[levelindex]:
         eddz=eddys
-        #print(eddz['PositionExtreme'])
     else:         
         #Always check in the next one because probable we will have more contours if we get closer to 0.
         contour=eddz['Contour']
@@ -318,105 +317,27 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
         number=eddz['EddyN']
         level=eddz['Level']
         gauss2d=np.array(eddz['2DGaussianFit'])
+        gaussfit2d=np.array(eddz['2DGaussianR2'])
         
-        #print eddys['EddyN']
-        #print np.shape(eddys['Contour'])
-        if type(eddys['EddyN'][0])==int and type(eddz['EddyN'][0])==int:
-            #print('int - int',level)
-            nn0=0
-            n=0
-            eddysmaskdata={str(eddys['EddyN'][0]):''}
-            eddyzmaskdata={str(eddz['EddyN'][0]):''}
-            neweddies=[]
-            replacecontour=False
+        eddysmaskdata={str(ii): '' for ii in range(0,len(eddys['EddyN']))}
+        eddyzmaskdata={str(ii): '' for ii in range(0,len(eddz['EddyN']))}
+
+        neweddies=[]
+        for nn0 in range(0,len(eddys['EddyN'])):
             xscontour=eddys['Contour'][nn0][0]
             yscontour=eddys['Contour'][nn0][1]
             levels=eddys['Level'][nn0]
-            
             areas=eddys['Area'][nn0]
-            
-            coordmxs=eddys['PositionExtreme'][nn0][0]
-            coordmys=eddys['PositionExtreme'][nn0][1]
-            magms=eddys['PositionExtreme'][nn0][2]
-                
-            xzcontour=eddz['Contour'][n][0]
-            yzcontour=eddz['Contour'][n][1]
-            levelz=eddz['Level'][n]
-            areaz=eddz['Area'][n]
-            
-            coordmxz=eddz['PositionExtreme'][n][0]
-            coordmyz=eddz['PositionExtreme'][n][1]
-            magmz=eddz['PositionExtreme'][n][2]
-            if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]==eddz['Level'][-1] and levellist[levelindex]==eddys['Level'][-1]):# and areas/areaz < athresh:
-                eddysmaskdata[str(nn0)]='Done'
-                eddyzmaskdata[str(n)]='Done'
-                replacecontour=True
-                eddysindex=n
-            elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]!=eddz['Level'][-1] or levellist[levelindex]!=eddys['Level'][-1]):
-                eddysindex=n
-                eddysmaskdata[str(nn0)]='Done'
-                eddyzmaskdata[str(n)]='Done'
-                replacecontour=False
-            else:
-                replacecontour=False
-                neweddies.append([len(neweddies)+1,nn0])
-                    
-            if replacecontour==True:
-                #print('Contour Replaced')
-                contour[eddysindex]=eddys['Contour'][nn0]
-                ellipse[eddysindex]=eddys['Ellipse'][nn0]
-                position[eddysindex]=eddys['Position'][nn0]
-                position_max[eddysindex]=np.array(eddys['PositionExtreme'][nn0])
-                position_ellipse[eddysindex]=eddys['PositionEllipse'][nn0]
-                area[eddysindex]=eddys['Area'][nn0]
-                angle[eddysindex]=eddys['Angle'][nn0]
-                majoraxis[eddysindex]=eddys['MajorAxis'][nn0]
-                minoraxis[eddysindex]=eddys['MinorAxis'][nn0]
-                level[eddysindex]=eddys['Level'][nn0]
-                gauss2d[eddysindex]=np.array(eddys['2DGaussianFit'][nn0])
-                    
-            for ii,jj in neweddies:
-                contour=list(contour)
-                contour.append(eddys['Contour'][jj])
-                ellipse=list(ellipse)
-                ellipse.append(eddys['Ellipse'][jj])
-                majoraxis=list(majoraxis)
-                majoraxis.append(eddys['MajorAxis'][jj])
-                minoraxis=list(minoraxis)
-                minoraxis.append(eddys['MinorAxis'][jj])
-                position=np.vstack((position,[eddys['Position'][jj]]))
-                position_max=np.vstack((position_max,[eddys['PositionExtreme'][jj]]))
-                position_ellipse=np.vstack((position_ellipse,[eddys['PositionEllipse'][jj]]))
-                area=np.vstack((area,eddys['Area']))
-                angle=np.vstack((angle,eddys['Angle'][jj]))
-                level=np.vstack((level,eddys['Level'][jj]))
-                gauss2d=np.vstack((gauss2d,[eddys['2DGaussianFit'][jj]]))
-                number=np.vstack((number,[len(number)]))
-                
-            
-        elif type(eddys['EddyN'][0])==int and type(eddz['EddyN'][0])!=int:
-            #print('int - no int',level)
-            eddysmaskdata={str(eddys['EddyN'][0]):''}
-            eddyzmaskdata={str(ii): '' for ii in range(0,len(eddz['EddyN']))}
-            
-            neweddies=[]
-            nn0=0
-            #print('nn0',nn0)
-            xscontour=eddys['Contour'][nn0][0]
-            yscontour=eddys['Contour'][nn0][1]
-            magms=eddys['PositionExtreme'][nn0][2]
-            levels=eddys['Level'][nn0]
-            areas=eddys['Area'][nn0]
-                
+            gauss2dfits=eddys['2DGaussianR2'][nn0]
             coordmxs=eddys['PositionExtreme'][nn0][0]
             coordmys=eddys['PositionExtreme'][nn0][1]
             magms=eddys['PositionExtreme'][nn0][2]
             idxmxs=int(eddys['PositionExtreme'][nn0][3])
             idxmys=int(eddys['PositionExtreme'][nn0][4])
-            
+
             xidmin,xidmax=find2l(x,x,xscontour.min(),xscontour.max())
             yidmin,yidmax=find2l(y,y,yscontour.min(),yscontour.max())
-                
+
             replacecontour=False
             n=0
             while n != -1 :
@@ -428,30 +349,39 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                     yzcontour=eddz['Contour'][n][1]
                     levelz=eddz['Level'][n]
                     areaz=eddz['Area'][n]
-                    
+                    gauss2dfitz=eddz['2DGaussianR2'][n]
                     coordmxz=eddz['PositionExtreme'][n][0]
                     coordmyz=eddz['PositionExtreme'][n][1]
                     magmz=eddz['PositionExtreme'][n][2]
-                    
-                    if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]==eddz['Level'][-1] and levellist[levelindex]==eddys['Level'][-1]):# and areas/areaz < athresh:
+                    if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms:
                         eddysindex=n
                         eddysmaskdata[str(nn0)]='Done'
                         eddyzmaskdata[str(n)]='Done'
-                        replacecontour=True
+                        if gauss2dfitz < gauss2dfits or (areas[0] - areas[2]) < (areas[0]-areaz[2]):
+                            replacecontour=True
+                        else:
+                            replacecontour=False
                         n=-1
-                    elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]!=eddz['Level'][-1] or levellist[levelindex]!=eddys['Level'][-1]):
-                        eddysindex=n
-                        eddysmaskdata[str(nn0)]='Done'
-                        eddyzmaskdata[str(n)]='Done'
-                        replacecontour=False
-                        n=-1
-                    else: 
+                    else:
                         replacecontour=False
                         n=n+1
                 else:    
                     n=n+1
             if replacecontour==True:
-                #print('Contour Replaced')
+                if ("levels" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
+                    if xidmin<7 and yidmin>7:
+                        plt.pcolormesh(x[xidmin:xidmax+threshold],y[yidmin-threshold+1:yidmax+threshold],data[yidmin-threshold+1:yidmax+threshold,xidmin:xidmax+threshold])
+                    elif yidmin<7 and xidmin>7:
+                        plt.pcolormesh(x[xidmin-threshold+1:xidmax+threshold],y[yidmin:yidmax+threshold],data[yidmin:yidmax+threshold,xidmin-threshold+1:xidmax+threshold])
+                    else:
+                        plt.pcolormesh(x[xidmin-threshold+1:xidmax+threshold],y[yidmin-threshold+1:yidmax+threshold],data[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold])
+                    plt.colorbar()
+                    plt.plot(eddys['Contour'][nn0][0],eddys['Contour'][nn0][1],'-r')
+                    plt.plot(contour[eddysindex][0],contour[eddysindex][1],'-b')
+
+                    plt.show()
+                    print('Area:',areas/areaz)
+
                 contour[eddysindex]=eddys['Contour'][nn0]
                 ellipse[eddysindex]=eddys['Ellipse'][nn0]
                 position[eddysindex]=eddys['Position'][nn0]
@@ -463,206 +393,31 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                 minoraxis[eddysindex]=eddys['MinorAxis'][nn0]
                 level[eddysindex]=eddys['Level'][nn0]
                 gauss2d[eddysindex]=np.array(eddys['2DGaussianFit'][nn0])
-            for ii,jj in neweddies:
-                contour=list(contour)
-                contour.append(eddys['Contour'][jj])
-                ellipse=list(ellipse)
-                ellipse.append(eddys['Ellipse'][jj])
-                majoraxis=list(majoraxis)
-                majoraxis.append(eddys['MajorAxis'][jj])
-                minoraxis=list(minoraxis)
-                minoraxis.append(eddys['MinorAxis'][jj])
-                position=np.vstack((position,[eddys['Position'][jj]]))
-                position_max=np.vstack((position_max,[eddys['PositionExtreme'][jj]]))
-                position_ellipse=np.vstack((position_ellipse,[eddys['PositionEllipse'][jj]]))
-                area=np.vstack((area,eddys['Area']))
-                angle=np.vstack((angle,eddys['Angle'][jj]))
-                level=np.vstack((level,eddys['Level'][jj]))
-                gauss2d=np.vstack((gauss2d,[eddys['2DGaussianFit'][jj]]))
-                number=np.vstack((number,[len(number)]))
-
-        elif type(eddys['EddyN'][0])!=int and type(eddz['EddyN'][0])==int:
-            #print('no int - int',level)
-            eddysmaskdata={str(ii): '' for ii in range(0,len(eddys['EddyN']))}
-            eddyzmaskdata={str(eddz['EddyN'][0]):''}
-            
-            neweddies=[]
-            replacecontour=False
-            n=0
-            for nn0 in range(0,len(eddys['EddyN'])):
-                #print('nn0',nn0)
-                xscontour=eddys['Contour'][nn0][0]
-                yscontour=eddys['Contour'][nn0][1]
-                levels=eddys['Level'][nn0]
-                areas=eddys['Area'][nn0]
+                gaussfit2d[eddysindex]=np.array(eddys['2DGaussianR2'][nn0])
                 
-                coordmxs=eddys['PositionExtreme'][nn0][0]
-                coordmys=eddys['PositionExtreme'][nn0][1]
-                magms=eddys['PositionExtreme'][nn0][2]
-                
-                xzcontour=eddz['Contour'][n][0]
-                yzcontour=eddz['Contour'][n][1]
-                levelz=eddz['Level'][n]
-                areaz=eddz['Area'][n]
-                        
-                coordmxz=eddz['PositionExtreme'][n][0]
-                coordmyz=eddz['PositionExtreme'][n][1]
-                magmz=eddz['PositionExtreme'][n][2]
-                        
-                if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]==eddz['Level'][-1] and levellist[levelindex]==eddys['Level'][-1]):# and areas/areaz < athresh:
-                    eddysmaskdata[str(nn0)]='Done'
-                    eddyzmaskdata[str(n)]='Done'
-                    replacecontour=True
-                    eddysindex=n
-                    n=-1
-                elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]!=eddz['Level'][-1] or levellist[levelindex]!=eddys['Level'][-1]):
-                    eddysindex=n
-                    eddysmaskdata[str(nn0)]='Done'
-                    eddyzmaskdata[str(n)]='Done'
-                    replacecontour=False
-                    n=-1
-                else:
-                    replacecontour=False
-                    neweddies.append([len(neweddies)+1,nn0])
-                    
-                if replacecontour==True:
-                    #print('Contour Replaced')
-                    contour[eddysindex]=eddys['Contour'][nn0]
-                    ellipse[eddysindex]=eddys['Ellipse'][nn0]
-                    position[eddysindex]=eddys['Position'][nn0]
-                    position_max[eddysindex]=np.array(eddys['PositionExtreme'][nn0])
-                    position_ellipse[eddysindex]=eddys['PositionEllipse'][nn0]
-                    area[eddysindex]=eddys['Area'][nn0]
-                    angle[eddysindex]=eddys['Angle'][nn0]
-                    majoraxis[eddysindex]=eddys['MajorAxis'][nn0]
-                    minoraxis[eddysindex]=eddys['MinorAxis'][nn0]
-                    level[eddysindex]=eddys['Level'][nn0]
-                    gauss2d[eddysindex]=np.array(eddys['2DGaussianFit'][nn0])
-                    
-                #print(n,nn0,'--',coordmxz,coordmxs,'|',coordmyz,coordmys)
-                
-            for ii,jj in neweddies:
-                contour=list(contour)
-                contour.append(eddys['Contour'][jj])
-                ellipse=list(ellipse)
-                ellipse.append(eddys['Ellipse'][jj])
-                majoraxis=list(majoraxis)
-                majoraxis.append(eddys['MajorAxis'][jj])
-                minoraxis=list(minoraxis)
-                minoraxis.append(eddys['MinorAxis'][jj])
-                position=np.vstack((position,[eddys['Position'][jj]]))
-                position_max=np.vstack((position_max,[eddys['PositionExtreme'][jj]]))
-                position_ellipse=np.vstack((position_ellipse,[eddys['PositionEllipse'][jj]]))
-                area=np.vstack((area,eddys['Area'][jj]))
-                angle=np.vstack((angle,eddys['Angle'][jj]))
-                level=np.vstack((level,eddys['Level'][jj]))
-                gauss2d=np.vstack((gauss2d,[eddys['2DGaussianFit'][jj]]))
-                number=np.vstack((number,[len(number)]))
-                
-        else:
-            #print('no int - no int',level)
-            eddysmaskdata={str(ii): '' for ii in range(0,len(eddys['EddyN']))}
-            eddyzmaskdata={str(ii): '' for ii in range(0,len(eddz['EddyN']))}
-
-            neweddies=[]
-            for nn0 in range(0,len(eddys['EddyN'])):
-                
-                #print('nn0',nn0)
-                xscontour=eddys['Contour'][nn0][0]
-                yscontour=eddys['Contour'][nn0][1]
-                levels=eddys['Level'][nn0]
-                areas=eddys['Area'][nn0]
-                
-                coordmxs=eddys['PositionExtreme'][nn0][0]
-                coordmys=eddys['PositionExtreme'][nn0][1]
-                magms=eddys['PositionExtreme'][nn0][2]
-                idxmxs=int(eddys['PositionExtreme'][nn0][3])
-                idxmys=int(eddys['PositionExtreme'][nn0][4])
-                
-                xidmin,xidmax=find2l(x,x,xscontour.min(),xscontour.max())
-                yidmin,yidmax=find2l(y,y,yscontour.min(),yscontour.max())
-                
-                replacecontour=False
-                n=0
-                while n != -1 :
-                    if n>=len(eddz['EddyN']) or all([val=='Done' for val in eddysmaskdata.values()]):
-                        neweddies.append([len(neweddies)+1,nn0])
-                        n=-1
-                    elif eddysmaskdata[str(nn0)]!='Done' and eddyzmaskdata[str(n)] != 'Done':
-                        xzcontour=eddz['Contour'][n][0]
-                        yzcontour=eddz['Contour'][n][1]
-                        levelz=eddz['Level'][n]
-                        areaz=eddz['Area'][n]
-                        coordmxz=eddz['PositionExtreme'][n][0]
-                        coordmyz=eddz['PositionExtreme'][n][1]
-                        magmz=eddz['PositionExtreme'][n][2]
-                        if coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]==eddz['Level'][-1] and levellist[levelindex]==eddys['Level'][-1]):# and areas/areaz < athresh:
-                            eddysindex=n
-                            eddysmaskdata[str(nn0)]='Done'
-                            eddyzmaskdata[str(n)]='Done'
-                            replacecontour=True
-                            n=-1
-                        elif coordmxz==coordmxs and coordmyz==coordmys and magmz==magms and (levellist[levelindex-1]!=eddz['Level'][-1] or levellist[levelindex]!=eddys['Level'][-1]):
-                            eddysindex=n
-                            eddysmaskdata[str(nn0)]='Done'
-                            eddyzmaskdata[str(n)]='Done'
-                            replacecontour=False
-                            n=-1
-                        else:
-                            replacecontour=False
-                            n=n+1
-                    else:    
-                        n=n+1
-                if replacecontour==True:
-                    if ("levels" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
-                        if xidmin<7 and yidmin>7:
-                            plt.pcolormesh(x[xidmin:xidmax+threshold],y[yidmin-threshold+1:yidmax+threshold],data[yidmin-threshold+1:yidmax+threshold,xidmin:xidmax+threshold])
-                        elif yidmin<7 and xidmin>7:
-                            plt.pcolormesh(x[xidmin-threshold+1:xidmax+threshold],y[yidmin:yidmax+threshold],data[yidmin:yidmax+threshold,xidmin-threshold+1:xidmax+threshold])
-                        else:
-                            plt.pcolormesh(x[xidmin-threshold+1:xidmax+threshold],y[yidmin-threshold+1:yidmax+threshold],data[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold])
-                        plt.colorbar()
-                        plt.plot(eddys['Contour'][nn0][0],eddys['Contour'][nn0][1],'-r')
-                        plt.plot(contour[eddysindex][0],contour[eddysindex][1],'-b')
-                        
-                        plt.show()
-                        print('Area:',areas/areaz)
-                        
-                    contour[eddysindex]=eddys['Contour'][nn0]
-                    ellipse[eddysindex]=eddys['Ellipse'][nn0]
-                    position[eddysindex]=eddys['Position'][nn0]
-                    position_max[eddysindex]=np.array(eddys['PositionExtreme'][nn0])
-                    position_ellipse[eddysindex]=eddys['PositionEllipse'][nn0]
-                    area[eddysindex]=eddys['Area'][nn0]
-                    angle[eddysindex]=eddys['Angle'][nn0]
-                    majoraxis[eddysindex]=eddys['MajorAxis'][nn0]
-                    minoraxis[eddysindex]=eddys['MinorAxis'][nn0]
-                    level[eddysindex]=eddys['Level'][nn0]
-                    gauss2d[eddysindex]=np.array(eddys['2DGaussianFit'][nn0])
-                    
-            for ii,jj in neweddies:
-                contour=list(contour)
-                contour.append(eddys['Contour'][jj])
-                ellipse=list(ellipse)
-                ellipse.append(eddys['Ellipse'][jj])
-                majoraxis=list(majoraxis)
-                majoraxis.append(eddys['MajorAxis'][jj])
-                minoraxis=list(minoraxis)
-                minoraxis.append(eddys['MinorAxis'][jj])
-                position=np.vstack((position,[eddys['Position'][jj]]))
-                position_max=np.vstack((position_max,[eddys['PositionExtreme'][jj]]))
-                position_ellipse=np.vstack((position_ellipse,[eddys['PositionEllipse'][jj]]))
-                area=np.vstack((area,eddys['Area'][jj]))
-                angle=np.vstack((angle,eddys['Angle'][jj]))
-                level=np.vstack((level,eddys['Level'][jj]))
-                gauss2d=np.vstack((gauss2d,[eddys['2DGaussianFit'][jj]]))
-                number=np.vstack((number,[len(number)]))
+        for ii,jj in neweddies:
+            contour=list(contour)
+            contour.append(eddys['Contour'][jj])
+            ellipse=list(ellipse)
+            ellipse.append(eddys['Ellipse'][jj])
+            majoraxis=list(majoraxis)
+            majoraxis.append(eddys['MajorAxis'][jj])
+            minoraxis=list(minoraxis)
+            minoraxis.append(eddys['MinorAxis'][jj])
+            position=np.vstack((position,[eddys['Position'][jj]]))
+            position_max=np.vstack((position_max,[eddys['PositionExtreme'][jj]]))
+            position_ellipse=np.vstack((position_ellipse,[eddys['PositionEllipse'][jj]]))
+            area=np.vstack((area,eddys['Area'][jj]))
+            angle=np.vstack((angle,eddys['Angle'][jj]))
+            level=np.vstack((level,eddys['Level'][jj]))
+            gauss2d=np.vstack((gauss2d,[eddys['2DGaussianFit'][jj]]))
+            gaussfit2d=np.vstack((gaussfit2d,[eddys['2DGaussianR2'][jj]]))
+            number=np.vstack((number,[len(number)]))
                 
         eddz={'Contour':contour,'Ellipse':ellipse,'Position':position,'PositionExtreme':position_max,\
               'PositionEllipse':position_ellipse,'Area':area,'MajorAxis':majoraxis,\
-              'MinorAxis':minoraxis,'Angle':angle,'EddyN':number,'Level':level,'2DGaussianFit':gauss2d}
-        #print('number_new_eddies=',len(neweddies))
-    #print('previous number of eddies', len(eddz['EddyN']))
+              'MinorAxis':minoraxis,'Angle':angle,'EddyN':number,'Level':level,\
+              '2DGaussianFit':gauss2d,'2DGaussianR2':gaussfit2d}
     return eddz
 
 def joindict(dict1,dict2):
