@@ -64,7 +64,6 @@ def geovelfield(ssha,lon,lat,mask='',anomval=100):
     Lon,Lat=np.meshgrid(lon,lat)
     u=np.zeros(np.shape(ssha))
     v=np.zeros(np.shape(ssha))
-    print(np.shape(ssha))
     for ii in range(np.shape(ssha)[0]):
         v[ii,1:]=gs.geostrophic_velocity(ssha[ii,:], Lon[ii,:], Lat[ii,:], 0, axis=0)[0]*9.81
     for jj in range(np.shape(ssha)[1]):
@@ -74,8 +73,6 @@ def geovelfield(ssha,lon,lat,mask='',anomval=100):
         u= np.ma.masked_array(u, mask)
         v= np.ma.masked_array(v, mask)
     return u,v
-
-
     
 def KE(u,v):
     ke=(1/2)*(u**2+v**2)

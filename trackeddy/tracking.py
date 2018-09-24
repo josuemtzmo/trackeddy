@@ -200,7 +200,6 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                             center_extrem[4]=center_extrem[4]+yidmin-threshold+1
                         checkM=False
                         checkm=False 
-
                         if ellipsarea < areachecker and contarea < areachecker:
                             if checkgauss==True:
                                 if len(shapedata)==3:
@@ -705,7 +704,6 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
                           ,eccenfit=eccenfit,ellipsrsquarefit=ellipsrsquarefit\
                           ,gaussrsquarefit=gaussrsquarefit,mode=mode\
                           ,diagnostics=diagnostics,plotdata=plotdata)
-            
             if check==True and checkcount==0:
                 eddzcheck=True
                 checkcount=1

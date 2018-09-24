@@ -41,31 +41,22 @@ def dict_eddym(contour, ellipse, position_selected,position_max,position_ellipse
     return contour_data
 
 def datastruct_time(ts,eddys,eddydt):
-    if type(eddys['EddyN'][0])==int:
-        dictime={'eddyn_'+str(eddys['EddyN'][0]):{'neddy':[eddys['EddyN']][0],'time':np.array([ts]),\
-                'position_default':[eddys['Position'][0]],\
-                'area':eddys['Area'][0],'ellipse':[eddys['Ellipse'][0]],'contour':[eddys['Contour'][0]],\
-                'angle':eddys['Angle'][0],'position_maxvalue':[eddys['PositionExtreme'][0]],\
-                'position_eddy':eddys['PositionEllipse'][0],'level':eddys['Level'][0],\
-                'majoraxis':eddys['MajorAxis'][0],'minoraxis':eddys['MinorAxis'][0],\
-                '2dgaussianfit':eddys['2DGaussianFit'][0],'timetracking':True}}
-    else:
-        dictime={'eddyn_'+str(eddys['EddyN'][0][0]):{'neddy':eddys['EddyN'][0],'time':np.array([ts]),\
-                'position_default':[eddys['Position'][0]],\
-                'area':eddys['Area'][0],'ellipse':[eddys['Ellipse'][0]],'contour':[eddys['Contour'][0]],\
-                'angle':eddys['Angle'][0],'position_maxvalue':[eddys['PositionExtreme'][0]],\
-                'position_eddy':eddys['PositionEllipse'][0],'level':eddys['Level'][0],\
-                'majoraxis':eddys['MajorAxis'][0],'minoraxis':eddys['MinorAxis'][0],\
-                '2dgaussianfit':eddys['2DGaussianFit'][0],'timetracking':True}}
-        
-        for nn in range(1,len(eddys['EddyN'])):
-            dictime['eddyn_'+str(eddys['EddyN'][nn][0])]={'neddy':eddys['EddyN'][nn],'time':np.array([ts]),\
-                    'position_default':[eddys['Position'][nn]],\
-                    'area':eddys['Area'][nn],'ellipse':[eddys['Ellipse'][nn]],'contour':[eddys['Contour'][nn]],\
-                    'angle':eddys['Angle'][nn],'position_maxvalue':[eddys['PositionExtreme'][nn]],\
-                    'position_eddy':eddys['PositionEllipse'][nn],'level':eddys['Level'][nn],\
-                    'majoraxis':eddys['MajorAxis'][nn],'minoraxis':eddys['MinorAxis'][nn],\
-                    '2dgaussianfit':eddys['2DGaussianFit'][nn],'timetracking':True}
+    dictime={'eddyn_'+str(eddys['EddyN'][0][0]):{'neddy':eddys['EddyN'][0],'time':np.array([ts]),\
+            'position_default':[eddys['Position'][0]],\
+            'area':eddys['Area'][0],'ellipse':[eddys['Ellipse'][0]],'contour':[eddys['Contour'][0]],\
+            'angle':eddys['Angle'][0],'position_maxvalue':[eddys['PositionExtreme'][0]],\
+            'position_eddy':eddys['PositionEllipse'][0],'level':eddys['Level'][0],\
+            'majoraxis':eddys['MajorAxis'][0],'minoraxis':eddys['MinorAxis'][0],\
+            '2dgaussianfit':eddys['2DGaussianFit'][0],'timetracking':True}}
+
+    for nn in range(1,len(eddys['EddyN'])):
+        dictime['eddyn_'+str(eddys['EddyN'][nn][0])]={'neddy':eddys['EddyN'][nn],'time':np.array([ts]),\
+                'position_default':[eddys['Position'][nn]],\
+                'area':eddys['Area'][nn],'ellipse':[eddys['Ellipse'][nn]],'contour':[eddys['Contour'][nn]],\
+                'angle':eddys['Angle'][nn],'position_maxvalue':[eddys['PositionExtreme'][nn]],\
+                'position_eddy':eddys['PositionEllipse'][nn],'level':eddys['Level'][nn],\
+                'majoraxis':eddys['MajorAxis'][nn],'minoraxis':eddys['MinorAxis'][nn],\
+                '2dgaussianfit':eddys['2DGaussianFit'][nn],'timetracking':True}
     return dictime
 
 def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue='maxvalue',coords='latlon',diagnostics=False):
@@ -175,7 +166,6 @@ def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue=
             plt.show()
         
     else:
-        
         for t0key in eddyt0.keys():
             eddydist=[]
             t0position=eddydt['eddyn_'+str(t0key)]['position_'+maxvalue][-1]
@@ -212,15 +202,6 @@ def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue=
                 eddydt['eddyn_'+str(oldeddy)]['timetracking']=1
             elif type(eddydt['eddyn_'+str(oldeddy)]['timetracking'])==int:
                 eddydt['eddyn_'+str(oldeddy)]['timetracking']=eddydt['eddyn_'+str(oldeddy)]['timetracking']+1
-                
-                
-    #print(neweddies)      
-    #print(eddyt0)
-    #print('')
-    #print(eddyt1)
-    #sw.dist(0,lon,'km')[0][:]   
-    #insideness overlap closest
-    #print(neweddies)
     return eddydt
 
 def addtimetrack(ts,eddydt,eddys,neweddies):
