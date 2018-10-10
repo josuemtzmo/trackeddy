@@ -51,7 +51,8 @@ def gaussfit():
 
 @pytest.mark.testme
 def test_gaussfit():
-    assert gaussfit() >= 0.99
+    gausf=gaussfit()
+    assert gausf >= 0.99
 
 #################################
 ## Test 2: Check the detection ##

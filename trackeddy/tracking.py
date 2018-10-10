@@ -699,7 +699,6 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,data_meant='',areamap='',mask='',ph
     
     for ii in range(t0,t1,tstep):
         checkcount = 0 
-        
         # Defining filters
         if filters == None or ('time' not in filters.keys() and 'spatial' not in filters.keys()):
             filters = {'time':{'type':None,'t':None,'t0':None,'value':None},'spatial':{'type':None,'window':None,'mode':None}}
@@ -752,9 +751,10 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,data_meant='',areamap='',mask='',ph
             raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
         
         for ll in range(0,len(levellist)):
-            if levellist[0]<0 and levellist[-1]<0:
+            
+            if levellist[ll]<0:
                 levels_scan=[-np.inf,levellist[ll]]
-            elif levellist[0]>0 and levellist[-1]>0:
+            else:
                 levels_scan=[levellist[ll],np.inf]
                 
             eddies,check,numbereddies=scan_eddym(dataanomaly,x,y,levels_scan,ii\
@@ -790,7 +790,8 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,data_meant='',areamap='',mask='',ph
             np.save(destdir+str(level)+'.npy',eddytd)
     return eddytd
 
-def analyseddyt(data,x,y,level,t0,t1,tstep,data_meant='',areamap='',mask='',physics='',eddycenter='masscenter',eccenfit=0.85,gaussrsquarefit=0.8,ellipsrsquarefit=0.8,mode='gaussian',sfilter='none',checkgauss=True,areaparms=None,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
+def analyseddyt(data,x,y,level,t0,t1,tstep,data_meant='',areamap='',mask='',physics='',eddycenter='masscenter',eccenfit=0.85,gaussrsquarefit=0.8,ellipsrsquarefit=0.8,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
+    
     '''
     *************Analys eddy in t ***********
     Function to identify each eddy using closed contours, 
@@ -801,63 +802,115 @@ def analyseddyt(data,x,y,level,t0,t1,tstep,data_meant='',areamap='',mask='',phys
 
     Author: Josue Martinez Moreno, 2017
     '''
-    eddytd=''
-    if len(np.shape(data))<3:
-        print('The data need to have 3d [i.e. data(t,x,y)]')
+    if pprint == True:
+        pp = Printer(); 
+    if len(np.shape(data)) < 3:
+        raise Exception('If you whant to analyze in time the data need to be 3d [i.e. data(t,x,y)]')
         #return
     if areamap=='':
-        areamap=np.array([[0,len(x)],[0,len(y)]])
+        areamap = np.array([[0,len(x)],[0,len(y)]])
+    if mask == '':
+        if ma.is_masked(data):
+            if len(np.shape(data))<3:
+                mask = ma.getmask(data[:,:])
+                data = data.filled(fill_value=0)
+            else:
+                mask = ma.getmask(data[0,:,:])
+                data = data.filled(fill_value=0)
+        else:
+            if len(np.shape(data))<3:
+                mask = np.zeros(np.shape(data[:,:]))
+            else:
+                mask = np.zeros(np.shape(data[0,:,:]))
     #Check area
     if areaparms==None:
         areaparms={'mesoscale':2*np.pi}
-    if mask == '':
-        if len(np.shape(data))<3:
-            mask=ma.getmask(data[:,:])
-        else:
-            mask=ma.getmask(data[0,:,:])
-    pp =  Printer(); 
+    #Define list of levels based on the user defined dictionary
+    if pprint==True:
+        pp.timepercentprint(0,1,1,0,"Init time")
+    if pprint==True:
+        pp = Printer(); 
+    numbereddieslevels=0
+    
     for ii in range(t0,t1,tstep):
-        if data_meant=='':
-            #print('Be sure the data is an anomaly', end='')
-            if sfilter=='none' or sfilter=='':
-                dataanomaly = ma.masked_array(data[ii,:,:], mask)
-            elif sfilter=='uniform':
-                nofilterdata=data[ii,:,:]-data_meant
-                nofilterdata = nofilterdata - ndimage.uniform_filter(nofilterdata, size=40)
-                dataanomaly = ma.masked_array(nofilterdata, mask)
-            elif sfilter=='gaussian':
-                nofilterdata=data[ii,:,:]-data_meant
-                nofilterdata = nofilterdata - ndimage.gaussian_filter(nofilterdata, sigma=20)
-                dataanomaly = ma.masked_array(nofilterdata, mask)
+        checkcount = 0 
+        # Defining filters
+        if filters == None or ('time' not in filters.keys() and 'spatial' not in filters.keys()):
+            filters = {'time':{'type':None,'t':None,'t0':None,'value':None},'spatial':{'type':None,'window':None,'mode':None}}
+            dataanomaly=data[ii,:,:]
+        # Check if the expected filters are defined
+        elif 'time' not in filters.keys():
+            filters['time'] = {'type':None,'t':None,'t0':None,'value':None}
+            dataanomaly=data[ii,:,:]
+        elif 'spatial' not in filters.keys():
+            filters['spatial'] = {'type':None,'window':None,'mode':None}
+            dataanomaly=data[ii,:,:]
+        elif len(filters.keys()) != 2:
+            raise ValueError("Unexpected dictionary, documentation at: \n https://trackeddy.readthedocs.io/en/latest/pages/Methods.html")
+        # Apply temporal filter
+        if filters['time']['type'] == None and filters['time']['value'] == None and (filters['time']['t0'] == None or filters['time']['t'] == None):
+            pass
+            #print('No time filter apply')
+        # Check if the user selects to remove a predefined or calculated historical filter.
+        elif filters['time']['type'] == 'historical' and filters['time']['value'] != None:
+            dataanomaly  = ma.masked_array(data[ii,:,:]-filters['time']['value'], mask)
+        elif filters['time']['type'] == 'historical' and filters['time']['value'] == None:
+            dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(data,axis=0), mask)
+        # Check if the user selects an time orthogonal filter.
+        elif filters['time']['type'] != 'historical' and (filters['time']['t'] != None or  filters['time']['t0'] != None):
+            dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(data[ii-t0:ii+t],axis=0), mask)
+        elif filters['time']['type'] != 'historical' and  filters['time']['type'] != None and (filters['time']['t'] == None or  filters['time']['t0'] == None):
+            raise ValueError("T and T0 are undefined, include the definition in the dictionary.")
         else:
-            if sfilter=='none' or sfilter=='':
-                dataanomaly=ma.masked_array(data[ii,:,:]-data_meant, mask)
-            elif sfilter=='uniform':
-                nofilterdata=data[ii,:,:]-data_meant
-                nofilterdata = nofilterdata- ndimage.uniform_filter(nofilterdata, size=40)
+            raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
+        # Apply spatial filter.
+        if filters['spatial']['type'] == None and filters['spatial']['window'] == None and filters['spatial']['mode'] == None:
+            pass
+            #print('No spatial filter apply')
+        elif filters['spatial']['type'] == 'moving' and filters['spatial']['window'] != None:
+            if filters['spatial']['mode'] == 'uniform':
+                nofilterdata = data[ii,:,:]
+                nofilterdata = nofilterdata - ndimage.uniform_filter(nofilterdata, size = filters['spatial']['window'])
                 dataanomaly = ma.masked_array(nofilterdata, mask)
-            elif sfilter=='gaussian':
-                nofilterdata=data[ii,:,:]-data_meant
-                nofilterdata =  nofilterdata - ndimage.gaussian_filter(nofilterdata, sigma=20)
-                dataanomaly = ma.masked_array(nofilterdata, mask)
-        #del nofilterdata
-        #Levels to Analyse, note that one of them is an extreme value,
-        #This is because we don't want interference from any other contour.
-        if level<0:
-            levels=[-500,level]
-        elif level>0:
-            levels=[level,500]
-        eddies,check,numbereddies=scan_eddym(dataanomaly,x,y,levels,ii,areamap,mask=mask,destdir=destdir\
-                      ,physics=physics,eddycenter=eddycenter,checkgauss=checkgauss,checkarea=checkarea\
+            if filters['spatial']['mode'] == 'gaussian':
+                nofilterdata = data[ii,:,:]
+                nofilterdata = nofilterdata - ndimage.gaussian_filter(nofilterdata, size = filters['spatial']['window'])
+                dataanomaly = ma.masked_array(nofilterdata, mask)       
+        # Check if the user selects an moving average meridional filter.
+        elif filters['spatial']['type'] == 'meridional':
+            dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(np.squeeze(data[ii,:,:]),axis=0), mask)
+        # Check if the user selects an moving average zonal filter.
+        elif filters['spatial']['type'] == 'zonal':
+            dataanomaly = ma.masked_array((data[ii,:,:].T-np.nanmean(np.squeeze(data[ii,:,:]),axis=1)).T, mask)
+        else:
+            raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
+        
+        if level < 0:
+            levels_scan=[-np.inf,level]
+        else:
+            levels_scan=[level,np.inf]
+            
+        eddies,check,numbereddies=scan_eddym(dataanomaly,x,y,levels_scan,ii\
+                      ,areamap,mask=mask,destdir=destdir\
+                      ,physics=physics,eddycenter=eddycenter,maskopt=maskopt\
+                      ,checkgauss=checkgauss,areaparms=areaparms\
                       ,eccenfit=eccenfit,ellipsrsquarefit=ellipsrsquarefit\
                       ,gaussrsquarefit=gaussrsquarefit,mode=mode\
                       ,diagnostics=diagnostics,plotdata=plotdata)
-        if eddies!=0 and check==True:
-            if ii==0:
-                eddytd=dict_eddyt(ii,eddies)
-            else:
-                eddytd=dict_eddyt(ii,eddies,eddytd) 
-        pp.timepercentprint(t0,t1,tstep,ii,numbereddies)
+        if check==True and checkcount==0:
+            eddzcheck=True
+            checkcount=1
+        else:
+            eddzcheck=False
+        if pprint==True:
+            pp.timepercentprint(t0,t1,tstep,ii,numbereddies)
+        if ii==0:
+            eddytd=dict_eddyt(ii,eddies)
+        else:
+            eddytd=dict_eddyt(ii,eddies,eddytd,data=dataanomaly,x=x,y=y) 
+        if pprint==True:
+            numbereddieslevels=numbereddieslevels+numbereddies
+            pp.timepercentprint(t0,t1,tstep,ii,numbereddieslevels)
     if destdir!='':
         if saveformat=='nc':
             eddync(destdir+str(level)+'.nc',eddytd)

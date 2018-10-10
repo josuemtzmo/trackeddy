@@ -575,13 +575,12 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
     except:
         R2=0
     
-    o=sum(sum(varm.filled(0)))
-    g=sum(sum(ma.masked_array(fittedata, varm.mask).filled(0)))
-    
-    #print(o*0.9, g , o*1.1)
-    if o*0.9 <= g and g <= o*1.1:
-        R2=0
-    
+    if type(varm) == ma.core.MaskedArray:
+        o=sum(sum(varm.filled(0)))
+        g=sum(sum(ma.masked_array(fittedata, varm.mask).filled(0)))
+        if o*0.9 <= g and g <= o*1.1:
+            R2=0
+            
     if ("2dfit" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
         print('R^2 2D fitting:',R2)
         print('OPT steps:',infodict['nfev'])
