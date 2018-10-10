@@ -3,8 +3,11 @@ Applications
 ============
 
 This code was developed with the goal of analyse and extract the energy
-contained by Eddies and jets in the ocean. However it can be used for a variety
+contained by Eddies in the ocean. However it can be used for a variety
 of processes. To know more about these processes, please se below:
+
+It may be implemented to track eddies and some other applications, and it could
+be capable of track eddies in pressure levels, isopycnals and vorticity.
 
 Kinetic Energy decomposition
 ----------------------------

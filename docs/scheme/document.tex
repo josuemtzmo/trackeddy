@@ -1,0 +1,370 @@
+% Kalman filter system model
+% by Burkart Lingner
+% An example using TikZ/PGF 2.00
+%
+% Features: Decorations, Fit, Layers, Matrices, Styles
+% Tags: Block diagrams, Diagrams
+% Technical area: Electrical engineering
+
+\documentclass[a4paper,10pt]{article}
+
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[ansinew]{inputenc}
+
+\usepackage{lmodern}	% font definition
+\usepackage{amsmath}	% math fonts
+\usepackage{amsthm}
+\usepackage{amsfonts}
+
+\usepackage{tikz}
+\usetikzlibrary{decorations.pathmorphing} % noisy shapes
+\usetikzlibrary{fit}					% fitting shapes to coordinates
+\usetikzlibrary{backgrounds}	% drawing the background after the foreground
+\usetikzlibrary{calc}
+
+\usepackage{geometry}
+\geometry{
+	a3paper,
+	landscape,
+	total={170mm,257mm},
+	left=0mm,
+	top=5mm,
+	bottom=5mm,
+	right=0mm,
+}
+
+\begin{document}
+	\thispagestyle{empty}
+	\begin{figure}[htbp]
+		\centering
+		% The state vector is represented by a blue circle.
+		% "minimum size" makes sure all circles have the same size
+		% independently of their contents.
+		\tikzstyle{state}=[rectangle,
+		thick,
+		minimum size=1.2cm,
+		draw=blue!80,
+		fill=blue!20]
+		
+		% The measurement vector is represented by an orange circle.
+		\tikzstyle{measurement}=[circle,
+		thick,
+		minimum size=1.2cm,
+		draw=orange!80,
+		fill=orange!25]
+		
+		\tikzstyle{output}=[rectangle,
+		thick,
+		minimum size=1.2cm,
+		draw=purple!80,
+		fill=purple!20]
+		
+		% The control input vector is represented by a purple circle.
+		\tikzstyle{input}=[circle,
+		thick,
+		minimum size=1.2cm,
+		draw=purple!80,
+		fill=purple!20]
+		
+		% The input, state transition, and measurement matrices
+		% are represented by gray squares.
+		% They have a smaller minimal size for aesthetic reasons.
+		\tikzstyle{matrx}=[rectangle,
+		thick,
+		minimum size=1cm,
+		draw=gray!80,
+		fill=gray!20]
+		
+		
+		% Everything is drawn on underlying gray rectangles with
+		% rounded corners.
+		\tikzstyle{background}=[rectangle,
+		fill=gray!10,
+		inner sep=0.2cm,
+		rounded corners=5mm]
+		
+		\tikzstyle{empty}=[rectangle,
+		fill=gray!10,
+		inner sep=0cm,
+		rounded corners=0mm]
+		
+		\tikzstyle{inbox}=[rectangle,
+		fill=blue!10,
+		inner sep=0.1cm,
+		rounded corners=5mm]
+		
+		\tikzstyle{optional} = [ decoration={pre length=0.2cm,
+			post length=0.2cm,, amplitude=.4mm,
+			segment length=2mm},thick,dashed, cyan, ->]
+		
+		\tikzstyle{connector} = [->,thick]
+		
+		\begin{tikzpicture}[>=latex,text height=1.5ex,text depth=0.25ex]
+		% "text height" and "text depth" are required to vertically
+		% align the labels with and without indices.
+		
+		% The various elements are conveniently placed using a matrix:
+		\matrix[row sep=0.5cm,column sep=0.8cm] {
+			% First line: Control input
+			&
+			\node {\textbf{Identification}}; &
+			&
+			&
+			\node {\textbf{Contour Replacement}};     &
+			&
+			&
+			\node {\textbf{Time Tracking}}; &
+			\\
+			% First line: Control input
+			&
+			\node (Input_1) [input]{Surface}; &
+			&
+			&
+			\node (Input_2)   [input]{\begin{tabular}{l}Eddies at  \\ at level ($N$)\end{tabular}};     &
+			&
+			&
+			\node (Input_3) [input]{Eddies at $t$}; &
+			\\
+			% Second line: System noise & input matrix
+			&
+			\node (filter) [matrx] {Filters}; &
+			&
+			&
+			&
+			&
+			&
+			&
+			&
+			\\
+			% Third line: State & state transition matrix
+			\node (trend) [state] {Temporal}; &
+			&
+			\node (spatial) [state] {Spatial}; &
+			&
+			&
+			&
+			&
+			&
+			&
+			\\
+			% Fourth line: Measurement noise & measurement matrix
+			\node	(empty) [empty] {\ \ \ \ \ \ \ \ \ \ \ \  };&
+			\node (contour_slice) [matrx] {\begin{tabular}{l}Contour slice \\ at level ($N$)\end{tabular}};       &
+			&
+			&
+			\node (eddy_n)   [matrx] {\begin{tabular}{l} Eddy at level $E_{l_n}(k)$\end{tabular}};       &
+			&
+			&
+			&
+			&
+			\\
+			% Fifth line: Measurement
+			&
+			\node (close_contour) [matrx] {\begin{tabular}{l}Close \\ Contour ($n_c(i)$)\end{tabular}}; &
+			&
+			&
+			\node (eddy_n-1)   [matrx] {\begin{tabular}{l} Eddy at level $E_{l_{n-1}}(l)$\end{tabular}};       &
+			&
+			&
+			&
+			\\
+			% Fifth line: Measurement
+			&
+			\node (land) [matrx] {Land Check}; &
+			&
+			&
+			\node (same)   [matrx] {\scriptsize \begin{tabular}{l} Same turning \\ point location \\ and amplitud \end{tabular}};     &
+			&
+			&
+			&
+			\\
+			% Fifth line: Measurement
+			&
+			\node (ellipse_fit) [matrx] {\begin{tabular}{l} Ellipse \\ Fitting ($\epsilon$)\end{tabular}}; &
+			&
+			&
+			\node (ident)[state] {Identified list};&
+			\node (newel) [state] {New eddy list};&
+			&
+			&
+			\\
+			% Fifth line: Measurement
+			&
+			\node (eccentricity) [matrx] {\begin{tabular}{l} Ellipse \\ Eccentricity ($e$)\end{tabular}}; &
+			&
+			\node (best_g)   [state] {\begin{tabular}{l} Best \\ gausian\\ fit \end{tabular}}; &
+			&
+			&
+			&
+			&
+			\\
+			% Fifth line: Measurement
+			&
+			\node (area) [matrx] {Area Check}; &
+			&
+			&
+			&
+			\node (notin)   [matrx] {Not in identified list};    &
+			&
+			&
+			\\
+			% Fifth line: Measurement
+			&
+			\node (gaussian) [matrx] {\begin{tabular}{l} Gausian Axis \\  Check\end{tabular}}; &
+			&
+			&
+			\node (replace)   [matrx] {Replace Eddy};    &
+			\node (newe)   [matrx] {New Eddy};    &
+			&
+			\\
+			% Third line: State & state transition matrix
+			&
+			&
+			\node (2dgauss) [state] {2D gaussian}; &
+			&
+			&
+			&
+			&
+			\node	(empty3) [empty] {\ \ \ \ \ \ \ \ \ \ \ \  };&
+			\\
+			\\
+			% Third line: State & state transition matrix
+			&
+			&
+			&
+			&
+			&
+			&
+			&
+			\\
+			% Fifth line: Measurement
+			&
+			\node (list_eddies) [measurement] {List of Eddies}; &
+			&
+			&
+			\node (eddy_dictL)   [measurement] {Eddy Dictionary};   &
+			&
+			&
+			&
+			\\
+			% Fifth line: Measurement
+			\node	(empty1) [empty] {\ \ \ \ \ \ \ \ \ \ \ \  };&
+			\node (eddy_dict) [output] {\begin{tabular}{l} Eddies Dictionary \\  at level (N)\end{tabular}}; &
+			&
+			&
+			\node (eddy_dict_all)   [output] {\begin{tabular}{l} Eddies Dictionary \\  of all levels\end{tabular}};&
+			&
+			&
+			&
+			\\
+				\\
+			% Third line: State & state transition matrix
+			&
+			&
+			&
+			&
+			&
+			&
+			&
+			\node	(empty2) [empty] {\ \ \ \ \ \ \ \ \ \ \ \  };&
+			\\
+		};
+		
+
+		
+		\path[optional]
+		(filter) edge (spatial)
+
+		;
+		
+		% The diagram elements are now connected through arrows:
+		\path[connector]
+		%Identification algorithm
+		(Input_1) edge (filter)
+		(filter) edge (trend)
+		(contour_slice) edge  node [left] {$n_c=[0,x)$} (close_contour)
+		(close_contour) edge  node [left] {True}  (land)
+		(land) edge  node [left] {True} (ellipse_fit)
+		(ellipse_fit) edge  node [left] {$\epsilon \geq 0.85$}  (eccentricity)
+		(eccentricity) edge   node [left] {$e \leq 0.85$} (area)
+		(area) edge node [left] {True}  (gaussian)
+		(gaussian) edge  node [near start,left] {$\kappa \geq 0.85$}  (list_eddies)
+		(list_eddies) edge node [left] {$n_c[i]==x$}  (eddy_dict)
+				
+		%Contour replacement algorithm
+		(Input_2)   edge  node [left, near end] {$E_{l_n} = [0,a]$}  (eddy_n) 
+		(eddy_n)   edge   node [left] {$E_{l_{n-1}}= [0,b]$}  (eddy_n-1)
+		(eddy_n-1) edge (same)
+		(same) edge  node [left] {True}  (ident) 
+		(ident) edge (replace)
+		(newel) edge node [left] {$E_{l_n} = a$}  (notin)
+		(notin) edge  node [left] {True}  (newe)		
+		(replace) edge node [left] {True} (eddy_dictL)
+		(eddy_dictL) edge (eddy_dict_all)
+		
+		;
+		%Simple connection
+		\draw [connector] 	(trend)  ->(spatial);
+		\draw [connector] 	(spatial) -> (trend);
+		\draw [connector] 	(trend) -| (contour_slice);	
+		\draw [connector] 	(spatial) -|  node [near end, left] {$N = (l_i,l_s)$} (contour_slice);	
+		\draw [connector] (2dgauss.south) --+ (0,-0.1)  -| node [below,near start] {True}  node [near end, left] {i=i+1}  (list_eddies);
+	
+		\draw [connector] (same.east) -| node [above, near start] {False} node [left, near end] {$E_{l_{n-1}}= b$} (newel);
+		
+		%Text Paths
+		\draw [connector] (ellipse_fit.east) -- + (3.6,0) node [above, midway] {$\epsilon<0.85$};
+		\draw [connector] (eccentricity.east) -- +  (3.2,0) node [above, midway] {$e>0.85$};
+		\draw [connector] (land.east) -- + (3.73,0) node [above, midway] {False} ;
+		\draw [connector] (area.east) -- + (3.73,0) node [above, midway] {False};
+		\draw [connector] (gaussian.east) -- + (3.4,0) node [above, midway] {$\kappa<0.85$};
+		
+		%Optional Paths
+		\draw[optional]  (gaussian.south)-- + (0,-1.1)   ->  (2dgauss.west);
+		\draw[optional]  (ident.south)-- + (0,-1.1)   ->  (best_g.east);
+		\draw [connector] (newe) --+ (0,-1) -| (eddy_dictL);
+		\draw [connector] (best_g.south)--+ (0,-1)  -| node [above, near start] {True} (replace);		
+		
+		%Other Paths
+		\draw [connector] (same.east) --+ (3.335,0) --+ (3.335,1.55)  node [left, near end] {$E_{l_{n-1}}!= b$} -> node [above,midway] {l=l+1}  (eddy_n-1.east);
+		\draw [connector] (newel.east) --+ (0.1,0)  --+ (0.1,4.67) node [right, near start] {$E_{l_n} != a$}->  node [above,midway] {k=k+1} (eddy_n.east);	
+		\draw [connector] (best_g.west) --+ (-0.1,0)  --+ (-0.1,6.4) node [right, near start] {$E_{l_n} != a$}->  node [above,midway] {k=k+1} (eddy_n.west);
+				
+		%Long lines
+		\draw [connector] (2dgauss.east) -- + (0.1,0) -- +(0.1,9.67) 
+		->  node [above, midway] {$i = i + 1$} (close_contour.east);
+		\draw [connector] (list_eddies.west) -- + (-2,0) node [above, midway] {$n_c[i] != x$} -- +(-2,13.2)
+		->   (close_contour.west);
+		\draw [connector] (eddy_dict.west) -- + (-1.8,0)   node [above, midway] {$N[j]== l_i$}-- +(-1.8,17.25)
+		->  node [above, midway] {$j= j+1$}  (contour_slice.west);
+		\draw [connector] (eddy_dict.east) -- + (3.2,0)  node [above, midway] {$N[j] != l_i$} -- +(3.2,22.75)
+		->   (Input_2);
+		\draw [connector] (eddy_dict_all.south) -- + (0,-1)  -- + (-13.8,-1) node [above,near start] {$N[j]!= l_s$} --+ (-13.8,17.87)
+		->   (contour_slice.west);
+		\draw [connector] (eddy_dict_all.east) -- + (6,0)  node [above, midway] {$N[j] != l_i$} -- +(6,22.75)
+		->   (Input_3);
+		
+		
+		\begin{pgfonlayer}{background}
+		
+		\node [background,
+		fit=(Input_1) (Input_3),
+		label=left:Input:] {};
+		
+		\node [background,
+		fit= (empty)(contour_slice)(2dgauss)(empty3),label=left:Algorithm:] {};
+		
+		\node [inbox,
+		fit=(trend)(filter)(spatial),label=left:Pre-processing:] {};
+		
+		\node [background,
+		fit=(empty1)(eddy_dictL)(empty2),
+		label=left:Output:] {};
+		
+		\end{pgfonlayer}
+		\end{tikzpicture}
+		
+	\end{figure}
+	
+\end{document}
