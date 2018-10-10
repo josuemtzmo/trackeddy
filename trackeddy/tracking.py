@@ -18,7 +18,7 @@ import sys
 import time
 
 
-def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',maskopt='contour',eccenfit=0.85,gaussrsquarefit=0.8,ellipsrsquarefit=0.85,mode='gaussian',basemap=False,checkgauss=True,checkarea=True,usefullfit=False,diagnostics=False,plotdata=False):
+def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',maskopt='contour',eccenfit=0.85,gaussrsquarefit=0.8,ellipsrsquarefit=0.85,mode='gaussian',basemap=False,checkgauss=True,areaparms=None,usefullfit=False,diagnostics=False,plotdata=False):
     '''
     *************Scan Eddym***********
     Function to identify each eddy using closed contours,
@@ -123,54 +123,57 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
         for jj in range(0,numbereddies):
             check=False
             CONTeach=CONTSlvls[jj]
-            if (len(CONTeach[:,0]) | len(CONTeach[:,1])) <= 8:
+            
+            #Relevant contour values 
+            xidmin,xidmax=find2l(lon,lon,CONTeach[:,0].min(),CONTeach[:,0].max())
+            yidmin,yidmax=find2l(lat,lat,CONTeach[:,1].min(),CONTeach[:,1].max())
+            
+            if xidmin<=threshold-1:
+                xidmin=+threshold-1
+            elif xidmax>=len(lon)-threshold:
+                xidmax=len(lon)-threshold
+            if yidmin<=threshold-1:
+                yidmin=threshold-1
+            elif yidmax>=len(lat)-threshold:
+                yidmax=len(lat)-threshold
+            lon_contour=lon[xidmin-threshold+1:xidmax+threshold]
+            lat_contour=lat[yidmin-threshold+1:yidmax+threshold]
+            
+            cmindex=find(CONTeach[:,1],CONTeach[:,1].max())
+            xmindex,ymindex=find2l(lon,lat,CONTeach[cmindex,0],CONTeach[cmindex,1])
+            centertop=[ymindex-yidmin+threshold-2,xmindex-xidmin+threshold-1]
+            
+            if len(shapedata)==3:
+                ssh4gauss=sshnan[date,yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
+                ssh_in_contour=insideness_contour(ssh4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
+            else:
+                ssh4gauss=sshnan[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
+                ssh_in_contour=insideness_contour(ssh4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
+            
+            checkcontour = check_closecontour(CONTeach,lon_contour,lat_contour,ssh4gauss)
+            
+            if checkcontour==False:
                 xx=np.nan
                 yy=np.nan
                 center=[np.nan,np.nan]
             else:
-                ellipse,status=fit_ellipse(CONTeach[:,0],CONTeach[:,1],diagnostics=diagnostics)
                 checke=False
+                ellipse,status,r2=fit_ellipse(CONTeach[:,0],CONTeach[:,1],diagnostics=diagnostics)
+                if status==True and r2 >=ellipsrsquarefit and ellipsrsquarefit < 1:
+                    checke=True
                 if status==True:
                     ellipseadjust,checke=ellipsefit(CONTeach[:,1],ellipse['ellipse'][1],\
-                                                  ellipsrsquarefit=ellipsrsquarefit,\
-                                                  diagnostics=diagnostics)
+                                              ellipsrsquarefit=ellipsrsquarefit,\
+                                              diagnostics=diagnostics)
                 if checke==True:
-                    xidmin,xidmax=find2l(lon,lon,CONTeach[:,0].min(),CONTeach[:,0].max())
-                    yidmin,yidmax=find2l(lat,lat,CONTeach[:,1].min(),CONTeach[:,1].max())
-                    
-                    if xidmin<=threshold-1:
-                        xidmin=+threshold-1
-                    elif xidmax>=len(lon)-threshold:
-                        xidmax=len(lon)-threshold
-                    if yidmin<=threshold-1:
-                        yidmin=threshold-1
-                    elif yidmax>=len(lat)-threshold:
-                        yidmax=len(lat)-threshold
-                    lon_contour=lon[xidmin-threshold+1:xidmax+threshold]
-                    lat_contour=lat[yidmin-threshold+1:yidmax+threshold]
-                    
-                    #center=[int((yidmax-yidmin)/2)+threshold-1,int((xidmax-xidmin)/2)+threshold-1]
-                    cmindex=find(CONTeach[:,1],CONTeach[:,1].max())
-                    xmindex,ymindex=find2l(lon,lat,CONTeach[cmindex,0],CONTeach[cmindex,1])
-                    
-                    
-                    centertop=[ymindex-yidmin+threshold-2,xmindex-xidmin+threshold-1]
-                    
-                    if len(shapedata)==3:
-                        ssh4gauss=sshnan[date,yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
-                        ssh_in_contour=insideness_contour(ssh4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
-                    else:
-                        ssh4gauss=sshnan[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
-                        ssh_in_contour=insideness_contour(ssh4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
-                    
                     center = [ellipse['X0_in'],ellipse['Y0_in']]
                     phi = ellipse['phi']
                     axes = [ellipse['a'],ellipse['b']]
                     R = np.arange(0,2.1*np.pi, 0.1)
                     a,b = axes
                     eccen=eccentricity(a,b)
-                    checkland=eddylandcheck(CONTeach,center,lon_contour,lat_contour,ssh_in_contour)
-                    if eccen<=eccenfit and checkland!=False:
+                    
+                    if eccen<=eccenfit:
                         #Ellipse coordinates.
                         xx = ellipse['ellipse'][0]
                         yy = ellipse['ellipse'][1]
@@ -178,10 +181,9 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         mayoraxis = ellipse['majoraxis']
                         minoraxis = ellipse['minoraxis']
 
-                        areachecker,ellipsarea,contarea=checkmesoscalearea(checkarea,\
-                                                                           lon_contour,lat_contour,\
-                                                                           xx,yy,\
-                                                                           CONTeach[:,0],CONTeach[:,1])
+                        areastatus=checkscalearea(areaparms,lon_contour,lat_contour,\
+                                                    xx,yy,CONTeach[:,0],CONTeach[:,1])
+                        
                         if eddycenter == 'maximum':
                             center_eddy=contourmaxvalue(ssh_in_contour,lon_contour,\
                                                  lat_contour,levels,date,threshold)
@@ -200,7 +202,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                             center_extrem[4]=center_extrem[4]+yidmin-threshold+1
                         checkM=False
                         checkm=False 
-                        if ellipsarea < areachecker and contarea < areachecker:
+
+                        if areastatus['status']:
                             if checkgauss==True:
                                 if len(shapedata)==3:
                                     profile,checkM=extractprofeddy(mayoraxis,\
@@ -244,26 +247,28 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                   fixvalues,\
                                                   level,initial_guess=initial_guess,date='',\
                                                   mode=mode,diagnostics=diagnostics)
-                                    #print('R2',R2)
-                                    fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
-                                    gausscheck2D = checkgaussaxis2D(a,b,gausssianfitp[0],gausssianfitp[1])
-                                    #print('####',R2, gaussrsquarefit)
-                                    #print('******',R2 > gaussrsquarefit, fiteccen <= eccenfit, gausscheck2D==True)
-                                    if fiteccen <= eccenfit and gausscheck2D==True:
-                                        if xidmin <= threshold2D:
-                                            xidmin= threshold2D
-                                        elif xidmax>=len(lon)-threshold2D:
-                                            xidmax=len(lon)-threshold2D
-                                        if yidmin <= threshold2D:
-                                            xidmin= threshold2D
-                                        elif yidmax>=len(lat)-threshold2D:
-                                            yidmax=len(lat)-threshold2D
-                                        fixvalues[0]=lon[xidmin-threshold2D+1:xidmax+threshold2D]
-                                        fixvalues[1]=lat[yidmin-threshold2D+1:yidmax+threshold2D]
-                                        gaussarea= gaussareacheck(fixvalues,level,gausssianfitp,\
-                                                              contarea)
-                                        if  gaussarea[0]==True: 
-                                            check=True                                            
+                                    
+                                    # Buf fix for anomalous big Gaussians
+                                    if abs(gausssianfitp[0]) < 2*np.pi*(xx.max()-xx.min()) or abs(gausssianfitp[1]) < 2*np.pi*(xx.max()-xx.min()):
+                                        fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
+                                        gausscheck2D = checkgaussaxis2D(a,b,gausssianfitp[0],gausssianfitp[1])
+                                        #print('####',R2, gaussrsquarefit)
+                                        #print('******',R2 > gaussrsquarefit, fiteccen <= eccenfit, gausscheck2D==True)
+                                        if fiteccen <= eccenfit and gausscheck2D==True:
+                                            if xidmin <= threshold2D:
+                                                xidmin= threshold2D
+                                            elif xidmax>=len(lon)-threshold2D:
+                                                xidmax=len(lon)-threshold2D
+                                            if yidmin <= threshold2D:
+                                                xidmin= threshold2D
+                                            elif yidmax>=len(lat)-threshold2D:
+                                                yidmax=len(lat)-threshold2D
+                                            fixvalues[0]=lon[xidmin-threshold2D+1:xidmax+threshold2D]
+                                            fixvalues[1]=lat[yidmin-threshold2D+1:yidmax+threshold2D]
+                                            gaussarea= gaussareacheck(fixvalues,level,areaparms,gausssianfitp,\
+                                                                      areastatus['contour'])
+                                            if  gaussarea[0]==True: 
+                                                check=True
                             else:
                                 print('Checkgauss need to be True to reconstruct the field.')           
                     if check==True:
@@ -284,7 +289,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                             position_max=[center_extrem]
                             position_ellipse=[center]
                             total_eddy=[[eddyn]]
-                            area=[[contarea,areachecker,gaussarea[1]]]
+                            area=[[areastatus['contour'],areastatus['check'],gaussarea[1]]]
                             angle=[phi]
                             if CS.levels[0] > 0:
                                 level=CS.levels[0]
@@ -296,7 +301,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                             position_max=np.vstack((position_max,center_extrem))
                             position_ellipse=np.vstack((position_ellipse,center))
                             total_eddy=np.vstack((total_eddy,eddyn))
-                            area=np.vstack((area,[contarea,areachecker,gaussarea[1]]))
+                            area=np.vstack((area,[areastatus['contour'],areastatus['check'],gaussarea[1]]))
                             angle=np.vstack((angle,phi))
                             
                             if CS.levels[0] > 0:
@@ -315,14 +320,17 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         print("angle of rotation = ",  phi)
                         print("axes (a,b) = ", axes)
                         print("Eccentricity (ellips,gauss) = ",eccen,fiteccen)
-                        print("Area (rossby,cont,ellips,gauss) = ",areachecker,contarea,ellipsarea,gaussarea[1])
+                        print("Area (rossby,cont,ellips,gauss) = ",
+                              areastatus['check'],areastatus['contour'],areastatus['ellipse'],gaussarea[1])
                         print("Ellipse adjust = ",ellipseadjust,checke)
                         print("Mayor Gauss fit = ",checkM)
                         print("Minor Gauss fit = ",checkm)
                         print("2D Gauss fit (Fitness, R^2)=",gausssianfitp,gaussfit2d)
-                        print(ellipsarea < areachecker, contarea < areachecker,  gaussarea[0])
+                        print(areastatus['ellipse'] < areastatus['check'], 
+                              areastatus['contour'] < areastatus['check'],  
+                              gaussarea[0])
                         print("Conditions | Area | Ellipse | Eccen | Gaussians ")
-                        print("           | ", ellipsarea < areachecker and contarea < areachecker and  gaussarea[0],\
+                        print("           | ", areastatus['ellipse'] < areastatus['check'] and areastatus['contour'] < areastatus['check'] and  gaussarea[0],\
                               " | ", checke ,"| ", eccen <= eccenfit and fiteccen <= eccenfit ,\
                               " | ", checkM and checkm)
                         
@@ -624,7 +632,7 @@ def exeddy(eddydt,lat,lon,data,ct,threshold,inside=None,diagnostics=False):
         justeddy[mimcy-threshold:mamcy+1+threshold,mimcx-threshold:mamcx+1+threshold]=datacm
     print('*******End the Removing of eddies******')
     return justeddy
-def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',areamap='',mask='',physics='',eddycenter='masscenter',eccenfit=0.85,gaussrsquarefit=0.8,ellipsrsquarefit=0.8,checkgauss=True,checkarea=True,maskopt='contour',mode='gaussian',sfilter='none',sfsize=70,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
+def analyseddyzt(data,x,y,t0,t1,tstep,levels,data_meant='',areamap='',mask='',physics='',eddycenter='masscenter',eccenfit=0.85,gaussrsquarefit=0.8,ellipsrsquarefit=0.8,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
     '''
     *************Analys eddy in z and t ***********
     Function to identify each eddy using closed contours, 
@@ -635,72 +643,124 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
 
     Author: Josue Martinez Moreno, 2017
     '''
-    if pprint==True:
-        pp =  Printer(); 
-    if len(np.shape(data))<3:
-        print('If you whant to analyze in time the data need to be 3d [i.e. data(t,x,y)]')
+    if pprint == True:
+        pp = Printer(); 
+    if len(np.shape(data)) < 3:
+        raise Exception('If you whant to analyze in time the data need to be 3d [i.e. data(t,x,y)]')
         #return
     if areamap=='':
-        areamap=np.array([[0,len(x)],[0,len(y)]])
-    if mask=='':
+        areamap = np.array([[0,len(x)],[0,len(y)]])
+    if mask == '':
         if ma.is_masked(data):
             if len(np.shape(data))<3:
-                mask=ma.getmask(data[:,:])
-                data=data.filled(fill_value=0)
+                mask = ma.getmask(data[:,:])
+                data = data.filled(fill_value=0)
             else:
-                mask=ma.getmask(data[0,:,:])
-                data=data.filled(fill_value=0)
+                mask = ma.getmask(data[0,:,:])
+                data = data.filled(fill_value=0)
         else:
             if len(np.shape(data))<3:
-                mask=np.zeros(np.shape(data[:,:]))
+                mask = np.zeros(np.shape(data[:,:]))
             else:
-                mask=np.zeros(np.shape(data[0,:,:]))
+                mask = np.zeros(np.shape(data[0,:,:]))
+    #Check area
+    if areaparms==None:
+        areaparms={'mesoscale':2*np.pi}
+    #Define list of levels based on the user defined dictionary
+    if type(levels) == dict:
+        keycheck = ('max' in levels.keys() and 'min' in levels.keys() and 'step' in levels.keys())
+        difftozero = (levels['min'] != 0 or levels['max'] != 0 or levels['step'] != 0)
+        if keycheck and difftozero:
+            del keycheck,difftozero
+            levellist  = np.arange(levels['min'],levels['max']+levels['step'],levels['step'])
+            farlevel   = levellist[0]
+            if abs(levellist)[0] < abs(levellist)[-1]:
+                levellist = np.flipud(levellist)
+                farlevel  = levellist[0]
+        elif levels==dict and ('max' in levels.keys() and 'min' in levels.keys() and 'step' in levels.keys()):
+            raise ValueError("Not all the level parameters are defined, make sure the dictionary contains the keys: 'max','min','step'")
+        else:
+            raise ValueError("The level parameters set up is incorrect, it can be 0.")
+    #Define list of levels based on the user defined list.
+    elif type(levels) == list or type(levels) == np.ndarray:
+        levellist  = levels
+        farlevel   = levellist[0]
+        if abs(levellist)[0] < abs(levellist)[-1]:
+            levellist = np.flipud(levellist)
+            farlevel  = levellist[0]
+    else: 
+        raise ValueError("Levels should be a dictionary or a list. Read the documentation to know more about it.")
+                    
     if pprint==True:
         pp.timepercentprint(0,1,1,0,"Init time")
     if pprint==True:
-        pp =  Printer(); 
+        pp = Printer(); 
     numbereddieslevels=0
+    
     for ii in range(t0,t1,tstep):
-        checkcount=0  
-        levellist=np.arange(minlevel,maxlevel+dzlevel,dzlevel)
-        farlevel=levellist[0]
-        if abs(levellist)[0]<abs(levellist)[-1]:
-            levellist=np.flipud(levellist)
-            farlevel=levellist[0]
-        if data_meant=='':
-            #print('Be sure the data is an anomaly', end='')
-            if sfilter=='none' or sfilter=='':
-                dataanomaly = ma.masked_array(data[ii,:,:], mask)
-            elif sfilter=='uniform':
-                nofilterdata=data[ii,:,:]
-                nofilterdata = nofilterdata - ndimage.uniform_filter(nofilterdata, size=sfsize)
-                dataanomaly = ma.masked_array(nofilterdata, mask)
-            elif sfilter=='gaussian':
-                nofilterdata=data[ii,:,:]
-                nofilterdata = nofilterdata - ndimage.gaussian_filter(nofilterdata, sigma=sfsize)
-                dataanomaly = ma.masked_array(nofilterdata, mask)
+        checkcount = 0 
+        
+        # Defining filters
+        if filters == None or ('time' not in filters.keys() and 'spatial' not in filters.keys()):
+            filters = {'time':{'type':None,'t':None,'t0':None,'value':None},'spatial':{'type':None,'window':None,'mode':None}}
+            dataanomaly=data[ii,:,:]
+        # Check if the expected filters are defined
+        elif 'time' not in filters.keys():
+            filters['time'] = {'type':None,'t':None,'t0':None,'value':None}
+            dataanomaly=data[ii,:,:]
+        elif 'spatial' not in filters.keys():
+            filters['spatial'] = {'type':None,'window':None,'mode':None}
+            dataanomaly=data[ii,:,:]
+        elif len(filters.keys()) != 2:
+            raise ValueError("Unexpected dictionary, documentation at: \n https://trackeddy.readthedocs.io/en/latest/pages/Methods.html")
+        # Apply temporal filter
+        if filters['time']['type'] == None and filters['time']['value'] == None and (filters['time']['t0'] == None or filters['time']['t'] == None):
+            pass
+            #print('No time filter apply')
+        # Check if the user selects to remove a predefined or calculated historical filter.
+        elif filters['time']['type'] == 'historical' and filters['time']['value'] != None:
+            dataanomaly  = ma.masked_array(data[ii,:,:]-filters['time']['value'], mask)
+        elif filters['time']['type'] == 'historical' and filters['time']['value'] == None:
+            dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(data,axis=0), mask)
+        # Check if the user selects an time orthogonal filter.
+        elif filters['time']['type'] != 'historical' and (filters['time']['t'] != None or  filters['time']['t0'] != None):
+            dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(data[ii-t0:ii+t],axis=0), mask)
+        elif filters['time']['type'] != 'historical' and  filters['time']['type'] != None and (filters['time']['t'] == None or  filters['time']['t0'] == None):
+            raise ValueError("T and T0 are undefined, include the definition in the dictionary.")
         else:
-            if sfilter=='none' or sfilter=='':
-                dataanomaly=ma.masked_array(data[ii,:,:]-data_meant, mask)
-            elif sfilter=='uniform':
-                nofilterdata=data[ii,:,:]-data_meant
-                nofilterdata = nofilterdata- ndimage.uniform_filter(nofilterdata, size=sfsize)
+            raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
+        # Apply spatial filter.
+        if filters['spatial']['type'] == None and filters['spatial']['window'] == None and filters['spatial']['mode'] == None:
+            pass
+            #print('No spatial filter apply')
+        elif filters['spatial']['type'] == 'moving' and filters['spatial']['window'] != None:
+            if filters['spatial']['mode'] == 'uniform':
+                nofilterdata = data[ii,:,:]
+                nofilterdata = nofilterdata - ndimage.uniform_filter(nofilterdata, size = filters['spatial']['window'])
                 dataanomaly = ma.masked_array(nofilterdata, mask)
-            elif sfilter=='gaussian':
-                nofilterdata=data[ii,:,:]-data_meant
-                nofilterdata =  nofilterdata - ndimage.gaussian_filter(nofilterdata, sigma=sfsize)
-                dataanomaly = ma.masked_array(nofilterdata, mask)
-                
+            if filters['spatial']['mode'] == 'gaussian':
+                nofilterdata = data[ii,:,:]
+                nofilterdata = nofilterdata - ndimage.gaussian_filter(nofilterdata, size = filters['spatial']['window'])
+                dataanomaly = ma.masked_array(nofilterdata, mask)       
+        # Check if the user selects an moving average meridional filter.
+        elif filters['spatial']['type'] == 'meridional':
+            dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(np.squeeze(data[ii,:,:]),axis=0), mask)
+        # Check if the user selects an moving average zonal filter.
+        elif filters['spatial']['type'] == 'zonal':
+            dataanomaly = ma.masked_array((data[ii,:,:].T-np.nanmean(np.squeeze(data[ii,:,:]),axis=1)).T, mask)
+        else:
+            raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
+        
         for ll in range(0,len(levellist)):
-            if minlevel<0 and maxlevel<0:
-                levels=[-500,levellist[ll]]
-            elif minlevel>0 and maxlevel>0:
-                levels=[levellist[ll],500]
+            if levellist[0]<0 and levellist[-1]<0:
+                levels_scan=[-np.inf,levellist[ll]]
+            elif levellist[0]>0 and levellist[-1]>0:
+                levels_scan=[levellist[ll],np.inf]
                 
-            eddies,check,numbereddies=scan_eddym(dataanomaly,x,y,levels,ii\
+            eddies,check,numbereddies=scan_eddym(dataanomaly,x,y,levels_scan,ii\
                           ,areamap,mask=mask,destdir=destdir\
                           ,physics=physics,eddycenter=eddycenter,maskopt=maskopt\
-                          ,checkgauss=checkgauss,checkarea=checkarea\
+                          ,checkgauss=checkgauss,areaparms=areaparms\
                           ,eccenfit=eccenfit,ellipsrsquarefit=ellipsrsquarefit\
                           ,gaussrsquarefit=gaussrsquarefit,mode=mode\
                           ,diagnostics=diagnostics,plotdata=plotdata)
@@ -730,7 +790,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,maxlevel,minlevel,dzlevel,data_meant='',ar
             np.save(destdir+str(level)+'.npy',eddytd)
     return eddytd
 
-def analyseddyt(data,x,y,level,t0,t1,tstep,data_meant='',areamap='',mask='',physics='',eddycenter='masscenter',eccenfit=0.85,gaussrsquarefit=0.8,ellipsrsquarefit=0.8,mode='gaussian',sfilter='none',checkgauss=True,checkarea=True,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
+def analyseddyt(data,x,y,level,t0,t1,tstep,data_meant='',areamap='',mask='',physics='',eddycenter='masscenter',eccenfit=0.85,gaussrsquarefit=0.8,ellipsrsquarefit=0.8,mode='gaussian',sfilter='none',checkgauss=True,areaparms=None,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
     '''
     *************Analys eddy in t ***********
     Function to identify each eddy using closed contours, 
@@ -747,6 +807,9 @@ def analyseddyt(data,x,y,level,t0,t1,tstep,data_meant='',areamap='',mask='',phys
         #return
     if areamap=='':
         areamap=np.array([[0,len(x)],[0,len(y)]])
+    #Check area
+    if areaparms==None:
+        areaparms={'mesoscale':2*np.pi}
     if mask == '':
         if len(np.shape(data))<3:
             mask=ma.getmask(data[:,:])

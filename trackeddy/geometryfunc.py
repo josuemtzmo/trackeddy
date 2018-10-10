@@ -59,13 +59,14 @@ def fit_ellipse(x,y,diagnostics=False):
     a=np.sum(X,axis=0)
     b=np.dot(X.T,X)
     
-    x2=np.linalg.solve(b.T, a.T)
+    x2=np.linalg.lstsq(b.T, a.T)
     
-    res=[np.linalg.norm(ii) for ii in b-a*x2]
+    res=[np.linalg.norm(ii) for ii in b-a*x2[0]]
     
     r2 = np.mean(1 - res / (a.T.size * a.T.var()))
     
-    a,b,c,d,e=x2
+    a,b,c,d,e=x2[0]
+    
     if ( min(abs(b/a),abs(b/c)) > orientation_tolerance ):
         orientation_rad = 1/2 * np.arctan( b/(c-a) )
         cos_phi = np.cos( orientation_rad )
@@ -129,6 +130,7 @@ def fit_ellipse(x,y,diagnostics=False):
                      'short_axis':short_axis,'minoraxis':new_horz_line,\
                      'majoraxis':new_ver_line,'ellipse':rotated_ellipse\
                      ,'status':'Cool'}
+        
     else:
         # report an empty structure
         ellipse_t = {'a':'','b':'','phi':'','X0':'','Y0':'',\
@@ -141,14 +143,14 @@ def fit_ellipse(x,y,diagnostics=False):
         plt.plot( x,y,'b',label='data');
         plt.plot( new_ver_line[0],new_ver_line[1],'k',label='minor axis' )
         plt.plot( new_horz_line[0],new_horz_line[1],'b',label='major axis')
-        plt.plot( rotated_ellipse[0],rotated_ellipse[1],'r',label='Fitted ellipse' )
+        plt.plot( rotated_ellipse[0],rotated_ellipse[1],'r',label='Fitted ellipse $R^2$=%f' %r2 )
         plt.legend(loc=1)
         plt.show()
         plt.plot(ellipse_x_r,ellipse_y_r,'m')
         plt.plot(horz_line[0],horz_line[1])
         plt.plot(ver_line[0],ver_line[1])
         plt.show()
-    return ellipse_t,status
+    return ellipse_t,status,r2
 
 def PolyArea(x,y):
     '''
@@ -235,7 +237,6 @@ def find(array,value):
         idx=find(array,value)
     '''
     idx=int(np.mean(np.where(array==value)))
-    #idx=(np.abs(array-value)).argmin()
     return idx
 
 def find2D(array,value):
@@ -283,7 +284,6 @@ def contourmaxvalue(var,x,y,levels,date=''):
             sshextrem=np.nanmin(var[date,:,:])
         indexes=find2D(var[date,:,:],sshextrem)
     else:
-        #print(np.shape(var[idycheckmin:idycheckmax,idxcheckmin:idxcheckmax]))
         if levels[0]>0:
             sshextrem=np.nanmax(var)
         else:
@@ -311,12 +311,7 @@ def centroidvalue(contcoordx,contcoordy,var,x,y,levels,date,threshold=1):
     Usage:
         center_eddy=centroidvalue(contcoordx,contcoordx,sshnan,lon,lat,levels,date)
     '''
-    #print(idycheckmin,idycheckmax,idxcheckmin,idxcheckmax)
     if len(np.shape(var))==3:
-        #if levels[0]>0:
-        #    var[var>levels[0]]==np.nan
-        #else:
-        #    var[var<levels[0]]==np.nan
         var=var.filled(0)
         var=np.abs(var)
         sum_T=np.nansum(var[date,:,:])
@@ -331,10 +326,6 @@ def centroidvalue(contcoordx,contcoordy,var,x,y,levels,date,threshold=1):
         xcpos=XM/sum_T
         ycpos=YM/sum_T
     else:
-        #if levels[0]>0:
-        #    var[var>levels[0]]==np.nan
-        #else:
-        #    var[var<levels[0]]==np.nan
         var=var.filled(0)
         var=np.abs(var)
         sum_T=np.nansum(var)
@@ -348,18 +339,8 @@ def centroidvalue(contcoordx,contcoordy,var,x,y,levels,date,threshold=1):
             YM=YM+(sum_Y[ii]*y[ii])
         xcpos=XM/sum_T
         ycpos=YM/sum_T
-    #plt.pcolormesh(x,y,var)
-    #plt.plot(xcpos,ycpos,'*r')
-    #plt.plot(contcoordx,contcoordy,'--m')
-    #plt.show()
     coord=np.asarray([xcpos,ycpos])
     return coord
-
-#def centroidvalue(contcoordx,contcoordy,var,x,y,levels,date):
-    
-#    coord=ndimage.measurements.center_of_mass(var)
-#    print(np.shape(var),coord)
-#    return coord
 
 def gaus(x,a,x0,sigma):
     '''
@@ -594,6 +575,13 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
     except:
         R2=0
     
+    o=sum(sum(varm.filled(0)))
+    g=sum(sum(ma.masked_array(fittedata, varm.mask).filled(0)))
+    
+    #print(o*0.9, g , o*1.1)
+    if o*0.9 <= g and g <= o*1.1:
+        R2=0
+    
     if ("2dfit" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
         print('R^2 2D fitting:',R2)
         print('OPT steps:',infodict['nfev'])
@@ -690,7 +678,7 @@ def ellipsefit(y,yfit,ellipsrsquarefit=0.85,diagnostics=False):
         plt.text(0, np.mean(yfit), str(round(Rsquard,2)))
         plt.show()
         print(sum(yfit),sum(eddyfitdisplace))
-    if Rsquard>=ellipsrsquarefit:
+    if Rsquard>=ellipsrsquarefit:# and Rsquard < 1:
         check=True
     else:
         check=False
@@ -787,7 +775,7 @@ def extractprofeddy(axis,field,lon,lat,n,gaus='One',kind='linear',gaussrsquarefi
     else:
         return y,check
 
-def eddylandcheck(contour,center,lon,lat,var):
+def eddylandcheck(contour,lon,lat,var,diagnostics=False):
     '''
     *************** eddylandcheck *******************
     Check if the contour is surrounded by land.
@@ -800,19 +788,47 @@ def eddylandcheck(contour,center,lon,lat,var):
     Usage:
         
     '''
-    landcount=0
-    checkland=True
+    if type(diagnostics) != list:
+        diagnostics=[diagnostics]
+    land = {'True':{},'False':{}}
+    lcount = 0
+    fcount = 0
+    checkland = True
     for ii in range(0,len(contour[:,0])):
-        idxcheck,idycheck=find2l(lon,lat,contour[ii,0],contour[ii,1])
-        idxelipcheck,idyelipcheck=find2l(lon,lat,center[0],center[1])
-        if len(np.shape(var))==3:
-            if var[date,idycheck,idxcheck]==np.nan:
-                landcount=countzeros+1
+        idxcheck,idycheck = find2l(lon,lat,contour[ii,0],contour[ii,1])
+        if idxcheck == len(lon):
+            ar=0
+        elif idycheck == len(lat):
+            ar=0
         else:
-            if var[idycheck,idxcheck]==np.nan:
-                landcount=countzeros+1
-    if landcount>=len(contour[:,0])/2:
+            ar=1
+        checkarea=var[idycheck-ar:idycheck+ar,idxcheck-ar:idxcheck+ar]
+        
+        if np.isnan(checkarea).any() and type(var)!=ma.core.MaskedArray:
+            land['True'][str(lcount)] = {'x':idxcheck,'y':idycheck}
+            lcount=lcount+1
+        elif type(var)==ma.core.MaskedArray and checkarea.mask.any() :
+            land['True'][str(lcount)] = {'x':idxcheck,'y':idycheck}
+            lcount=lcount+1
+        else:
+            land['False'][str(fcount)] = {'x':idxcheck,'y':idycheck}
+            fcount=fcount+1
+        
+    if len(land['True']) >= len(contour[:,0])/2:
         checkland=False
+        
+    if ("landcheck" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
+        plt.figure()
+        plt.pcolormesh(lon,lat,var,cmap=cm.cm.deep)
+        plt.plot(contour[:,0],contour[:,1])
+        for key,item in land.items():
+            for key1,item1 in item.items():
+                if key == 'True':
+                    plt.plot(lon[item1['x']],lat[item1['y']],'or',label='Invalid land grid points ($n_i = %d$)' %lcount if key1 == str(len(item.keys())-1) else "")                
+                else:
+                    plt.plot(lon[item1['x']],lat[item1['y']],'og',label='Valid grid points ($n_v = %d$)' %(len(contour[:,0])-lcount) if key1 == str(len(item.keys())-1)  else "")
+        plt.title('Land check $n_g = %d$' % len(contour[:,0]) )
+        plt.legend()
     return checkland
 
 def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,usefullfit=False,diagnostics=False):
@@ -846,11 +862,6 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
             maxposition=[Lon,Lat,eddytd[key]['position_maxvalue'][counter][2],\
                          eddytd[key]['position_maxvalue'][counter][0],\
                          eddytd[key]['position_maxvalue'][counter][1]]
-            #print(eddytd[key]['position_maxvalue'][counter][2],\
-            #             eddytd[key]['position_maxvalue'][counter][0],\
-            #             eddytd[key]['position_maxvalue'][counter][1])
-            #print(Lon,Lat,eddytd[key]['position_maxvalue'][2:])
-            #maxposition=np.vstack((Lon,Lat,eddytd[key]['position_maxvalue'][counter]))
             curvefit=eddytd[key]['2dgaussianfit'][counter]
             if isinstance(curvefit, np.float64):
                 curvefit=eddytd[key]['2dgaussianfit']
@@ -962,7 +973,7 @@ def insideness_contour(data,center,levels,mask=False,maskopt='none',diagnostics=
         return maskeddata
               
     
-def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y=None):
+def gaussareacheck(values,level,areaparms,gauss2dfit,contour_area,contour_x=None,contour_y=None):
     #print('gauss check')
     Lon, Lat = np.meshgrid(values[0], values[1])
     coords=(Lon,Lat,values[2],values[3],values[4])
@@ -970,18 +981,20 @@ def gaussareacheck(values,level,gauss2dfit,contour_area,contour_x=None,contour_y
     fittedata = fitted_curve.reshape(len(values[1]),len(values[0]))
     #fittedata = ma.masked_array(fittedata, mask)
     if level>0:
-        CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf,])
+        CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
     else:
         CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
     plt.close()
     CONTS=CS.allsegs[0][0]
-    area = checkmesoscalearea(True,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
-    if (contour_area*1.05 > area[1]) and area[0] > area[1]: #and area[1]!=0:
+    areastatus = checkscalearea(areaparms,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
+    if areastatus['ellipse'] == None:
+        test=False
+    elif (contour_area*1.05 > areastatus['ellipse']) and areastatus['status']: #and area[1]!=0:
         test=True
     else:
         test=False
     #print('---------',test)
-    return test,area[1]
+    return test,areastatus['ellipse']
 
 def checkgaussaxis2D(a,b,a_g,b_g):
     #print('a',a,a_g,'b',b,b_g)
@@ -989,3 +1002,15 @@ def checkgaussaxis2D(a,b,a_g,b_g):
         return False
     else:
         return True
+    
+def check_closecontour(contour,lon_contour,lat_contour,var):
+    if (len(contour[:,0]) | len(contour[:,1])) <= 8:
+        return False
+    elif contour[0,0] != contour[-1,0] and contour[0,1] !=contour[-1,1]:
+        return False
+    else:
+        checkland=eddylandcheck(contour,lon_contour,lat_contour,var)
+        if checkland == False:
+            return False
+        else: 
+            return True

@@ -126,9 +126,16 @@ def PolyArea(x,y):
     area *= 0.5
     return abs(area)
 
-def checkmesoscalearea(checkarea,lon,lat,ellipsex,ellipsey,contourx='',contoury=''):
-    if checkarea==True:
-        areachecker=(2*np.pi*(rossbyR(np.mean(lon),np.mean(lat))))**2
+def checkscalearea(checkarea,lon,lat,ellipsex,ellipsey,contourx='',contoury=''):
+    if checkarea==False:
+        ellipsarea=None
+        contarea=None
+        areachecker=None
+        
+    elif checkarea==None or type(checkarea)==dict:
+        if checkarea==None:
+            checkarea={'mesoscale':2*np.pi}
+            
         ellipsarea=gs.distance([[ellipsex.max()],[ellipsex.min()]],[[ellipsey.mean()],[ellipsey.mean()]],axis=0)[0][0]*\
                    gs.distance([[ellipsex.mean()],[ellipsex.mean()]],[[ellipsey.max()],[ellipsey.min()]],axis=0)[0][0]
         if contourx!='' or contoury!='':
@@ -136,13 +143,39 @@ def checkmesoscalearea(checkarea,lon,lat,ellipsex,ellipsey,contourx='',contoury=
                    gs.distance([[contourx.mean()],[contourx.mean()]],[[contoury.max()],[contoury.min()]],axis=0)[0][0]
         else:
             contarea=None
+        if len(checkarea.keys())==1:
+            if 'mesoscale' in checkarea.keys():
+                areachecker=(checkarea['mesoscale']*(rossbyR(np.mean(lon),np.mean(lat))))**2
+            elif 'field' in checkarea.keys():
+                try:
+                    path=os.path.expanduser(os.path.dirname(os.path.realpath(__file__)))
+                    area_file=xarray.open_mfdataset(path+checkarea['mesoscale']['path'])
+                    areachecker = (RrD_file.RrD.sel(lon=[lon],lat=[lat],method='nearest').values) * checkarea['mesoscale']['factor']
+                except:
+                    areachecker=False
+            elif 'constant' in checkarea.keys():
+                if checkarea['constant']==np.inf or checkarea['constant']==None:
+                    areachecker=None
+                else:
+                    areachecker = checkarea['constant']
+            else:
+                raise Exception('The Area Check dictionary should have one option: mesoscale, field or constant.')
+        else:
+            raise Exception('The Area Check dictionary should have only one option: mesoscale, field or constant.')
+        
+        if areachecker == None:
+            areastatus={'status':True,'check':areachecker,'ellipse':ellipsarea,'contour':contarea}
+        elif areachecker == False:
+            areastatus={'status':False,'check':None,'ellipse':None,'contour':None}
+        elif ellipsarea <= areachecker and contarea != None:
+            if contarea <= areachecker:
+                areastatus={'status':True,'check':areachecker,'ellipse':ellipsarea,'contour':contarea}
+            else:
+                areastatus={'status':False,'check':None,'ellipse':None,'contour':None}
+        elif ellipsarea <= areachecker and contarea == None:
+            areastatus={'status':True,'check':areachecker,'ellipse':ellipsarea,'contour':None}
+        else:
+            areastatus={'status':False,'check':None,'ellipse':None,'contour':None}
     else:
-        areachecker=np.inf
-        ellipsarea=gs.distance([[ellipsex.max()],[ellipsex.min()]],[[ellipsey.mean()],[ellipsey.mean()]],axis=0)[0][0]*\
-                   gs.distance([[ellipsex.mean()],[ellipsex.mean()]],[[ellipsey.max()],[ellipsey.min()]],axis=0)[0][0]
-        if contourx!='' or contoury!='':
-            contarea=gs.distance([[contourx.max()],[contourx.min()]],[[contoury.mean()],[contoury.mean()]],axis=0)[0][0]*\
-                   gs.distance([[contourx.mean()],[contourx.mean()]],[[contoury.max()],[contoury.min()]],axis=0)[0][0]
-        else:
-            contarea=None
-    return areachecker,ellipsarea,contarea
+        raise Exception('Unexpected dictionary format. Check the Area Check documentation.')
+    return areastatus

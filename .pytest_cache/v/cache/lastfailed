@@ -1,4 +1,3 @@
 {
-  "tests/test_2d_gaussian_one_level.py::test": true,
-  "tests/test_2d_gaussian_one_level.py::test_gaussfit": true
+  "tests/test_2d_gaussian_one_level.py::test": true
 }

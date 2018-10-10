@@ -84,7 +84,7 @@ def basemap_mplot(x,y,data,title,projection='ortho',lat_0=-90,lon_0=-100,boundin
                 levs = np.power(10, lev_exp)
                 im=m.contourf(lonm,latm,abs(data[count]),levs,cmap=cmap,norm=colors.LogNorm(vmin=vmin, vmax=vmax),alpha=0.5)
             count=count+1
-    return fig,im,ax  
+    return fig,im,ax 
 
 
 
