@@ -165,5 +165,10 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
+numfig = True
+numfig_format = {'figure': 'Figure %s', 'table': 'Table %s',
+                 'code-block': 'Listing %s', 'section': 'Section %s'}
+numfig_secnum_depth=2
 
-
+def setup(app):
+    app.add_stylesheet('css/custom.css')
