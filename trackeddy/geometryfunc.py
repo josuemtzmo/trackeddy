@@ -505,11 +505,12 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
     return g.ravel()
 
 def gaussian2Dresidual(popt, coords, varm):
-    residual = 1 - np.exp(np.exp(np.abs(varm - twoD_Gaussian(coords,*popt))))
+    residual = np.exp(np.abs(varm - twoD_Gaussian(coords,*popt))) - 1
+    #print('Residual:',residual)
     return residual
 
 def paraboloid2Dresidual(popt,coords,varm):
-    residual = 1 - np.exp(np.exp(np.abs(varm - twoD_Gaussian(coords,*popt))))
+    residual = np.exp(np.abs(varm - twoD_Gaussian(coords,*popt))) - 1
     return residual
 
 def correlation_coefficient(data, data1):
@@ -563,7 +564,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
         fitdict = popt
     else:
         popt, pcov, infodict,mesg,ier = leastsq(gaussian2Dresidual, initial_guess,\
-                                                args=(coords, varm.ravel()),full_output=True,\
+                                                args=(coords, varm.ravel()),xtol=0.0001,full_output=True,\
                                                 maxfev=1000) 
         fitdict = popt
     
