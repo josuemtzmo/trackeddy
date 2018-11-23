@@ -116,6 +116,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     gausssianfitp=[0,0,0,0,0,0]
     xx=np.nan
     yy=np.nan
+    areastatus={'check':None,'contour':None,'ellipse':None}
     # Loop in contours of the levels defined.
     for ii in range(0,numverlevels):
         CONTSlvls=CONTS[ii]
@@ -167,6 +168,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                               ellipsrsquarefit=preferences['ellipse'],\
                                               diagnostics=diagnostics)
                 if checke==True:
+                    
                     center = [ellipse['X0_in'],ellipse['Y0_in']]
                     phi = ellipse['phi']
                     axes = [ellipse['a'],ellipse['b']]
@@ -254,7 +256,9 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                     #print('++++++++++',abs(gausssianfitp[0]) < 2*np.pi*(xx.max()-xx.min()))
                                     if abs(gausssianfitp[0]) < 2*np.pi*(xx.max()-xx.min()) or abs(gausssianfitp[1]) < 2*np.pi*(xx.max()-xx.min()):
                                         fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
-                                        gausscheck2D = checkgaussaxis2D(a,b,gausssianfitp[0],gausssianfitp[1])
+                                        gausscheck2D = checkgaussaxis2D(a,b,\
+                                                                        gausssianfitp[0],\
+                                                                        gausssianfitp[1])
                                         
                                         #print('=======',gausscheck2D,fiteccen)
                                         if fiteccen <= preferences['eccentricity'] and gausscheck2D==True:
@@ -268,7 +272,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                 yidmax=len(lat)-threshold2D
                                             fixvalues[0]=lon[xidmin-threshold2D+1:xidmax+threshold2D]
                                             fixvalues[1]=lat[yidmin-threshold2D+1:yidmax+threshold2D]
-                                            gaussarea= gaussareacheck(fixvalues,level,areaparms,gausssianfitp,\
+                                            gaussarea= gaussareacheck(fixvalues,level,\
+                                                                      areaparms,gausssianfitp,\
                                                                       areastatus['contour'])
                                             if  gaussarea[0]==True: 
                                                 check=True
@@ -325,10 +330,11 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         print("axes (a,b) = ", axes)
                         print("Eccentricity (ellips,gauss) = ",eccen,fiteccen)
                         print("Area (rossby,cont,ellips,gauss) = ",
-                              areastatus['check'],areastatus['contour'],areastatus['ellipse'],gaussarea[1])
-                        print("Ellipse adjust = ",ellipseadjust,checke)
-                        print("Mayor Gauss fit = ",checkM)
-                        print("Minor Gauss fit = ",checkm)
+                              areastatus['check'],areastatus['contour'],
+                              areastatus['ellipse'],gaussarea[1])
+                        print("Ellipse adjust = ", ellipseadjust, checke)
+                        print("Mayor Gauss fit = ", checkM)
+                        print("Minor Gauss fit = ", checkm)
                         print("2D Gauss fit (Fitness, R^2)=",gausssianfitp,gaussfit2d)
                         print("Conditions | Area | Ellipse | Eccen | Gaussians ")
                         if areastatus['ellipse'] == None or areastatus['check'] == None or areastatus['contour'] == None:
@@ -726,7 +732,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
             pass
             #print('No time filter apply')
         # Check if the user selects to remove a predefined or calculated historical filter.
-        elif filters['time']['type'] == 'historical' and filters['time']['value'] != None:
+        elif filters['time']['type'] == 'historical' and filters['time']['value'].any() != None:
             dataanomaly  = ma.masked_array(data[ii,:,:]-filters['time']['value'], mask)
         elif filters['time']['type'] == 'historical' and filters['time']['value'] == None:
             dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(data,axis=0), mask)
@@ -783,14 +789,14 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
                 else:
                     eddz = dict_eddyz(dataanomaly,x,y,ii,ll,levellist,farlevel,eddies,eddz,diagnostics=diagnostics)
             if pprint==True:
-                pp.timepercentprint(t0,t1,tstep,ii,numbereddies,[0,len(levellist),ll])
+                numbereddieslevels=numbereddieslevels+numbereddies
+                pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddies),[0,len(levellist),ll])
         if ii==0:
             eddytd=dict_eddyt(ii,eddz)
         else:
             eddytd=dict_eddyt(ii,eddz,eddytd,data=dataanomaly,x=x,y=y) 
         if pprint==True:
-            numbereddieslevels=numbereddieslevels+numbereddies
-            pp.timepercentprint(t0,t1,tstep,ii,numbereddieslevels)
+            pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddieslevels))
     if destdir!='':
         if saveformat=='nc':
             eddync(destdir+str(level)+'.nc',eddytd)
@@ -911,15 +917,14 @@ def analyseddyt(data,x,y,level,t0,t1,tstep,data_meant='',areamap='',mask='',phys
             checkcount=1
         else:
             eddzcheck=False
-        if pprint==True:
-            pp.timepercentprint(t0,t1,tstep,ii,numbereddies)
+            
         if ii==0:
             eddytd=dict_eddyt(ii,eddies)
         else:
             eddytd=dict_eddyt(ii,eddies,eddytd,data=dataanomaly,x=x,y=y) 
         if pprint==True:
             numbereddieslevels=numbereddieslevels+numbereddies
-            pp.timepercentprint(t0,t1,tstep,ii,numbereddieslevels)
+            pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddieslevels))
     if destdir!='':
         if saveformat=='nc':
             eddync(destdir+str(level)+'.nc',eddytd)

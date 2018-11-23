@@ -989,7 +989,7 @@ def gaussareacheck(values,level,areaparms,gauss2dfit,contour_area,contour_x=None
     areastatus = checkscalearea(areaparms,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
     if areastatus['ellipse'] == None:
         test=False
-    elif (contour_area*1.05 > areastatus['ellipse']) and areastatus['status']: #and area[1]!=0:
+    elif (contour_area*1.5 > areastatus['ellipse']) and areastatus['status']: #and area[1]!=0:
         test=True
     else:
         test=False
