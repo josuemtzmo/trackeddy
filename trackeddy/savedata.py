@@ -7,7 +7,7 @@ warnings.filterwarnings("ignore")
 
 
 
-def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime.datetime(1993, 1, 1),nc_description='',units='',dt='',dim='2D',format='NETCDF4'):
+def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_description='',units='',dt='',dim='2D',format='NETCDF4'):
     '''
     *************Save Variable to netCDF ***********
     Function to save a single variable to netCDF file,
