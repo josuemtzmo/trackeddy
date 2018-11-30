@@ -1,6 +1,6 @@
 import numpy as np
 import netCDF4 as nc4
-from datetime import datetime
+from datetime import datetime, timedelta
 import pylab as plt
 import warnings
 warnings.filterwarnings("ignore")
@@ -32,7 +32,7 @@ def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_d
     if tt==0:
         time[:]=tt
     else:
-        time[:]=[init_time + datetime.timedelta(days=i) for i in range(0,tt)]
+        time[:]=[init_time + timedelta(days=i) for i in range(0,tt)]
         
     if dim == '3D':
         f.createDimension('z', len(z))
