@@ -5,7 +5,9 @@ import pylab as plt
 import warnings
 warnings.filterwarnings("ignore")
 
-def vargeonc(filename,lat,lon,var,tt,varname,nc_description='',units='',dt='',dim='2D',format='NETCDF4'):
+
+
+def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime.datetime(1993, 1, 1),nc_description='',units='',dt='',dim='2D',format='NETCDF4'):
     '''
     *************Save Variable to netCDF ***********
     Function to save a single variable to netCDF file,
@@ -30,8 +32,8 @@ def vargeonc(filename,lat,lon,var,tt,varname,nc_description='',units='',dt='',di
     if tt==0:
         time[:]=tt
     else:
-        time[:]=range(0,tt)
-    print(len(time))
+        time[:]=[init_time + datetime.timedelta(days=i) for i in range(0,tt)]
+        
     if dim == '3D':
         f.createDimension('z', len(z))
         levels = f.createVariable('z', 'i4', 'z')

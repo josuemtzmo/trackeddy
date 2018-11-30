@@ -365,7 +365,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         else:
                             cca=ax1.contourf(lon[areamap[0,0]:areamap[0,1]],\
                                              lat[areamap[1,0]:areamap[1,1]],\
-                                             sshnan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
+                                             sshnan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                                             levels=levels)
                             ax1.plot(CONTeach[:,0],CONTeach[:,1],'-r')
                             ax2.plot(CONTeach[:,0],CONTeach[:,1],'-r')
                             ax2.pcolormesh(lon[areamap[0,0]:areamap[0,1]],\
@@ -384,7 +385,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                               vmax=ssh[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]].max())
                             cca=ax2.contour(lon[areamap[0,0]:areamap[0,1]],\
                                             lat[areamap[1,0]:areamap[1,1]],\
-                                            ssh[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels,cmap='jet')
+                                            ssh[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                                            levels=levels,cmap='jet')
                             ax2.clabel(cca, fontsize=9, inline=1)
                         ax1.plot(CONTeach[:,0],CONTeach[:,1],'*r')
                         ax1.plot(xx,yy,'-b')
@@ -409,9 +411,6 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
             position_selected=np.array(position_selected)
             position_max=np.array(position_max)
             position_ellipse=np.array(position_ellipse)
-#            if type(level)==float or type(level)==int or isinstance(level, float):
-#                level=[np.array(level)]
-#            else:
             area=np.array(area)
             levelm=np.array(levelm)
             mayoraxis_eddy=np.array(mayoraxis_eddy)
@@ -729,10 +728,10 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
             raise ValueError("Unexpected dictionary, documentation at: \n https://trackeddy.readthedocs.io/en/latest/pages/Methods.html")
         # Apply temporal filter
         if filters['time']['type'] == None and filters['time']['value'] == None and (filters['time']['t0'] == None or filters['time']['t'] == None):
-            pass
+            continue
             #print('No time filter apply')
         # Check if the user selects to remove a predefined or calculated historical filter.
-        elif filters['time']['type'] == 'historical' and filters['time']['value'].any() != None:
+        elif filters['time']['type'] == 'historical' and type(filters['time']['value']) != type(None):
             dataanomaly  = ma.masked_array(data[ii,:,:]-filters['time']['value'], mask)
         elif filters['time']['type'] == 'historical' and filters['time']['value'] == None:
             dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(data,axis=0), mask)
@@ -745,7 +744,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
             raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
         # Apply spatial filter.
         if filters['spatial']['type'] == None and filters['spatial']['window'] == None and filters['spatial']['mode'] == None:
-            pass
+            continue
             #print('No spatial filter apply')
         elif filters['spatial']['type'] == 'moving' and filters['spatial']['window'] != None:
             if filters['spatial']['mode'] == 'uniform':

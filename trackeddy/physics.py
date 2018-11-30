@@ -88,8 +88,15 @@ def PVort(S,T,P,U,V):
     zeta=2*omega+curl(U,V)
     Q=(1/rho)*(zeta)*np.gradient(theta)
 
-def coriolis(lat):
-    return gs.f(lat)
+def coriolis(lat,dist):
+    omega = 7.292115e-5
+    if lat < 5 and lat >-5:
+        f = 2*omega*sin(lat)
+    else:
+        beta = 2*omega*cos(lat) / 6.3781e6 
+        y = dist
+        f = 2*omega*sin(lat) + beta*y
+    return f
     
 def rossbyR(lon,lat):
     '''
