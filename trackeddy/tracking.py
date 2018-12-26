@@ -251,7 +251,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                   fixvalues,\
                                                   level,initial_guess=initial_guess,date='',\
                                                   mode=mode,diagnostics=diagnostics)
-                                    
+                                    #gausssianfitp=initial_guess
                                     # Buf fix for anomalous big Gaussians
                                     #print('++++++++++',abs(gausssianfitp[0]) < 2*np.pi*(xx.max()-xx.min()))
                                     if abs(gausssianfitp[0]) < 2*np.pi*(xx.max()-xx.min()) or abs(gausssianfitp[1]) < 2*np.pi*(xx.max()-xx.min()):
@@ -728,7 +728,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
             raise ValueError("Unexpected dictionary, documentation at: \n https://trackeddy.readthedocs.io/en/latest/pages/Methods.html")
         # Apply temporal filter
         if filters['time']['type'] == None and filters['time']['value'] == None and (filters['time']['t0'] == None or filters['time']['t'] == None):
-            continue
+            pass
             #print('No time filter apply')
         # Check if the user selects to remove a predefined or calculated historical filter.
         elif filters['time']['type'] == 'historical' and type(filters['time']['value']) != type(None):
@@ -744,7 +744,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
             raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
         # Apply spatial filter.
         if filters['spatial']['type'] == None and filters['spatial']['window'] == None and filters['spatial']['mode'] == None:
-            continue
+            pass
             #print('No spatial filter apply')
         elif filters['spatial']['type'] == 'moving' and filters['spatial']['window'] != None:
             if filters['spatial']['mode'] == 'uniform':
@@ -765,7 +765,6 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
             raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
         
         for ll in range(0,len(levellist)):
-            
             if levellist[ll]<0:
                 levels_scan=[-np.inf,levellist[ll]]
             else:
