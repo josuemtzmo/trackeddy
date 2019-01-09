@@ -51,8 +51,8 @@ def datastruct_time(ts,eddys,eddydt):
 
     for nn in range(1,len(eddys['EddyN'])):
         dictime['eddyn_'+str(eddys['EddyN'][nn][0])]={'neddy':eddys['EddyN'][nn],'time':np.array([ts]),\
-                'position_default':[eddys['Position'][nn]],\
-                'area':eddys['Area'][nn],'ellipse':[eddys['Ellipse'][nn]],'contour':[eddys['Contour'][nn]],\
+                'position_default':[eddys['Position'][nn]],'area':eddys['Area'][nn],\
+                'ellipse':[eddys['Ellipse'][nn]],'contour':[eddys['Contour'][nn]],\
                 'angle':eddys['Angle'][nn],'position_maxvalue':[eddys['PositionExtreme'][nn]],\
                 'position_eddy':eddys['PositionEllipse'][nn],'level':eddys['Level'][nn],\
                 'majoraxis':eddys['MajorAxis'][nn],'minoraxis':eddys['MinorAxis'][nn],\

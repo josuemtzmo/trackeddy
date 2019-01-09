@@ -32,7 +32,13 @@ def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_d
     if tt==0:
         time[:]=tt
     else:
-        time[:]=[init_time + timedelta(days=i) for i in range(0,tt)]
+        calendar = 'standard'
+        units = 'days since 1970-01-01 00:00'
+        time.units=units
+        time.calendar=calendar
+        dates=[init_time + datetime.timedelta(days=i) for i in range(0,tt)]
+        time[:] = nc4.date2num(dates, units=units, calendar=calendar)
+        
         
     if dim == '3D':
         f.createDimension('z', len(z))

@@ -539,6 +539,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
     Usage:
         
     '''
+
     if type(diagnostics) != list:
         diagnostics=[diagnostics]
     Lon, Lat = np.meshgrid(values[0], values[1])
@@ -548,7 +549,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
     else:
         varm=var*1
     mask=ma.getmask(varm[:,:])
-
+    
     if initial_guess=='':
         initial_guess = [1,1,0,0,0,0]   
         
@@ -566,15 +567,8 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
         popt, pcov = leastsq(paraboloid2Dresidual, initial_guess, args=(coords, varm.ravel())) 
         fitdict = popt
     else:
-        
         res = minimize(gaussian2Dresidual, initial_guess,args=(coords,varm),
-               method='Nelder-Mead',options={'xtol': 1e-12, 'disp': False})
-        
-        #popt, pcov, infodict,mesg,ier = leastsq(gaussian2Dresidual, initial_guess,\
-        #                                        args=(coords, varm.ravel()),\
-        #                                        xtol=1e-10,maxfev=1000000,
-        #                                        full_output=True) 
-        #fitdict = popt
+               method='BFGS',options={'xtol': 1e-12, 'disp': False})
         fitdict = res.x
     
     fitted_curve = twoD_Gaussian(coords, *fitdict)
@@ -597,7 +591,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
         print("             |sigmaX|sigmaY|Theta|slopeX|slopeY|")
         print("initial guess|" + ''.join(str(e)+'|' for e in initial_guess))
         print("Fit.         |" + ''.join(str(e)+'|' for e in fitdict))
-        f, (ax1, ax2,ax3) = plt.subplots(1, 3,figsize=(15,7), sharey=True)
+        f, (ax1, ax2,ax3) = plt.subplots(1, 3,figsize=(25,7),sharey=True)
         p=ax1.pcolormesh(values[0], values[1],varm,vmin=varm.min(),vmax=varm.max())
         ax1.set_title('Original Field')
         ax1.axis('equal')
