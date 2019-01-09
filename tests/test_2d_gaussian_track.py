@@ -116,7 +116,7 @@ def multiple_gaussian_track():
     levels = {'max':zz[:,:,:].min(),'min':-0.1,'step':-0.25}
     gaussiann=analyseddyzt(zz[:,:,:],lon,lat,0,40,1,levels,areamap='',mask=''
                     ,maskopt='contour',destdir='',physics='',diagnostics=False,pprint=False)
-     syntetic_gaussian=reconstruct_syntetic(shape(zz),lon,lat,gaussianp)+reconstruct_syntetic(shape(zz),lon,lat,gaussiann)
+    syntetic_gaussian=reconstruct_syntetic(shape(zz),lon,lat,gaussianp)+reconstruct_syntetic(shape(zz),lon,lat,gaussiann)
     
     positive=len(gaussianp['eddyn_0']['time'])
     negative=len(gaussiann['eddyn_0']['time'])
