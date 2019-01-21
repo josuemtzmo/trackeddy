@@ -1,8 +1,0 @@
-[
-  "tests/test_2d_gaussian_one_level.py::test_gaussfit",
-  "tests/test_2d_gaussian_one_level.py::test_2eddydetection",
-  "tests/test_2d_gaussian_one_level.py::test_3eddydetection",
-  "tests/test_2d_gaussian_one_level.py::test",
-  "tests/test_2d_gaussian_random_field.py::test_gaussfit",
-  "tests/test_2d_gaussian_random_field.py::test"
-]
