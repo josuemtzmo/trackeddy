@@ -5,6 +5,9 @@ import cmocean as cm
 from scipy import linalg
 from scipy.interpolate import interp2d,interp1d
 from scipy.optimize import curve_fit,leastsq,least_squares
+
+from scipy.optimize import minimize
+
 from scipy import ndimage
 from scipy.stats import pearsonr
 from scipy import stats
@@ -505,8 +508,8 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
     return g.ravel()
 
 def gaussian2Dresidual(popt, coords, varm):
-    residual = np.exp(np.abs(varm - twoD_Gaussian(coords,*popt))) - 1
-    #print('Residual:',residual)
+    residual = np.exp(np.abs(np.float128(np.nanmean(varm - twoD_Gaussian(coords,*popt).reshape(np.shape(varm)))))) - 1
+    #print('Residual:',np.nanmean(residual))
     return residual
 
 def paraboloid2Dresidual(popt,coords,varm):
@@ -536,6 +539,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
     Usage:
         
     '''
+
     if type(diagnostics) != list:
         diagnostics=[diagnostics]
     Lon, Lat = np.meshgrid(values[0], values[1])
@@ -545,7 +549,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
     else:
         varm=var*1
     mask=ma.getmask(varm[:,:])
-
+    
     if initial_guess=='':
         initial_guess = [1,1,0,0,0,0]   
         
@@ -563,10 +567,9 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
         popt, pcov = leastsq(paraboloid2Dresidual, initial_guess, args=(coords, varm.ravel())) 
         fitdict = popt
     else:
-        popt, pcov, infodict,mesg,ier = leastsq(gaussian2Dresidual, initial_guess,\
-                                                args=(coords, varm.ravel()),xtol=0.0001,full_output=True,\
-                                                maxfev=1000) 
-        fitdict = popt
+        res = minimize(gaussian2Dresidual, initial_guess,args=(coords,varm),
+               method='BFGS',options={'xtol': 1e-12, 'disp': False})
+        fitdict = res.x
     
     fitted_curve = twoD_Gaussian(coords, *fitdict)
     fittedata=fitted_curve.reshape(len(values[1]), len(values[0]))
@@ -584,11 +587,11 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
             
     if ("2dfit" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
         print('R^2 2D fitting:',R2)
-        print('OPT steps:',infodict['nfev'])
+        print('OPT steps:',res.nfev)
         print("             |sigmaX|sigmaY|Theta|slopeX|slopeY|")
         print("initial guess|" + ''.join(str(e)+'|' for e in initial_guess))
         print("Fit.         |" + ''.join(str(e)+'|' for e in fitdict))
-        f, (ax1, ax2,ax3) = plt.subplots(1, 3,figsize=(15,7), sharey=True)
+        f, (ax1, ax2,ax3) = plt.subplots(1, 3,figsize=(25,7),sharey=True)
         p=ax1.pcolormesh(values[0], values[1],varm,vmin=varm.min(),vmax=varm.max())
         ax1.set_title('Original Field')
         ax1.axis('equal')
@@ -912,6 +915,8 @@ def insideness_contour(data,center,levels,mask=False,maskopt='none',diagnostics=
     '''
     
     '''
+    if type(diagnostics) != list:
+        diagnostics=[diagnostics]
     data_rmove=np.array(np.zeros(np.shape(data)))
     if (type(levels)==int or len(levels)==1 ) and levels < 0:
         data_rmove[data<levels]=1
@@ -994,7 +999,7 @@ def gaussareacheck(values,level,areaparms,gauss2dfit,contour_area,contour_x=None
         
     if areastatus['ellipse'] == None:
         test=False
-    elif (contour_area*1.05 > areastatus['ellipse']) and areastatus['status']: #and area[1]!=0:
+    elif (contour_area*1.5 > areastatus['ellipse']) and areastatus['status']: #and area[1]!=0:
         test=True
     else:
         test=False

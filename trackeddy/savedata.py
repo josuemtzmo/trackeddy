@@ -1,11 +1,13 @@
 import numpy as np
 import netCDF4 as nc4
-from datetime import datetime
+from datetime import datetime, timedelta
 import pylab as plt
 import warnings
 warnings.filterwarnings("ignore")
 
-def vargeonc(filename,lat,lon,var,tt,varname,nc_description='',units='',dt='',dim='2D',format='NETCDF4'):
+
+
+def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_description='',units='',dt='',dim='2D',format='NETCDF4'):
     '''
     *************Save Variable to netCDF ***********
     Function to save a single variable to netCDF file,
@@ -30,8 +32,14 @@ def vargeonc(filename,lat,lon,var,tt,varname,nc_description='',units='',dt='',di
     if tt==0:
         time[:]=tt
     else:
-        time[:]=range(0,tt)
-    print(len(time))
+        calendar = 'standard'
+        units = 'days since 1970-01-01 00:00'
+        time.units=units
+        time.calendar=calendar
+        dates=[init_time + datetime.timedelta(days=i) for i in range(0,tt)]
+        time[:] = nc4.date2num(dates, units=units, calendar=calendar)
+        
+        
     if dim == '3D':
         f.createDimension('z', len(z))
         levels = f.createVariable('z', 'i4', 'z')

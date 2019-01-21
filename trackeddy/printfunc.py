@@ -23,8 +23,8 @@ class Printer():
         etime=round(time.clock()-self.tic)
         stmtime=round((etime/percent)*100)
         
-        progress=int(20/(maxv/(step*(i+1))))
-        emptyprog=20-progress
+        progress=int(10/(maxv/(step*(i+1))))
+        emptyprog=10-progress
         if loop2!=None:
             percent2ndloop=float((float(loop2[2]+1)/loop2[1])*10)
             #print(etime*np.exp(5-((percent2ndloop*10)/percent)*5))

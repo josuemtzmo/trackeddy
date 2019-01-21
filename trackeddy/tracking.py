@@ -116,6 +116,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     gausssianfitp=[0,0,0,0,0,0]
     xx=np.nan
     yy=np.nan
+    areastatus={'check':None,'contour':None,'ellipse':None}
     # Loop in contours of the levels defined.
     for ii in range(0,numverlevels):
         CONTSlvls=CONTS[ii]
@@ -146,10 +147,10 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
             
             if len(shapedata)==3:
                 ssh4gauss=sshnan[date,yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
-                ssh_in_contour=insideness_contour(ssh4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
+                ssh_in_contour=insideness_contour(ssh4gauss*1,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
             else:
                 ssh4gauss=sshnan[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
-                ssh_in_contour=insideness_contour(ssh4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
+                ssh_in_contour=insideness_contour(ssh4gauss*1,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
             
             checkcontour = check_closecontour(CONTeach,lon_contour,lat_contour,ssh4gauss)
             
@@ -167,6 +168,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                               ellipsrsquarefit=preferences['ellipse'],\
                                               diagnostics=diagnostics)
                 if checke==True:
+                    
                     center = [ellipse['X0_in'],ellipse['Y0_in']]
                     phi = ellipse['phi']
                     axes = [ellipse['a'],ellipse['b']]
@@ -249,12 +251,14 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                   fixvalues,\
                                                   level,initial_guess=initial_guess,date='',\
                                                   mode=mode,diagnostics=diagnostics)
-                                    
+                                    #gausssianfitp=initial_guess
                                     # Buf fix for anomalous big Gaussians
                                     #print('++++++++++',abs(gausssianfitp[0]) < 2*np.pi*(xx.max()-xx.min()))
                                     if abs(gausssianfitp[0]) < 2*np.pi*(xx.max()-xx.min()) or abs(gausssianfitp[1]) < 2*np.pi*(xx.max()-xx.min()):
                                         fiteccen=eccentricity(gausssianfitp[0],gausssianfitp[1])
-                                        gausscheck2D = checkgaussaxis2D(a,b,gausssianfitp[0],gausssianfitp[1])
+                                        gausscheck2D = checkgaussaxis2D(a,b,\
+                                                                        gausssianfitp[0],\
+                                                                        gausssianfitp[1])
                                         
                                         #print('=======',gausscheck2D,fiteccen)
                                         if fiteccen <= preferences['eccentricity'] and gausscheck2D==True:
@@ -268,7 +272,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                 yidmax=len(lat)-threshold2D
                                             fixvalues[0]=lon[xidmin-threshold2D+1:xidmax+threshold2D]
                                             fixvalues[1]=lat[yidmin-threshold2D+1:yidmax+threshold2D]
-                                            gaussarea= gaussareacheck(fixvalues,level,areaparms,gausssianfitp,\
+                                            gaussarea= gaussareacheck(fixvalues,level,\
+                                                                      areaparms,gausssianfitp,\
                                                                       areastatus['contour'])
                                             if  gaussarea[0]==True: 
                                                 check=True
@@ -325,10 +330,11 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         print("axes (a,b) = ", axes)
                         print("Eccentricity (ellips,gauss) = ",eccen,fiteccen)
                         print("Area (rossby,cont,ellips,gauss) = ",
-                              areastatus['check'],areastatus['contour'],areastatus['ellipse'],gaussarea[1])
-                        print("Ellipse adjust = ",ellipseadjust,checke)
-                        print("Mayor Gauss fit = ",checkM)
-                        print("Minor Gauss fit = ",checkm)
+                              areastatus['check'],areastatus['contour'],
+                              areastatus['ellipse'],gaussarea[1])
+                        print("Ellipse adjust = ", ellipseadjust, checke)
+                        print("Mayor Gauss fit = ", checkM)
+                        print("Minor Gauss fit = ", checkm)
                         print("2D Gauss fit (Fitness, R^2)=",gausssianfitp,gaussfit2d)
                         print("Conditions | Area | Ellipse | Eccen | Gaussians ")
                         if areastatus['ellipse'] == None or areastatus['check'] == None or areastatus['contour'] == None:
@@ -359,7 +365,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         else:
                             cca=ax1.contourf(lon[areamap[0,0]:areamap[0,1]],\
                                              lat[areamap[1,0]:areamap[1,1]],\
-                                             sshnan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
+                                             sshnan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                                             levels=levels)
                             ax1.plot(CONTeach[:,0],CONTeach[:,1],'-r')
                             ax2.plot(CONTeach[:,0],CONTeach[:,1],'-r')
                             ax2.pcolormesh(lon[areamap[0,0]:areamap[0,1]],\
@@ -378,7 +385,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                               vmax=ssh[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]].max())
                             cca=ax2.contour(lon[areamap[0,0]:areamap[0,1]],\
                                             lat[areamap[1,0]:areamap[1,1]],\
-                                            ssh[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels,cmap='jet')
+                                            ssh[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                                            levels=levels,cmap='jet')
                             ax2.clabel(cca, fontsize=9, inline=1)
                         ax1.plot(CONTeach[:,0],CONTeach[:,1],'*r')
                         ax1.plot(xx,yy,'-b')
@@ -403,9 +411,6 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
             position_selected=np.array(position_selected)
             position_max=np.array(position_max)
             position_ellipse=np.array(position_ellipse)
-#            if type(level)==float or type(level)==int or isinstance(level, float):
-#                level=[np.array(level)]
-#            else:
             area=np.array(area)
             levelm=np.array(levelm)
             mayoraxis_eddy=np.array(mayoraxis_eddy)
@@ -697,6 +702,9 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
         if abs(levellist)[0] < abs(levellist)[-1]:
             levellist = np.flipud(levellist)
             farlevel  = levellist[0]
+    elif type(levels) ==int or type(levels) == float: 
+        farlevel=levels
+        levellist=[levels]
     else: 
         raise ValueError("Levels should be a dictionary or a list. Read the documentation to know more about it.")
                     
@@ -723,10 +731,10 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
             raise ValueError("Unexpected dictionary, documentation at: \n https://trackeddy.readthedocs.io/en/latest/pages/Methods.html")
         # Apply temporal filter
         if filters['time']['type'] == None and filters['time']['value'] == None and (filters['time']['t0'] == None or filters['time']['t'] == None):
-            pass
+            dataanomaly=data[ii,:,:]
             #print('No time filter apply')
         # Check if the user selects to remove a predefined or calculated historical filter.
-        elif filters['time']['type'] == 'historical' and filters['time']['value'] != None:
+        elif filters['time']['type'] == 'historical' and type(filters['time']['value']) != type(None):
             dataanomaly  = ma.masked_array(data[ii,:,:]-filters['time']['value'], mask)
         elif filters['time']['type'] == 'historical' and filters['time']['value'] == None:
             dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(data,axis=0), mask)
@@ -758,14 +766,13 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
             dataanomaly = ma.masked_array((data[ii,:,:].T-np.nanmean(np.squeeze(data[ii,:,:]),axis=1)).T, mask)
         else:
             raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
-        
-        for ll in range(0,len(levellist)):
             
+        for ll in range(0,len(levellist)):
             if levellist[ll]<0:
                 levels_scan=[-np.inf,levellist[ll]]
             else:
                 levels_scan=[levellist[ll],np.inf]
-                
+            
             eddies,check,numbereddies=scan_eddym(dataanomaly,x,y,levels_scan,ii\
                           ,areamap,mask=mask,destdir=destdir\
                           ,physics=physics,eddycenter=eddycenter,maskopt=maskopt\
@@ -783,150 +790,20 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
                 else:
                     eddz = dict_eddyz(dataanomaly,x,y,ii,ll,levellist,farlevel,eddies,eddz,diagnostics=diagnostics)
             if pprint==True:
-                pp.timepercentprint(t0,t1,tstep,ii,numbereddies,[0,len(levellist),ll])
+                numbereddieslevels=numbereddieslevels+numbereddies
+                pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddies),[0,len(levellist),ll])
         if ii==0:
             eddytd=dict_eddyt(ii,eddz)
         else:
             eddytd=dict_eddyt(ii,eddz,eddytd,data=dataanomaly,x=x,y=y) 
         if pprint==True:
-            numbereddieslevels=numbereddieslevels+numbereddies
-            pp.timepercentprint(t0,t1,tstep,ii,numbereddieslevels)
+            pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddieslevels))
     if destdir!='':
         if saveformat=='nc':
             eddync(destdir+str(level)+'.nc',eddytd)
         else:
             np.save(destdir+str(level)+'.npy',eddytd)
     return eddytd
-
-def analyseddyt(data,x,y,level,t0,t1,tstep,data_meant='',areamap='',mask='',physics='',eddycenter='masscenter',preferences=None,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
-    
-    '''
-    *************Analys eddy in t ***********
-    Function to identify each eddy using closed contours, 
-    moving in time and contour levels
-    Usage:
-    
-    Example:
-
-    Author: Josue Martinez Moreno, 2017
-    '''
-    if pprint == True:
-        pp = Printer(); 
-    if len(np.shape(data)) < 3:
-        raise Exception('If you whant to analyze in time the data need to be 3d [i.e. data(t,x,y)]')
-        #return
-    if areamap=='':
-        areamap = np.array([[0,len(x)],[0,len(y)]])
-    if mask == '':
-        if ma.is_masked(data):
-            if len(np.shape(data))<3:
-                mask = ma.getmask(data[:,:])
-                data = data.filled(fill_value=0)
-            else:
-                mask = ma.getmask(data[0,:,:])
-                data = data.filled(fill_value=0)
-        else:
-            if len(np.shape(data))<3:
-                mask = np.zeros(np.shape(data[:,:]))
-            else:
-                mask = np.zeros(np.shape(data[0,:,:]))
-    if preferences==None:
-        preferences={'ellipse':0.85,'eccentricity':0.85,'gaussian':0.8}
-    #Check area
-    if areaparms==None:
-        areaparms={'mesoscale':2*np.pi}
-    #Define list of levels based on the user defined dictionary
-    if pprint==True:
-        pp.timepercentprint(0,1,1,0,"Init time")
-    if pprint==True:
-        pp = Printer(); 
-    numbereddieslevels=0
-    
-    for ii in range(t0,t1,tstep):
-        checkcount = 0 
-        # Defining filters
-        if filters == None or ('time' not in filters.keys() and 'spatial' not in filters.keys()):
-            filters = {'time':{'type':None,'t':None,'t0':None,'value':None},'spatial':{'type':None,'window':None,'mode':None}}
-            dataanomaly=data[ii,:,:]
-        # Check if the expected filters are defined
-        elif 'time' not in filters.keys():
-            filters['time'] = {'type':None,'t':None,'t0':None,'value':None}
-            dataanomaly=data[ii,:,:]
-        elif 'spatial' not in filters.keys():
-            filters['spatial'] = {'type':None,'window':None,'mode':None}
-            dataanomaly=data[ii,:,:]
-        elif len(filters.keys()) != 2:
-            raise ValueError("Unexpected dictionary, documentation at: \n https://trackeddy.readthedocs.io/en/latest/pages/Methods.html")
-        # Apply temporal filter
-        if filters['time']['type'] == None and filters['time']['value'] == None and (filters['time']['t0'] == None or filters['time']['t'] == None):
-            pass
-            #print('No time filter apply')
-        # Check if the user selects to remove a predefined or calculated historical filter.
-        elif filters['time']['type'] == 'historical' and filters['time']['value'] != None:
-            dataanomaly  = ma.masked_array(data[ii,:,:]-filters['time']['value'], mask)
-        elif filters['time']['type'] == 'historical' and filters['time']['value'] == None:
-            dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(data,axis=0), mask)
-        # Check if the user selects an time orthogonal filter.
-        elif filters['time']['type'] != 'historical' and (filters['time']['t'] != None or  filters['time']['t0'] != None):
-            dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(data[ii-t0:ii+t],axis=0), mask)
-        elif filters['time']['type'] != 'historical' and  filters['time']['type'] != None and (filters['time']['t'] == None or  filters['time']['t0'] == None):
-            raise ValueError("T and T0 are undefined, include the definition in the dictionary.")
-        else:
-            raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
-        # Apply spatial filter.
-        if filters['spatial']['type'] == None and filters['spatial']['window'] == None and filters['spatial']['mode'] == None:
-            pass
-            #print('No spatial filter apply')
-        elif filters['spatial']['type'] == 'moving' and filters['spatial']['window'] != None:
-            if filters['spatial']['mode'] == 'uniform':
-                nofilterdata = data[ii,:,:]
-                nofilterdata = nofilterdata - ndimage.uniform_filter(nofilterdata, size = filters['spatial']['window'])
-                dataanomaly = ma.masked_array(nofilterdata, mask)
-            if filters['spatial']['mode'] == 'gaussian':
-                nofilterdata = data[ii,:,:]
-                nofilterdata = nofilterdata - ndimage.gaussian_filter(nofilterdata, size = filters['spatial']['window'])
-                dataanomaly = ma.masked_array(nofilterdata, mask)       
-        # Check if the user selects an moving average meridional filter.
-        elif filters['spatial']['type'] == 'meridional':
-            dataanomaly = ma.masked_array(data[ii,:,:]-np.nanmean(np.squeeze(data[ii,:,:]),axis=0), mask)
-        # Check if the user selects an moving average zonal filter.
-        elif filters['spatial']['type'] == 'zonal':
-            dataanomaly = ma.masked_array((data[ii,:,:].T-np.nanmean(np.squeeze(data[ii,:,:]),axis=1)).T, mask)
-        else:
-            raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
-        
-        if level < 0:
-            levels_scan=[-np.inf,level]
-        else:
-            levels_scan=[level,np.inf]
-            
-        eddies,check,numbereddies=scan_eddym(dataanomaly,x,y,levels_scan,ii\
-                      ,areamap,mask=mask,destdir=destdir\
-                      ,physics=physics,eddycenter=eddycenter,maskopt=maskopt\
-                      ,checkgauss=checkgauss,areaparms=areaparms\
-                      ,preferences=preferences,mode=mode\
-                      ,diagnostics=diagnostics,plotdata=plotdata)
-        if check==True and checkcount==0:
-            eddzcheck=True
-            checkcount=1
-        else:
-            eddzcheck=False
-        if pprint==True:
-            pp.timepercentprint(t0,t1,tstep,ii,numbereddies)
-        if ii==0:
-            eddytd=dict_eddyt(ii,eddies)
-        else:
-            eddytd=dict_eddyt(ii,eddies,eddytd,data=dataanomaly,x=x,y=y) 
-        if pprint==True:
-            numbereddieslevels=numbereddieslevels+numbereddies
-            pp.timepercentprint(t0,t1,tstep,ii,numbereddieslevels)
-    if destdir!='':
-        if saveformat=='nc':
-            eddync(destdir+str(level)+'.nc',eddytd)
-        else:
-            np.save(destdir+str(level)+'.npy',eddytd)
-    return eddytd
-
 
 def trackmatix(eddydict):
     eddy=0
