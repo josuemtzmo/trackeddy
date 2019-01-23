@@ -150,7 +150,7 @@
 			\\
 			% Fourth line: Measurement noise & measurement matrix
 			\node	(empty) [empty] {\ \ \ \ \ \ \ \ \ \ \ \  };&
-			\node (contour_slice) [matrx] {\begin{tabular}{l}Contour slice \\ at level ($N$)\end{tabular}};       &
+			\node (contour_slice) [matrx] {\begin{tabular}{l}Contour slice \\ at level ($N(j)$)\end{tabular}};       &
 			&
 			&
 			\node (eddy_n)   [matrx] {\begin{tabular}{l} Eddy at level $E_{l_n}(k)$\end{tabular}};       &
@@ -161,7 +161,7 @@
 			\\
 			% Fifth line: Measurement
 			&
-			\node (close_contour) [matrx] {\begin{tabular}{l}Close \\ Contour ($n_c(i)$)\end{tabular}}; &
+			\node (close_contour) [matrx] {\begin{tabular}{l}Closed \\ Contours ($n_c(i)$)\end{tabular}}; &
 			&
 			&
 			\node (eddy_n-1)   [matrx] {\begin{tabular}{l} Eddy at level $E_{l_{n-1}}(l)$\end{tabular}};       &
@@ -181,7 +181,7 @@
 			\\
 			% Fifth line: Measurement
 			&
-			\node (ellipse_fit) [matrx] {\begin{tabular}{l} Ellipse \\ Fitting ($\epsilon$)\end{tabular}}; &
+			\node (ellipse_fit) [matrx] {\begin{tabular}{l} Ellipse \\ Fitting \end{tabular}}; &
 			&
 			&
 			\node (ident)[state] {Identified list};&
@@ -272,25 +272,20 @@
 		};
 		
 
-		
-		\path[optional]
-		(filter) edge (spatial)
-
 		;
 		
 		% The diagram elements are now connected through arrows:
 		\path[connector]
 		%Identification algorithm
 		(Input_1) edge (filter)
-		(filter) edge (trend)
 		(contour_slice) edge  node [left] {$n_c=[0,x)$} (close_contour)
 		(close_contour) edge  node [left] {True}  (land)
 		(land) edge  node [left] {True} (ellipse_fit)
-		(ellipse_fit) edge  node [left] {$\epsilon \geq 0.85$}  (eccentricity)
+		(ellipse_fit) edge  node [left] {$R_\epsilon^2 \geq 0.85$}  (eccentricity)
 		(eccentricity) edge   node [left] {$e \leq 0.85$} (area)
 		(area) edge node [left] {True}  (gaussian)
-		(gaussian) edge  node [near start,left] {$\kappa \geq 0.85$}  (list_eddies)
-		(list_eddies) edge node [left] {$n_c[i]==x$}  (eddy_dict)
+		(gaussian) edge  node [near start,left] {$R_\kappa^2 \geq 0.85$}  (list_eddies)
+		(list_eddies) edge node [left] {$n_c(i)==x$}  (eddy_dict)
 				
 		%Contour replacement algorithm
 		(Input_2)   edge  node [left, near end] {$E_{l_n} = [0,a]$}  (eddy_n) 
@@ -305,24 +300,27 @@
 		
 		;
 		%Simple connection
-		\draw [connector] 	(trend)  ->(spatial);
-		\draw [connector] 	(spatial) -> (trend);
-		\draw [connector] 	(trend) -| (contour_slice);	
-		\draw [connector] 	(spatial) -|  node [near end, left] {$N = (l_i,l_s)$} (contour_slice);	
+		\draw [connector] (trend)   -> (spatial);
+		\draw [connector] (spatial) -> (trend);
+		\draw [connector] (trend)   -|  (contour_slice);	
+		\draw [connector] (spatial) -|   node [near end, left] {$N_{(1:n)} = [0,l_c)$} (contour_slice);	
 		\draw [connector] (2dgauss.south) --+ (0,-0.1)  -| node [below,near start] {True}  node [near end, left] {i=i+1}  (list_eddies);
 	
 		\draw [connector] (same.east) -| node [above, near start] {False} node [left, near end] {$E_{l_{n-1}}= b$} (newel);
 		
 		%Text Paths
-		\draw [connector] (ellipse_fit.east) -- + (3.6,0) node [above, midway] {$\epsilon<0.85$};
+		\draw[connector] (filter.south) -- + (0,-0.1) -- + (-3.38,-0.1) -> (trend.north);
+		\draw [connector] (ellipse_fit.east) -- + (3.9,0) node [above, midway] {$R_\epsilon^2<0.85$};
 		\draw [connector] (eccentricity.east) -- +  (3.2,0) node [above, midway] {$e>0.85$};
 		\draw [connector] (land.east) -- + (3.73,0) node [above, midway] {False} ;
 		\draw [connector] (area.east) -- + (3.73,0) node [above, midway] {False};
-		\draw [connector] (gaussian.east) -- + (3.4,0) node [above, midway] {$\kappa<0.85$};
+		\draw [connector] (gaussian.east) -- + (3.4,0) node [above, midway] {$R_\kappa^2<0.85$};
 		
 		%Optional Paths
-		\draw[optional]  (gaussian.south)-- + (0,-1.1)   ->  (2dgauss.west);
-		\draw[optional]  (ident.south)-- + (0,-1.1)   ->  (best_g.east);
+		\draw[optional] (filter.south) -- + (0,-0.1) -- + (3.6,-0.1) node [above, midway] {\scriptsize{Optional}} -> (spatial.north);
+		
+		\draw[optional]  (gaussian.south)-- + (0,-0.1) -- + (3.6,-0.1) node [above, near end] {\scriptsize{Optional}}  ->  (2dgauss.north);
+		\draw[optional]  (ident.south)-- + (0,-0.2) -- + (-3.8,-0.2)   node [below, midway] {\scriptsize{Optional}}  ->  (best_g.north);
 		\draw [connector] (newe) --+ (0,-1) -| (eddy_dictL);
 		\draw [connector] (best_g.south)--+ (0,-1)  -| node [above, near start] {True} (replace);		
 		
@@ -332,17 +330,17 @@
 		\draw [connector] (best_g.west) --+ (-0.1,0)  --+ (-0.1,6.4) node [right, near start] {$E_{l_n} != a$}->  node [above,midway] {k=k+1} (eddy_n.west);
 				
 		%Long lines
-		\draw [connector] (2dgauss.east) -- + (0.1,0) -- +(0.1,9.67) 
+		\draw [connector] (2dgauss.east) -- + (0.1,0)   -- +(0.1,1.3) node [left, near end] {False}  -- +(0.1,9.67)
 		->  node [above, midway] {$i = i + 1$} (close_contour.east);
-		\draw [connector] (list_eddies.west) -- + (-2,0) node [above, midway] {$n_c[i] != x$} -- +(-2,13.2)
+		\draw [connector] (list_eddies.west) -- + (-2,0) node [above, midway] {$n_c(i) != x$} -- +(-2,13.2)
 		->   (close_contour.west);
-		\draw [connector] (eddy_dict.west) -- + (-1.8,0)   node [above, midway] {$N[j]== l_i$}-- +(-1.8,17.25)
+		\draw [connector] (eddy_dict.west) -- + (-1.95,0)   node [above, midway] {$N(j) != l_c$}-- +(-1.95,17.25)
 		->  node [above, midway] {$j= j+1$}  (contour_slice.west);
-		\draw [connector] (eddy_dict.east) -- + (3.2,0)  node [above, midway] {$N[j] != l_i$} -- +(3.2,22.75)
+		\draw [connector] (eddy_dict.east) -- + (3.2,0)  node [above, midway] {$N(j) == l_c$} -- +(3.2,22.75)
 		->   (Input_2);
-		\draw [connector] (eddy_dict_all.south) -- + (0,-1)  -- + (-13.8,-1) node [above,near start] {$N[j]!= l_s$} --+ (-13.8,17.87)
+		\draw [connector] (eddy_dict_all.south) -- + (0,-1)  -- + (-13.8,-1) node [above,near start] {$N_{n+1}$} --+ (-13.8,17.87)
 		->   (contour_slice.west);
-		\draw [connector] (eddy_dict_all.east) -- + (6,0)  node [above, midway] {$N[j] != l_i$} -- +(6,22.75)
+		\draw [connector] (eddy_dict_all.east) -- + (6,0)  node [above, midway] {$N_n$} -- +(6,22.75)
 		->   (Input_3);
 		
 		
