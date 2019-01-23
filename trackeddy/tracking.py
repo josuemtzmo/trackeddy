@@ -792,10 +792,12 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
             if pprint==True:
                 numbereddieslevels=numbereddieslevels+numbereddies
                 pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddies),[0,len(levellist),ll])
-        if ii==0:
+        #print(eddz['EddyN'])
+        if ii==t0:
             eddytd=dict_eddyt(ii,eddz)
         else:
             eddytd=dict_eddyt(ii,eddz,eddytd,data=dataanomaly,x=x,y=y) 
+        #print(eddytd.keys())
         if pprint==True:
             pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddieslevels))
     if destdir!='':
