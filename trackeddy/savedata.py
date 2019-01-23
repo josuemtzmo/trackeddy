@@ -33,12 +33,13 @@ def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_d
         time[:]=tt
     else:
         calendar = 'standard'
-        units = 'days since 1970-01-01 00:00'
-        time.units=units
+        t_units = 'days since 1970-01-01 00:00'
+        time.units=t_units
         time.calendar=calendar
-        dates=[init_time + datetime.timedelta(days=i) for i in range(0,tt)]
+        dates=[init_time + timedelta(days=i) for i in range(0,tt)]
         time[:] = nc4.date2num(dates, units=units, calendar=calendar)
-        
+   
+    time.cartesian_axis = "Time"
         
     if dim == '3D':
         f.createDimension('z', len(z))
@@ -78,8 +79,6 @@ def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_d
     longitude.units = 'degrees_E'
     longitude.cartesian_axis = "X"
     
-    time.units = 'days since Jan 01, 0001'
-    time.cartesian_axis = "T"
     varnc.units = units
     f.close()
 
