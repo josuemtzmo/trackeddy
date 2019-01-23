@@ -106,3 +106,4 @@ docs/make.bat
 test/*.ipynb
 *.xml
 version_control/
+.pytest_cache/
