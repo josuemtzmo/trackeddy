@@ -5,26 +5,27 @@ Methods
 The "Trackeddy'' algorithm has been developed to estimate
 Kinetic Energy in transient eddies or Transient Eddy Kinetic Energy (TEKE).
 This autonomous eddy identification, tracking and reconstruction algorithm
-assumes eddies can be approximated as Gaussians in transient fields. This
-estimation is done through the identification of eddies, then the optimal
-Gaussian fitting to each individual eddy, followed by the reconstruction of the
-transient field and finally the calculation of KE from the reconstructed field.
-The following sections will present the algorithm structure, criteria,
-user-specified values (Default user-specified were defined based on a
-repetitive Southern Ocean Simulation (ACCESS-OM2) and the AVISO+
-satellite dataset).
+assumes eddies can be approximated as Gaussians in transient fields, such as sea
+surface height. This estimation is done through the identification of eddies,
+then the optimal Gaussian fitting to each individual eddy, followed by the
+reconstruction of the transient field and finally the calculation of KE from
+the reconstructed field. The following sections will present the algorithm
+structure, criteria, user-specified values (Default user-specified were
+defined based on a repetitive Southern Ocean Simulation (ACCESS-OM2) and the
+AVISO+ satellite dataset).
 
 This algorithm has two main components: logical and data
 management. The logical component is a set of logical and
 mathematical operations, while the data management manipulates python
 dictionaries to create databases. The logical is responsible for the
 eddy identification and the generation of a python dictionary containing all
-the information of each identified eddy at a specific contour levels
-(Identification). While the data management modifies the eddy dictionary to
-replace or add eddies from different contour levels (contour replacement)
-or create a new dictionary where eddies are correlated on time (time tracking).
+the information of each feature classified as an eddy
+(referred bellow as Identification). While the data management modifies the eddy
+dictionary to replace or add identified eddies at different contour slices of
+the field (Eddy Replacement)
+or create a new dictionary where eddies are correlated on time (Time Tracking).
 
-:numref:`trackflow` shows the "trackeddy'' flowchart, composed by the
+:numref:`trackflow` shows the "trackeddy'' flowchart, composed by 3 modules; the
 eddy identification, contour replacement and time tracking. Each one of them is
 structured in three sections: input, main algorithm and output. Further
 information of each individual algorithm will be explained in the following
@@ -37,14 +38,16 @@ sections of this documentation.
   :scale: 100 %
   :alt: Alt content
 
-  Trackeddy flowchart.
+  Trackeddy flowchart detailing the structure, modularity and steps the algorithm
+  follows. Black lines are minimum required steps to identify eddies and blue
+  dotted lines are optional implementations.
 
 For a detailed-code description, refer to `how_it_works.ipynb
 <https://github.com/Josue-Martinez-Moreno/trackeddy/blob/master/
 examples/how_it_works.ipynb>`_
 
 Input Data
-------------------
+----------
 
 TrackEddy's input must be a field with Gaussian-like perturbations.
 Some examples of this type of fields are the geostrophic stream-functions:
@@ -53,31 +56,69 @@ Some examples of this type of fields are the geostrophic stream-functions:
   - Sea Surface Height Anomaly (SSHa)
   - Dynamic Height (Isobaric surface)
   - Specific Volume Anomaly Surface (Montgomery)
-  - Potential Density Surface or Neutral Surfaces (Cunninhgam)
+  - Potential Density Surface or Neutral Surfaces (Cunningham)
   - Isopycnals (Neutral Density Surface, Potential Density, or Omega Surface)
   - Pressure Surface
 
-The algorithm has been implemented in a variety of fields. Random
-Gaussian fields, where each individual Gaussian moves as a random walker
-(:numref:`randomgauss`) and eddies identified on SSHa
-(:numref:`eddyidentif`) are some examples of the capability of the code.
+The algorithm has been implemented in a variety of fields. Here we present
+some capabilities of TrackEddy:
 
-.. _randomgauss:
-.. figure:: ../images/random_gaussian_field.gif
-  :align: center
-  :scale: 100 %
-  :alt: Alt content
+  + Random Gaussian fields test:
+    To test the capabilities of the TrackEddy time-tracking algorithm
+    an idealised perturbation field was generated. It consist on a number of
+    Gaussians which moves stochastically or commonly known as random walkers
+    (random initial conditions and time evolution).
+    Each Gaussian perturbation starts at location (x,y) and at each
+    time step it moves +1 or -1 in the x and y axis with equal probability.
+    Then TrackEddy was implemented to verify the capabilities of the tracking
+    and reconstruction of the field. :numref:`randomgauss` shows the
+    tracking of each individual Gaussian as it moves as a random walker. For
+    additional information of this example, refer to `random_walkers.ipynb
+    <https://github.com/Josue-Martinez-Moreno/trackeddy/blob/master/
+    examples/random_walkers.ipynb>`_.
 
-  Random Gaussian walkers tracked by the Trackeddy Algorithm. Black
-  lines represent the time tracking of each feature.
+    .. _randomgauss:
+    .. figure:: ../images/random_gaussian_field.gif
+      :align: center
+      :scale: 100 %
+      :alt: Alt content
 
-.. _eddyidentif:
-.. figure:: ../images/eddy_identified.png
-  :align: center
-  :scale: 40 %
-  :alt: Alt content
+      Random Gaussian walkers tracked by the Trackeddy Algorithm. Black
+      lines represent the time tracking of each feature and the green star
+      corresponds to their initial position.
 
-  Identified eddy and their locations from SSHa.
+  + Sea Surface Height anomaly:
+    TrackEddy has been fully implemented on sea surface height
+    from satellite observations (Aviso+) and global numerical
+    simulations (ACCESS-OM2). The preprocessing of the data included the
+    subtraction of the time-mean during the period 1993-2010 and an
+    uniform spatial filter which removes all non-mesoscale features.
+    Then each of the mesoscale sea surface height anomaly field was analysed.
+    :numref:`eddyidentif` shows the location of each identified eddy
+    (:math:`n \sim 2401`) from the satellite Aviso+ dataset during the
+    1st of January 1993. :numref:`eddyidentif_model` shows the trajectory of the
+    identified eddies from the ACCESS-OM2 simulation with life-spams longer than
+    3 weeks for 1993 (:math:`n \sim ????`).
+
+    .. _eddyidentif:
+    .. figure:: ../images/eddy_identified.png
+      :align: center
+      :scale: 40 %
+      :alt: Alt content
+
+      Satellite SSHa snapshot and location of identified eddies from 1st of
+      January 1993. Magenta stars show the location of positive eddies and
+      green stars the location of negative eddies.
+
+    .. _eddyidentif_model:
+    .. figure:: ../images/eddy_identified_model.png
+      :align: center
+      :scale: 40 %
+      :alt: Alt content
+
+      Trajectory of identified eddies with life-spams longer than 3 weeks. Red
+      dots corresponds to the initial location and green triangles correspond to
+      the last location.
 
 Currently, the algorithm is focused on methods to estimate TEKE from SSH and
 SSHa fields and it has been tested at identifying,
@@ -96,42 +137,34 @@ will be added to this documentation at the results chapter.
 Eddy Identification Criteria
 ----------------------------
 
-In order to identify eddies, TrackEddy is based on the idea that the outermost
-contour of any eddy is fitted by an ellipse
+The first step in the procedure is to identify eddies, TrackEddy does this by
+assuming that the outermost contour of any eddy can be fitted by an ellipse
 (`A. Fernandes and S. Nascimento,
 (2006) <https://link.springer.com/chapter/10.1007%2F11893318_11>`_).
-
-Due to the research focus on mesoscale features, the default area scale of the
+Furthermore, for mesoscale features, the default area contained by the
 eddy contour should be smaller than :math:`2 \pi L_r^2`, where :math:`L_r`
 is the first-baroclinic Rossby radius of deformation
 (`Klocker, A., & Abernathey, R. (2014)
 <https://journals.ametsoc.org/doi/abs/10.1175/JPO-D-13-0159.1>`_).
-These premises allow to identify and track eddies with multiple local extreme
-values while they merge and/or interact with other features. Finally,
-to avoid mismatches with western boundary, jets and land perturbations,
+These premises allow the identification and tracking of eddies with multiple
+local extreme values while they merge and/or interact with other features.
+Finally, to avoid mismatches with western boundary, jets and land perturbations,
 the field profile over the minor and major axis of the fitted ellipse
 should adjust to a Gaussian and also eddies should not be surrounded land.
 
-Optionally, a 2D Gaussian fit can be implemented to reconstruct the field only
-to the identified eddies.
+.. Optionally, a 2D Gaussian fit can be implemented to reconstruct the field only
+.. to the identified eddies.
 
 .. important::
-  The eddy fitness, eccentricity, area scale and Gaussian fit can be modified
-  by the user, for more information refer to the following subsections.
+  The eddy fit, eccentricity, area scale and Gaussian fit can be modified
+  by the user. For more information refer to the following subsections.
 ..
-
-.. figure:: ../images/scheme_ident.png
-  :align: center
-  :scale: 10 %
-  :alt: Alt content
-
-  Identification criteria flowchart.
 
 Filters
 """""""
 To optimise the perturbation field and remove biases, the code supports the
-remotion of temporal and spatial filters. The temporal filter removes the time
-averages and the spatial filter removes the spatial average to each time-step
+substraction of temporal and spatial filters. The temporal filter removes the time
+averages and the spatial filter removes the spatial average for each time-step
 of the dataset. The function argument should look::
 
   filter={'time':{'type':None,'t':None,'t0':None},
@@ -144,7 +177,8 @@ of the dataset. The function argument should look::
 Temporal
 ''''''''
 TrackEddy supports three temporal filters: orthogonal, historical \
-(Non-orthogonal), and moving-average:
+(Non-orthogonal), and moving-average (`Kang, D., & Curchitser, E. (2017),
+(2006) <https://journals.ametsoc.org/doi/full/10.1175/JPO-D-17-0063.1>`_):
 
 - Orthogonal filter removes the mean value of the field each time
   step :math:`(T = T0)`. Function argument::
@@ -153,7 +187,7 @@ TrackEddy supports three temporal filters: orthogonal, historical \
             'spatial':{'type':None,'window':None,'mode':None}}
 
 - Historical filter remove the trend over a specific period of days,
-  time-step or historical at each time step :math:`(T != T0)`. Function argument::
+  time-step or historical at each time step :math:`(T\ !=\ T0)`. Function argument::
 
     filter={'time':{'type':'historical','t':None,'t0':shape(data)[0],
             'value':None},'spatial':{'type':None,'window':None,'mode':None}}
@@ -213,12 +247,12 @@ TrackEddy supports three spatial filters: meridional, zonal, and moving-average:
   :alt: Uniform Filter
 
 
-Contour Slicing
-"""""""""""""""
-TrackEddy analyses eddies at different levels or contour slices. For each
-level defined by the user, the algorithm will extract the list of contour
-paths. For example, :numref:`contourslice` shows the contour paths for
-several levels.
+Level Analysis
+""""""""""""""
+TrackEddy analyses eddies at discrete levels :math:`n` in the data field.
+For each level :math:`N_{(1:n)}` defined by the user, the algorithm will
+extract the list of contour paths (:math:`l_c`). For example,
+:numref:`contourslice` shows the contour paths for several levels.
 
 .. _contourslice:
 
@@ -227,21 +261,27 @@ several levels.
   :scale: 100 %
   :alt: Contour slices
 
-  Contour slices.
+  Example of discrete levels analysed by TrackEddy. Left panel shows
+  a snapshot of SSHa (AVISO+) and right panel presents an example of positive
+  and negative discrete levels. For each level, TrackEddy
+  will extract the closed contour paths.
 
-As TrackEddy has the capability to replace the closed contour with the
-outermost and best fitted closed contour, it requires to
-begin the analysis with a positive or negative extreme value and
-then approximate to 0. This implementation identifies eddies as positive
-or warm cores and negative or cold cores. Consequently, positive or warm
-cores will contain cyclonic eddies in the Northern Hemisphere,
+.. As TrackEddy has the capability to replace the closed contour with the
+.. outermost and best fitted closed contour, i
+
+For example, when TrackEddy is implemented in a perturbation field, it is
+recommended to the user to define the levels as a positive or negative extreme
+value and then approximate to 0. For example, in SSHa TrackEddy identifies
+eddies as positive or warm cores and negative or cold cores. Consequently,
+positive or warm cores will contain cyclonic eddies in the Northern Hemisphere,
 and anti-cyclonic eddies in the Southern Hemisphere. The opposite
-case will happen for the negative or cold cores.
-The differentiation between cyclonic and anticyclonic can be done
-during post-processing or at the Eddy Contour Replacement algorithm.
+case will happen for the negative or cold cores. The differentiation
+between cyclonic and anticyclonic can be done during post-processing or
+at the Eddy Contour Replacement algorithm.
 
-The levels can be defined as a dictionary containing the maximum value,
-minimum value and steps::
+This algorithm is designed to cycle through :math:`N_{(1:n)}` levels
+(:numref:`ident_scheme`), which are defined as a dictionary containing the
+maximum value, minimum value and steps::
 
   levels={'max':100,'min':1,'step':1}
 
@@ -256,16 +296,20 @@ the steps while approximating to 0, for example, half-life decay :math:`a/2^n`::
   #array([ 100. ,50. ,25. ,12.5 ,6.25 ,3.125 ,
   #        1.5625 ,0.78125 ,0.390625 ,0.1953125])
 
-This last option is particularly improves the walltime while analysing
-big datasets and identifies better small perturbations or when the
-perturbations are closed to zero.
+This option improves the walltime while analysing
+big datasets and better identifies small perturbations.
 
-Closed Contour
-""""""""""""""
+.. important ::
+  TrackEddy do not support a zero level contour due to issues with the contour
+  extraction.
+..
 
-On each contour slice, the algorithm looks at all the contour paths for
-closed contours. Closed contours are defined as the contours where
-the initial position of the contour path is the same as the end of the
+Closed Contours
+"""""""""""""""
+
+On each contour slice :math:`N`, the algorithm checks if the contour paths are
+closed. Closed contours (:math:`n_c`) are defined as the contours where
+the initial coordinate of the contour path is the same as the end of the
 contour path (:numref:`satelliteclosecontour`).
 
 .. _satelliteclosecontour:
@@ -274,8 +318,9 @@ contour path (:numref:`satelliteclosecontour`).
   :scale: 100 %
   :alt: Closed contours.
 
-  Example of closed contours, blue and white contour are closed and
-  red is open.
+  Example of open and closed contours. Green and magenta dots correspond to the
+  initial and final coordinates respectively of the contour. Therefore, blue
+  and white contour are closed, while red is open.
 
 :numref:`closecontour` shows the closed contours detected from
 satellite data at two levels.
@@ -286,18 +331,21 @@ satellite data at two levels.
   :scale: 100 %
   :alt: Closed contours.
 
-  Closed contours detected in satellite data at 29 cm (red) and -29 cm (blue).
+  Closed contours detected at 29 cm (red) and -29 cm (blue) from AVISO+ SSHa
+  satellite dataset.
 
+Land Check
+""""""""""
 
-If the contour is closed, then the contour is tested to determinate if it is
-surrounding land. To accept the closed half of the total of contour points
+If the contour is closed, then the contour is first tested to determinate if
+it is surrounding land. To accept the closed half of the total of contour points
 (:math:`n_g`) should not be surrounded by land (:math:`n_i`):
 
 .. math::
-  \frac{ng}{ni}>2
+  \frac{n_g}{n_i}>2
 ..
 
-Otherwise, the closed contour is discarded (Figure 9).
+Otherwise, the closed contour is discarded (:numref:`landcheck`).
 
 .. _landcheck:
 .. figure:: ../images/area_check.png
@@ -305,7 +353,12 @@ Otherwise, the closed contour is discarded (Figure 9).
    :scale: 50 %
    :alt:
 
-   Accepted contour [Left] and discarded contour [Right] surrounded by land.
+   Example of contours surrounded by land. green dots correspond to
+   valid grid points and red to invalid grid points over land. The left panel
+   shows an accepted contour, as the number of invalid points is smaller than
+   the total of contour points, while the right panel shows a discarded contour,
+   due to the number of invalid points is bigger than half of the total contour
+   points.
 
 .. note::
   The land check only works if the input data is masked or if it contain nan
@@ -314,19 +367,10 @@ Otherwise, the closed contour is discarded (Figure 9).
 
 Ellipse Fitting
 """""""""""""""
-To differentiate between closed contours and eddy features,
-TrackEddy fits an optimal ellipse to
+The next task is to determine which closed contours have a coherent shape
+as an eddy. Therefore, TrackEddy fits an optimal ellipse to
 each closed contour (Fernandes (2006)) (:numref:`fitellipse`).
-
-.. _fitellipse:
-.. figure:: ../images/contours_ellipse.png
-   :align: center
-   :scale: 50 %
-   :alt: Alt content
-
-   Contours and fitted ellipses.
-
-The fit-estimation optimise the ellipse using the Least
+The fit-estimation optimises the ellipse using the Least
 Squares method. The estimator is extracted from the following
 equation (For more information: `fit_ellipse
 <https://www.mathworks.com/matlabcentral/fileexchange/3215-fit-ellipse?
@@ -339,27 +383,51 @@ requestedDomain=www.mathworks.com>`_):
 where :math:`A` is the vector of parameters to be estimated
 :math:`(a,b,c,d,e,f)` and :math:`x`, :math:`y` are the coordinates.
 
-Potential eddies are determined based on determination coefficients.
-First  TrackEddy resolves the matrix coefficient of determination:
+.. _fitellipse:
+.. figure:: ../images/contours_ellipse.png
+   :align: center
+   :scale: 50 %
+   :alt: Alt content
+
+   Example of identified closed contours and their corresponding optimal
+   fitted ellipse.
+
+Potential eddies are determined based on ellipse determination coefficient
+(:math:`R_\epsilon`). First, TrackEddy resolves the matrix coefficient of
+determination:
 
 .. math::
-  R^2 =1 - \frac{SSR}{TSS}
+  R_\epsilon^2 =1 - \frac{SSR}{TSS}
 ..
 
-where :math:`SSR` is the sum of squared residuals, and TSS is the
-total sum of squares of the model.
-
-The coefficient of determination need to be within the user defined threshold,
+where :math:`SSR` is the sum of squared residuals:
 
 .. math::
-   0.85 < e \leq 1
+  SSR = \sum_{i=0}^n(y_i - f(x_i))^2
+..
 
-where :math:`e` is the fitted ellipse coefficient of determination. Then
-TrackEddy projects the ellipse into one dimension and calculates the coefficient
-of determination between the contour and the fitted ellipse
-(:numref:`flatelipse`). If the new coefficient of determination is also
-within the threshold, the tentative eddy
-eccentricity is then analysed, otherwise the closed contour is discarded.
+and TSS is the total sum of squares of the model:
+
+.. math::
+  TSS = \sum_{i=1}^n (y_i-\bar{y})^2 .
+..
+
+The coefficient of determination need to be within the user defined threshold,
+the default threshold is:
+
+.. math::
+   0.85 < R_\epsilon^2 \leq 1
+
+Additionally, TrackEddy projects the ellipse into one dimension and
+calculates the coefficient of determination between the contour and the
+fitted ellipse (:numref:`flatelipse`) which should be also within the user
+defined interval. If any of the coefficients of determination is
+outside the threshold, then the closed contour is discarded: otherwise,
+the algorithm proceeds to the next step.
+
+.. note::
+  The algorithm uses both determination coefficients to ensure
+  a proper fit and prevent any misrepresentations of the ellipse.
 
 .. _flatelipse:
 .. figure:: ../images/fit_ellipse_flat.png
@@ -367,7 +435,11 @@ eccentricity is then analysed, otherwise the closed contour is discarded.
    :scale: 50 %
    :alt: Alt content
 
-   Contours and fitted ellipse.
+   Example of ellipse fitting test. Red line corresponds to a noisy ellipse,
+   while the blue line is the optimal ellipse fitted. The left panel overlays
+   the noisy ellipse and the fitted ellipse. The right panel shows the fitting
+   in one dimension and the error between both curves.
+
 
 Coefficients of determination around :math:`1` represent an exact
 fit and the minimum value by default is :math:`0.85`.
@@ -384,21 +456,21 @@ by the default values::
 Eccentricity
 """"""""""""
 
-Closed contours and their correspondent ellipse could represent
+Closed contours and their corresponding ellipse could represent
 coherent and/or elongated features. While the coherent structures with similar
 ratios on their width and length are associated with
-eddy like features, the elongated features correspond to jets. Therefore,
+eddy like features, the elongated features may correspond to jets. Therefore,
 to differentiate between these two processes
 a condition of eccentricity is imposed over the fitted ellipse. The eccentricity
 (:math:`\epsilon`) of an ellipse is defined as:
 
 .. math::
-   \epsilon = \left(1-\frac{b^2}{a^2}\right)^\frac{1}{2}
+   e = \left(1-\frac{b^2}{a^2}\right)^\frac{1}{2}
 
 where :math:`a` is the length of the ellipse semi-major axis and :math:`b` the
 length of the ellipse semi-minor axis (:numref:`eccent`).
-The eccentricity of an ellipse is strictly less than 1. As TrackEddy do
-not differentiate between circles and ellipses, then the eccentricity of a
+The eccentricity of an ellipse is strictly less than 1. TrackEddy does
+not differentiate between circles and ellipses; thus, the eccentricity of a
 potential eddy is greater than or equal to 0 and smaller than the user
 defined parameter.
 
@@ -416,7 +488,7 @@ are discarded.
    :scale: 50 %
    :alt:
 
-   Potential eddy closed contour (black line), and its corresponding
+   Potential eddy like closed contour (black line), and its corresponding
    fitted ellipse (blue line) with minor axis :math:`b` and
    major axis :math:`a`.
 
@@ -433,43 +505,44 @@ Area Check
 """"""""""
 
 Once Trackeddy fits and evaluates the eccentricity of the optimal ellipse, a
-scale check is implemented. By default TrackEddy only supports mesoscale
-processes (10 km to 100 km) through scaling the First Baroclinic Rossby Radius.
-However, the scaling could be implemented as a constant value or by a netCDF and
-a scaling factor.
+scale check is implemented. By default TrackEddy is intended to diagnose
+mesoscale processes (10 km to 100 km) through scaling the first baroclinic
+Rossby radius. However, the scaling can be defined by the user as
+a constant value or by a netCDF file that specifies a scaling factor.
 
 Mesoscale (Default)
 '''''''''''''''''''
 Mesoscale is referred to ocean signals with space scales of 10-100 km and
-time scales of 10-100 days. To identify only mesoscale eddies, the area or each
-individual eddy should be smaller than a factor times the First Baroclinic
-Rossby Radius (:math:`L_D`). Klocker, A. (2014) proposed that the eddy length
-scale (:math:`L_{eddy}`) is:
+time scales of 10-100 days. To identify only mesoscale eddies, the area of each
+individual eddy should be smaller than area of a circle with radius equal to the
+first baroclinic Rossby radius (:math:`L_D`). Klocker, A. (2014) proposed
+that the eddy length scale (:math:`L_{eddy}`) is:
 
 .. math::
-   L_{eddy}= 2\pi^2 L_D
+   L_{eddy} = 2\pi L_D
 
-where :math:`2\pi^2` is the default the factor.
+where :math:`(2\pi)^2` is the scaling factor of oceanic mesoscale features.
 
-The eddy area (:math:`A_{eddy}`) is check for the closed contour, and also
-the ellipse. The contour area is defined as a box with a width of the
+The eddy area (:math:`A_{eddy}`) is evaluated for both the closed contour and
+the fitted ellipse. The contour area is defined as a box with a width of the
 maximum distance in latitude and length of the maximum distance in longitude.
 And the ellipse area is defined as two semi-minor axis times two semi-major
 axis.
 
 To satisfy the condition of mesoscale the area of the closed contour and the
-ellipse should be less or equal to the eddy area (:math:`A_{eddy}`).
+ellipse should be less or equal to the area of a square with side
+:math:`L_{eddy}`.
 
 .. math::
- A_{eddy} = \left(2\pi \frac{(g'D)^\frac{1}{2}}{f}\right)^2 =
- \left(2\pi Lr \right)^2
+  A_{eddy} = \left(2\pi \frac{(g'D)^\frac{1}{2}}{f}\right)^2 =
+  \left(2\pi L_D \right)^2
 
 .. figure:: ../images/Area_rossby_radius_deformation.png
  :scale: 50 %
- :alt: Eddy area based on the First-Baroclinic Rossby Radius of Deformation.
+ :alt: Eddy area based on the first baroclinic Rossby radius of deformation.
 
- Global eddy area based on the First-Baroclinic Rossby Radius
- of Deformation.
+ Global eddy area based on the first baroclinic Rossby radius
+ of deformation.
 
 
 .. note::
@@ -524,17 +597,20 @@ or :code:`None`. For example::
   area={'constant':np.inf}
 
 .. attention::
-  The constant will have the same units as the axis.
+  The constant will have the same units as the coordinates.
+  For example if the coordinates x, y are defined as longitude and latitude,
+  the constant units will be degrees.
 ..
 
 Gaussian Axis Check
 """""""""""""""""""
 
-After go through the previous criteria, the field profile over the semi-minor
-axis and semi-major axis is analysed. According to the detected eddies (n=500)
-their profile along the ellipse axis can be fitted by a Gaussian
-and/or parabola, however, the best approximation to the profile average
-was the Gaussian fit (:numref:`gauss_fit`).
+The next check is to analyse the field profile over the semi-minor
+axis and semi-major axis of the ellipse. According to the detected eddies from
+the Aviso+ satellite dataset (n=500) their profile along the ellipse minor and
+major axis can be well represented by a Gaussian and/or parabola
+(:math:`R^2 > 0.9`), however, the best approximation to the profile
+average was the Gaussian fit (:numref:`gauss_fit`).
 
 .. _gauss_fit:
 .. figure:: ../images/gaussian_fitness.png
@@ -546,22 +622,23 @@ was the Gaussian fit (:numref:`gauss_fit`).
 Additionally, according to diffusion and advection, we will expect a
 decay (Gaussian) instead of a step to zero (Parabolic). Therefore, to
 identify an eddy, the data profile of the semi-minor and semi-major ellipse
-axis should have a high coefficient of determination (:math:`\psi`) with
+axis should have a high coefficient of determination (:math:`R_\kappa^2`) with
 its optimal fitted Gaussian:
 
 .. math::
-  R^2 =1 - \frac{SSR}{TSS}
+  R_\kappa^2 =1 - \frac{SSR}{TSS}
 ..
 
 By default eddies are finally identified, if the fitness of their semi-minor
 and semi-major axis is within the interval:
 
 .. math::
-   0.80 < \kappa \leq 1
+   0.80 < R_\kappa^2 \leq 1
 
-where :math:`\kappa` is the profile coefficient of determination. Values
-around :math:`1` represent a exact fitness and the minimum value accepted
-should be higher than :math:`0.8`.
+.. where :math:`\kappa` is the profile coefficient of determination.
+
+Values around :math:`1` represent an exact fit and the minimum value
+accepted should be higher than :math:`0.8`.
 
 The function argument to define the minimum coefficient of determination should
 be::
@@ -583,7 +660,7 @@ by the default values::
     :scale: 50 %
     :alt:
 
-    Identified contours using all criteria.
+    Identified eddies after implementing all the previous presented criteria.
 
 ..
 
@@ -591,8 +668,8 @@ Gaussian Fit (Optional)
 """""""""""""""""""""""
 
 Finally, TrackEddy has the potential to reconstruct the field by fitting an
-optimised Gaussian to each identified eddy. To ensure the
-representativity of the field, the fitness of each 2D Gaussian is tested
+optimised 2D Gaussian to each identified eddy. To ensure the
+representativity of the field, the fit of each 2D Gaussian is tested
 by comparing the absolute difference between the integrals of the original
 and the optimal fitted field. For the identification of each eddy, the
 variation between the fields should be within 10 percent of its original value.
@@ -604,7 +681,7 @@ variation between the fields should be within 10 percent of its original value.
   ..
 
   where :math:`G_{cc}(i,j)` corresponds to the Gaussian data inside the close
-  contour and :math`(i,j)` are the indexes of the grid inside the contour.
+  contour and :math:`(i,j)` are the indexes of the grid inside the contour.
 
 - Original field integral (O):
 
@@ -637,31 +714,23 @@ the synthetic field as shown in :numref:`2dgauss`.
    underlying the reconstructed field (red line). Right panel shows the
    difference between fields.
 
-Eddy Contour Replacement
-------------------------
+Eddy Replacement
+----------------
 
 The Eddy Contour Replacement algorithm is responsible to add and replace
 eddies at different z levels and determine the polarity of eddies.
 
-Contour replacement
+Contour Replacement
 """""""""""""""""""
 
 After TrackEddy identifies eddies in the first two levels, the eddies at
-level :math:`l(n-1)` are correlated with the eddies at level :math:`l(n)`. If
+level :math:`E_{l_{n-1}}` are correlated with the eddies at level :math:`E_{l_n}`. If
 and only if the eddy share their the same extreme value and the local
 coordinates to the extreme value at both levels, then the eddy is replaced.
-If the eddy at level :math:`l(n)` do not share the maximum value with any
+If the eddy at level :math:`E_{l_n}` do not share the maximum value with any
 of the previous levels, then the eddy is added to the eddy dictionary.
 This process is repeated until all the user defined levels are analysed
-(:numref:`contour_replace`).
-
-.. _contour_replace:
-.. figure:: ../images/scheme_contour.png
-   :align: center
-   :scale: 10 %
-   :alt: Contour replacement Algorithm.
-
-   Contour replacement flowchart.
+(:numref:`trackflow`).
 
 If the 2D Gaussian fit is implemented then TrackEddy only replace the eddy
 at level :math:`l(n)` if the Gaussian fit is better at this level. Otherwise,
@@ -677,8 +746,6 @@ it conserves the best fit to the field (:numref:`satextraction`).
    (A) Anti-cyclonic eddy. (B) Cyclonic eddy. (C) Synthetic eddy field.
    (D) Difference between the original field and the synthetic fields [cm].
 
-Eddy Polarity
-"""""""""""""
 
 Eddy Time Tracking
 ------------------
@@ -688,7 +755,7 @@ identified at time :math:`t`, the features at time :math:`t+1` are searched to
 find an eddy feature inside the closed contour or the closest feature within the
 distance an eddy can displace between two successive time frames. This constrain
 uses the phase speed of a baroclinic Rossby wave, calculated from the Rossby
-radius of deformation as presented in Celton *et. al.* [4] and a 180 degree
+radius of deformation as presented in Chelton *et. al.* [4] and a 180 degree
 window search using the last preferential direction where the eddy was
 propagating.
 

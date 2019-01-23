@@ -985,13 +985,18 @@ def gaussareacheck(values,level,areaparms,gauss2dfit,contour_area,contour_x=None
     fitted_curve = twoD_Gaussian(coords, *gauss2dfit)
     fittedata = fitted_curve.reshape(len(values[1]),len(values[0]))
     #fittedata = ma.masked_array(fittedata, mask)
-    if level>0:
-        CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
-    else:
-        CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
-    plt.close()
-    CONTS=CS.allsegs[0][0]
-    areastatus = checkscalearea(areaparms,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
+    try:
+        if level>0:
+            CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
+        else:
+            CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
+        plt.close()
+    
+        CONTS=CS.allsegs[0][0]
+        areastatus = checkscalearea(areaparms,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
+    except:
+        return False,0
+        
     if areastatus['ellipse'] == None:
         test=False
     elif (contour_area*1.5 > areastatus['ellipse']) and areastatus['status']: #and area[1]!=0:
