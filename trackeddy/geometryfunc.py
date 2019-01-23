@@ -571,6 +571,12 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
                method='BFGS',options={'xtol': 1e-12, 'disp': False})
         fitdict = res.x
     
+        #popt, pcov, infodict,mesg,ier = leastsq(gaussian2Dresidual, initial_guess,\
+        #                                        args=(coords, varm.ravel()),\
+        #                                        xtol=1e-10,maxfev=1000000,
+        #                                        full_output=True) 
+        #fitdict = popt
+    
     fitted_curve = twoD_Gaussian(coords, *fitdict)
     fittedata=fitted_curve.reshape(len(values[1]), len(values[0]))
     
@@ -834,7 +840,7 @@ def eddylandcheck(contour,lon,lat,var,diagnostics=False):
         plt.legend()
     return checkland
 
-def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,usefullfit=False,diagnostics=False):
+def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,usefullfit=False,diagnostics=False,one_time=None):
     '''
     *************** reconstruct_syntetic *******************
     Recunstruct the syntetic field using the gaussian 
@@ -859,7 +865,11 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
         key=keys[xx]
         counter=0
         #print(key)
-        for tt in range(0,len(eddytd[key]['time'])):
+        if one_time!=None and type(one_time)==int:
+            timeloop=[one_time]
+        else:
+            timeloop=range(0,len(eddytd[key]['time']))
+        for tt in timeloop:
             ttt=eddytd[key]['time'][tt]
             level=eddytd[key]['level'][tt]
             maxposition=[Lon,Lat,eddytd[key]['position_maxvalue'][counter][2],\
@@ -911,7 +921,7 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
 def phase_angle(v,u,lon,lat):
     phi=arctan(v,u)
     
-def insideness_contour(data,center,levels,mask=False,maskopt='none',diagnostics=False):
+def insideness_contour(data,center,levels,mask=False,maskopt=None,diagnostics=False):
     '''
     
     '''
@@ -929,7 +939,7 @@ def insideness_contour(data,center,levels,mask=False,maskopt='none',diagnostics=
         
     markers,features=np.asarray(ndimage.label(data_rmove))
     
-    if markers.max()!=1 and maskopt=='none':
+    if markers.max()!=1 and maskopt==None:
         markers=markers*0
         returnmasked=True    
         
