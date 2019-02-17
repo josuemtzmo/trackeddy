@@ -15,6 +15,8 @@ install:
   - conda install -c conda-forge --file ./install_requirements.txt
   - pip install -e .
 script: pytest -m test_trackeddy
+after_success:
+  -  bash <(curl -s https://codecov.io/bash)
 notifications:
   slack:
     on_success: change
