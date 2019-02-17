@@ -75,6 +75,8 @@ def basemap_mplot(x,y,data,title,projection='ortho',lat_0=-90,lon_0=-100,boundin
                 im=m.pcolormesh(lonm,latm,data[count],cmap=cmap,norm=colors.SymLogNorm(linthresh=0.03, linscale=0.03,vmin=vmintemp, vmax=vmaxtemp))
             elif scale == 'Lin' and vmin != '' and vmax != '':
                 im=m.pcolormesh(lonm,latm,data[count],cmap=cmap,vmin=vmin, vmax=vmax)
+            elif scale == 'Linc' and vmin != '' and vmax != '':
+                im=m.contourf(lonm,latm,data[count],cmap=cmap,vmin=vmin, vmax=vmax)
             elif scale == 'SymLog' and vmin != '' and vmax != '':
                 im=m.pcolormesh(lonm,latm,data[count],cmap=cmap,norm=colors.SymLogNorm(linthresh=0.01, linscale=0.01,vmin=vmin, vmax=vmax))
             elif scale == 'Log' and vmin != '' and vmax != '':
