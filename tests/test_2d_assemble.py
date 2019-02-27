@@ -58,16 +58,20 @@ def gauss_n_fit(n):
     eddytd={}
     eddytdn={}
 
-    
+    try:
+        levels = {'max':data.max(),'min':0.1,'step':0.1}
+        eddytd = analyseddyzt(data,x,y,t0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
+                            ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True,debug=False)
+    except:
+        print("No positive")
 
-    levels = {'max':data.max(),'min':0.1,'step':0.1}
-    eddytd = analyseddyzt(data,x,y,t0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
-                        ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True,debug=False)
-    
-    levels  = {'max':data.min(),'min':-0.1,'step':-0.1}
-    eddytdn = analyseddyzt(data,x,y,t0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
+    try:
+        levels  = {'max':data.min(),'min':-0.1,'step':-0.1}
+        eddytdn = analyseddyzt(data,x,y,t0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
                     ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True,debug=False)
-
+    except:
+        print("No negative")
+    
     return len(eddytd.keys())+len(eddytdn.keys())
 
 @pytest.mark.ttrackeddy

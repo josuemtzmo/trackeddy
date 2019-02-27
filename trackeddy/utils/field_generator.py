@@ -85,28 +85,6 @@ class Generate_field():
             g = (x-xo)*0 + (y-yo)*0
         return g.ravel()
 
-    def moveGaussian(self,size,fwhm,center,timestep):
-        z=np.zeros([timestep,size,size])
-        for tt in range(0,timestep):
-            z[tt,:,:]=self.makeGaussian(size, fwhm, (center[tt,0],center[tt,1]))
-        return z
-
-    def RandGaussian(self,size,time,nn):
-        zz=np.zeros([time,size,size])
-        zz1=zz*1
-        ii=0
-        while ii < nn:
-            xx=(rnd.randrange(0, 100)/100.0)*size
-            xxx=(rnd.randrange(0, 100)/100.0)*size
-            yyy=(rnd.randrange(0, 100)/100.0)*size
-            if xx > size/8 and xx < size/4:
-                center=np.array([[xxx,yyy+x] for x in np.linspace(size*0.1,size*0.9,time)])
-                for tt in range(0,time):
-                    zz1[tt,:,:]=self.makeGaussian(self.pass_args())
-                zz=zz+zz1
-                ii=ii+1
-        return zz
-
     def checkposition(self,away_val=5,loc=False):
         if loc == True:
             eddies_loc=[[rnd.randint(0,self.xlen-1),rnd.randint(0,self.ylen-1)] for key,item in self.eddies.items()]
@@ -171,13 +149,12 @@ class Generate_field():
 
     def reconstruct_field(self):
         data=np.zeros((self.xlen,self.ylen))
-        # def twoD_Gaussian(self, coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0):
         for keys, item in self.eddies.items():
             gauss=self.twoD_Gaussian(self.pass_args(keys),item['radius'][0], item['radius'][1], item['angle']).reshape(np.shape(data))
             data=data+gauss
         return data
 
-    def pass_args(self,key,margin,):
+    def pass_args(self,key,margin=50):
         self.x = np.linspace(min(self.x),max(self.x),self.xlen+2*margin)
         self.y = np.linspace(min(self.y),max(self.y),self.ylen+2*margin)
         X,Y=np.meshgrid(self.x,self.y)
