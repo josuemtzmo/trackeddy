@@ -13,3 +13,4 @@ seawater
 cmocean
 cartopy
 gsw
+pytest-cov
