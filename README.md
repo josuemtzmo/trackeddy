@@ -3,7 +3,7 @@
 
 | Travis CI (Python 3.6) | Read the Docs | Code Coverage |
 |:----------------------:|:-------------:|:-------------:|
-| [![Build Status](https://travis-ci.org/Josue-Martinez-Moreno/trackeddy.svg?branch=develop)](https://travis-ci.org/Josue-Martinez-Moreno/trackeddy) | [![Documentation Status](https://readthedocs.org/projects/trackeddy/badge/?version=latest)](http://trackeddy.readthedocs.io/en/latest/?badge=latest) | [![codecov](https://codecov.io/gh/Josue-Martinez-Moreno/trackeddy/branch/develop/graph/badge.svg)](https://codecov.io/gh/Josue-Martinez-Moreno/trackeddy) |
+| [![Build Status](https://travis-ci.org/josuemtzmo/trackeddy.svg?branch=develop)](https://travis-ci.org/josuemtzmo/trackeddy) | [![Documentation Status](https://readthedocs.org/projects/trackeddy/badge/?version=latest)](http://trackeddy.readthedocs.io/en/latest/?badge=latest) | [![codecov](https://codecov.io/gh/josuemtzmo/trackeddy/branch/develop/graph/badge.svg)](https://codecov.io/gh/josuemtzmo/trackeddy) |
 
 
 **Supports Python 2.7 and Python 3**
