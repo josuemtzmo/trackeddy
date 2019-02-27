@@ -11,6 +11,6 @@ Modules available in trackeddy include:
 * trackeddy.py
 '''
 
-__all__ = ['datastruct', 'init','geometryfunc','physics','plotfunc','tracking']
+__all__ = ['datastruct', 'init','geometryfunc','physics','plotfunc','tracking','utils']
 
 __authors__ = ['Josue Martinez Moreno <josue.martinezmoreno@anu.edu.au>']

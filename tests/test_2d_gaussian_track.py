@@ -26,7 +26,7 @@ import pytest
 ##     syntetic fields         ##
 #################################
 
-from gaussian_field_functions import *
+from trackeddy.utils.gaussian_field_functions import *
 
 #################################
 ## Test 1: Check the detection ##
@@ -49,7 +49,7 @@ def gaussfit():
     gaussianfit=twoD_Gaussian((X,Y,1,0,0),*gausssianfitp)
     return R2
 
-@pytest.mark.test_trackeddy
+@pytest.mark.ttrackeddy
 def test_gaussfit():
     gausf=gaussfit()
     assert gausf >= 0.99
@@ -83,7 +83,7 @@ def two_positive_gaussian_track():
     positive=len(gaussian['eddyn_0']['time'])
     return positive,time
 
-@pytest.mark.test_trackeddy
+@pytest.mark.ttrackeddy
 def test_2eddydetection():
     positive,time=two_positive_gaussian_track()
     assert positive == time
@@ -122,7 +122,7 @@ def multiple_gaussian_track():
     negative=len(gaussiann['eddyn_0']['time'])
     return positive,negative,time
 
-@pytest.mark.test_trackeddy
+@pytest.mark.ttrackeddy
 def test_3eddydetection():
     positive,negative,time=multiple_gaussian_track()
     assert positive == time and negative == time

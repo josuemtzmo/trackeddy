@@ -8,6 +8,7 @@ from trackeddy.savedata import *
 from trackeddy.geometryfunc import *
 from trackeddy.physics import *
 warnings.filterwarnings("ignore")
+import pdb
 
 def dict_eddym(contour, ellipse, position_selected,position_max,position_ellipse,majoraxis_eddy,minoraxis_eddy,area,angle,number,level,gaussianfitdict,gaussfit2d):
     '''
@@ -59,7 +60,7 @@ def datastruct_time(ts,eddys,eddydt):
                 '2dgaussianfit':eddys['2DGaussianFit'][nn],'timetracking':True}
     return dictime
 
-def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue='maxvalue',coords='latlon',diagnostics=False):
+def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue='maxvalue',coords='latlon',diagnostics=False,debug=False):
     '''
     ********************** dict_eddyt **********************
     Create a dictionary with all the eddies and it's track on time. When 'ts==0' 
@@ -97,6 +98,9 @@ def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue=
             eddytd=dict_eddyt(tt,eddys,eddytd) 
         
     '''
+    if debug==True:
+        print("\n *******TIME******")
+        pdb.set_trace()
     #neweddies=[]
     threshold=7
     if eddydt=='':
@@ -124,11 +128,11 @@ def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue=
             idxmxs=int(eddydt['eddyn_'+str(t0key)]['position_maxvalue'][-1][3])
             idxmys=int(eddydt['eddyn_'+str(t0key)]['position_maxvalue'][-1][4])
             
-            print(t0contour[-1][0])
+            #print(t0contour[-1][0])
             xidmin,xidmax=find2l(x,x,t0contour[-1][0].min(),t0contour[-1][0].max())
             yidmin,yidmax=find2l(y,y,t0contour[-1][1].min(),t0contour[-1][1].max())
             
-            print(xidmin,xidmax,yidmin,yidmax)
+            #print(xidmin,xidmax,yidmin,yidmax)
             if yidmin<threshold:
                 xcontour=x[xidmin-threshold+1:xidmax+threshold]
                 ycontour=y[yidmin:yidmax+threshold]
@@ -192,7 +196,7 @@ def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue=
         
         ## Add new eddies to the dictionary 
         neweddies=[int(key) for key in eddyt1 if eddyt1[key]=='']    
-        eddydt=addtimetrack(ts,eddydt,eddys,neweddies)   
+        eddydt=addtimetrack(ts,eddydt,eddys,neweddies,debug=debug)   
         ## Count time steps without appearance 
         oldeddies=[int(key) for key in eddyt0 if eddyt0[key]=='']
         for oldeddy in oldeddies:
@@ -204,10 +208,12 @@ def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue=
                 eddydt['eddyn_'+str(oldeddy)]['timetracking']=eddydt['eddyn_'+str(oldeddy)]['timetracking']+1
     return eddydt
 
-def addtimetrack(ts,eddydt,eddys,neweddies):
-    count=0
+def addtimetrack(ts,eddydt,eddys,neweddies,debug=False):
+    if debug==True:
+        print("\n *******New eddy TIME******")
+        pdb.set_trace()
     for neweddy in neweddies:
-        number=len(eddydt.keys())+count
+        number=len(eddydt.keys())+1
         #print(neweddy)
         eddydt['eddyn_'+str(number)]={'neddy':[number],'time':np.array([ts]),\
                             'position_default':[eddys['Position'][neweddy]],\
@@ -222,7 +228,6 @@ def addtimetrack(ts,eddydt,eddys,neweddies):
                             'majoraxis':eddys['MajorAxis'][neweddy],\
                             '2dgaussianfit':eddys['2DGaussianFit'][neweddy],\
                             'timetracking':True}
-        count=count+1
     return eddydt
   
 
@@ -246,7 +251,7 @@ def jointimetrack(ts,eddydt,eddys,t0track,t1track):
     return eddydt
 
 
-def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold=1.5,diagnostics=False):
+def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold=1.5,diagnostics=False,debug=False):
     '''
     ********************** dict_eddyz **********************
     Create a dictionary with all the eddies and it's develop in delta eta, 
@@ -305,6 +310,9 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
 
         neweddies=[]
         for nn0 in range(0,len(eddys['EddyN'])):
+            if debug==True:
+                print("*******LEVELS******")
+                pdb.set_trace()
             xscontour=eddys['Contour'][nn0][0]
             yscontour=eddys['Contour'][nn0][1]
             levels=eddys['Level'][nn0]
@@ -338,7 +346,10 @@ def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold
                         eddysindex=n
                         eddysmaskdata[str(nn0)]='Done'
                         eddyzmaskdata[str(n)]='Done'
-                        if gauss2dfitz < gauss2dfits or (areas[0] - areas[2]) < (areas[0]-areaz[2]):
+                        ### Change and to or, but first solve the bug 
+                        ### with the R2 of the 2d fit.
+                        ### gauss2dfitz < gauss2dfits and 
+                        if (areas[0] - areas[2]) < (areas[0]-areaz[2]):
                             replacecontour=True
                         else:
                             replacecontour=False

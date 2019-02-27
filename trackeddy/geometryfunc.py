@@ -14,6 +14,7 @@ from scipy import stats
 import cartopy.crs as ccrs
 from trackeddy.physics import *
 from trackeddy.printfunc import *
+import pdb
 
 def fit_ellipse(x,y,diagnostics=False):
     '''
@@ -494,9 +495,7 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
     
     xo = float(coords[3])
     yo = float(coords[4])
-    
-    xo = float(xo)
-    yo = float(yo)
+
     #print(sigma_y,sigma_x,sigma_y/sigma_x)
     if sigma_y or sigma_x != 0:
         a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
@@ -567,8 +566,10 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
         popt, pcov = leastsq(paraboloid2Dresidual, initial_guess, args=(coords, varm.ravel())) 
         fitdict = popt
     else:
+        #print("\n ----Fit----")
+        #pdb.set_trace()
         res = minimize(gaussian2Dresidual, initial_guess,args=(coords,varm),
-               method='BFGS',options={'xtol': 1e-12, 'disp': False})
+               method='SLSQP',options={'xtol': 1e-12, 'disp': False})
         fitdict = res.x
     
         #popt, pcov, infodict,mesg,ier = leastsq(gaussian2Dresidual, initial_guess,\
@@ -581,7 +582,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
     fittedata=fitted_curve.reshape(len(values[1]), len(values[0]))
     
     try:
-        R2=correlation_coefficient(varm,fittedata)
+        R2=correlation_coefficient(varm.ravel(),fittedata.ravel())
     except:
         R2=0
     
@@ -598,7 +599,7 @@ def fit2Dcurve(var,values,level,initial_guess='',date='',mode='gaussian',diagnos
         print("initial guess|" + ''.join(str(e)+'|' for e in initial_guess))
         print("Fit.         |" + ''.join(str(e)+'|' for e in fitdict))
         f, (ax1, ax2,ax3) = plt.subplots(1, 3,figsize=(25,7),sharey=True)
-        p=ax1.pcolormesh(values[0], values[1],varm,vmin=varm.min(),vmax=varm.max())
+        p=ax1.pcolormesh(values[0],values[1],varm,vmin=varm.min(),vmax=varm.max())
         ax1.set_title('Original Field')
         ax1.axis('equal')
         plt.colorbar(p,ax=ax1)
@@ -840,7 +841,7 @@ def eddylandcheck(contour,lon,lat,var,diagnostics=False):
         plt.legend()
     return checkland
 
-def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,usefullfit=False,diagnostics=False,one_time=None):
+def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,usefullfit=False,diagnostics=False,one_time=None,debug=False):
     '''
     *************** reconstruct_syntetic *******************
     Recunstruct the syntetic field using the gaussian 
@@ -854,6 +855,9 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
     Usage:
     
     '''
+    if debug==True:
+        print("\n ******* Reconstruct ******")
+        pdb.set_trace()
     Lon,Lat=np.meshgrid(lon,lat)
     fieldfit=np.zeros(varshape)
     if type(diagnostics) != list:

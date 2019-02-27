@@ -16,8 +16,9 @@ import seawater as sw
 from scipy import ndimage
 import sys
 import time
+import pdb 
 
-def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',maskopt='contour',preferences=None,mode='gaussian',basemap=False,checkgauss=True,areaparms=None,usefullfit=False,diagnostics=False,plotdata=False):
+def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',maskopt='contour',preferences=None,mode='gaussian',basemap=False,checkgauss=True,areaparms=None,usefullfit=False,diagnostics=False,plotdata=False,debug=False):
     '''
     *************Scan Eddym***********
     Function to identify each eddy using closed contours,
@@ -119,10 +120,16 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     areastatus={'check':None,'contour':None,'ellipse':None}
     # Loop in contours of the levels defined.
     for ii in range(0,numverlevels):
+        if debug==True:
+            print("\n *******EDDY******")
+            pdb.set_trace()
         CONTSlvls=CONTS[ii]
         numbereddies=np.shape(CONTSlvls)[0]
         # Loop over all the close contours.
         for jj in range(0,numbereddies):
+            if debug==True:
+                print("\n ******* EDDY N ******")
+                pdb.set_trace()
             check=False
             CONTeach=CONTSlvls[jj]
             
@@ -244,7 +251,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                         extremvalue=np.nanmin(ssh_in_contour)
 
                                     initial_guess=[a,b,phi,0,0,0]
-
+                                    #print("\n ---pre fit---")
+                                    #pdb.set_trace()
                                     fixvalues=[lon_contour,lat_contour,extremvalue,\
                                                center_extrem[0],center_extrem[1]]
                                     gausssianfitp,R2=fit2Dcurve(ssh_in_contour,\
@@ -449,9 +457,9 @@ def scan_eddyt(ssh,lat,lon,levels,date,areamap,destdir='',okparm='',diagnostics=
         print("**********Starting iteration ",tt,"**********")
         eddys=scan_eddym(ssh[tt,:,:],lon,lat,levels,tt,areamap,destdir='',okparm=okparm,diagnostics=diagnostics)
         if tt==0:
-            eddytd=dict_eddyt(tt,eddys)
+            eddytd=dict_eddyt(tt,eddys,debug=debug)
         else:
-            eddytd=dict_eddyt(tt,eddys,eddytd) 
+            eddytd=dict_eddyt(tt,eddys,eddytd,debug=debug) 
         print("**********Finished iteration ",tt,"**********")
     if destdir!='':
         save_data(destdir+str(date),eddies)
@@ -644,7 +652,7 @@ def exeddy(eddydt,lat,lon,data,ct,threshold,inside=None,diagnostics=False):
         justeddy[mimcy-threshold:mamcy+1+threshold,mimcx-threshold:mamcx+1+threshold]=datacm
     print('*******End the Removing of eddies******')
     return justeddy
-def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddycenter='masscenter',preferences=None,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False):
+def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddycenter='masscenter',preferences=None,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False,debug=False):
     '''
     *************Analys eddy in z and t ***********
     Function to identify each eddy using closed contours, 
@@ -778,7 +786,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
                           ,physics=physics,eddycenter=eddycenter,maskopt=maskopt\
                           ,checkgauss=checkgauss,areaparms=areaparms\
                           ,preferences=preferences,mode=mode\
-                          ,diagnostics=diagnostics,plotdata=plotdata)
+                          ,diagnostics=diagnostics,plotdata=plotdata,debug=debug)
             if check==True and checkcount==0:
                 eddzcheck=True
                 checkcount=1
@@ -786,18 +794,16 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
                 eddzcheck=False
             if eddies!=0 and check==True:
                 if levellist[ll] == farlevel or eddzcheck==True:
-                    eddz = dict_eddyz(dataanomaly,x,y,ii,ll,levellist,farlevel,eddies,diagnostics=diagnostics)
+                    eddz = dict_eddyz(dataanomaly,x,y,ii,ll,levellist,farlevel,eddies,diagnostics=diagnostics,debug=debug)
                 else:
-                    eddz = dict_eddyz(dataanomaly,x,y,ii,ll,levellist,farlevel,eddies,eddz,diagnostics=diagnostics)
+                    eddz = dict_eddyz(dataanomaly,x,y,ii,ll,levellist,farlevel,eddies,eddz,diagnostics=diagnostics,debug=debug)
             if pprint==True:
                 numbereddieslevels=numbereddieslevels+numbereddies
                 pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddies),[0,len(levellist),ll])
-        #print(eddz['EddyN'])
         if ii==t0:
-            eddytd=dict_eddyt(ii,eddz)
+            eddytd=dict_eddyt(ii,eddz,debug=debug)
         else:
-            eddytd=dict_eddyt(ii,eddz,eddytd,data=dataanomaly,x=x,y=y) 
-        #print(eddytd.keys())
+            eddytd=dict_eddyt(ii,eddz,eddytd,data=dataanomaly,x=x,y=y,debug=debug) 
         if pprint==True:
             pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddieslevels))
     if destdir!='':
@@ -823,7 +829,6 @@ def trackmatix(eddydict):
         else:
             realinx=0
             for ii in value['time']:
-                #print(ii)
                 positions[0,eddy,ii]=squeeze(value['position'][realinx,0])
                 positions[1,eddy,ii]=squeeze(value['position'][realinx,1])
                 realinx=realinx+1
