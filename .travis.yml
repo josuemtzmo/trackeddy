@@ -14,7 +14,7 @@ install:
   - source activate test-environment
   - conda install -c conda-forge --file ./install_requirements.txt
   - pip install -e .
-script: pytest -m ttrackeddy
+script: pytest -m ttrackeddy --cov=trackeddy
 after_success:
   -  bash <(curl -s https://codecov.io/bash)
 notifications:

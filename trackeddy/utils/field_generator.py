@@ -5,6 +5,7 @@ import pdb
 def dist(loc1,loc2):
         return np.sqrt((loc1[0]-loc2[0])**2 + (loc2[1]-loc1[1])**2)
 
+#### BUG WHEN LEN(x) != LEN(y)
 
 class Generate_field():
     def __init__(self,a,b,n,x,y,opt=''):
