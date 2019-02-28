@@ -39,8 +39,8 @@ def gauss_n_fit(n):
     '''
     Test the number of eddies identified during 40 timesteps in a random walker gaussian field.
     '''
-    a  = 0.05
-    b  = 0.05
+    a  = 0.1
+    b  = 0.1
     t0 = 0
     t  = 1
 
@@ -51,8 +51,8 @@ def gauss_n_fit(n):
 
     data = gf.assemble_field(t)
 
-    x=linspace(10,12,300)
-    y=linspace(10,12,300)
+    x=linspace(10,13,300)
+    y=linspace(10,13,300)
             
     preferences={'ellipse':0.85,'eccentricity':0.85,'gaussian':0.8}
     eddytd={}
@@ -82,8 +82,8 @@ def gauss_mult_n_fit(n,t):
     '''
     Test the number of eddies identified during 40 timesteps in a random walker gaussian field.
     '''
-    a  = 0.1
-    b  = 0.1
+    a  = 0.07
+    b  = 0.07
     t0 = 0
 
     xx=linspace(10,12.5,300)
@@ -93,8 +93,8 @@ def gauss_mult_n_fit(n,t):
 
     data = gf.assemble_field(t)
 
-    x=linspace(10,12.5,400)
-    y=linspace(10,12.5,400)
+    x=linspace(10,13.5,400)
+    y=linspace(10,13.5,400)
             
     preferences={'ellipse':0.85,'eccentricity':0.85,'gaussian':0.8}
     eddytd={}
