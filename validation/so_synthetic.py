@@ -17,27 +17,26 @@ import trackeddy.utils.field_generator as fg
 import importlib
 importlib.reload(ttrack)
 
-
-t  = 1
-n  = 2000
+t  = 10
 
 xx = linspace(0,360,3600)
-yy = linspace(-90,90,2700)
+yy = linspace(-90,90,3600)
 
-#print("Generate field")
-#gf=fg.Generate_field(0.1,0.1,n,xx,yy,'Nint')
-#data = gf.assemble_field(t,'Nint')
+# print("Generate field")
+# gf=fg.Generate_field(0.7,0.7,n,xx,yy,'Nint')
+# data = gf.assemble_field(t,margin=0)
 
-data = zeros((t,3600,2700))
+data = zeros((t,3600,3600))
 for tt in range(t):
-    print(tt)
-    gf=fg.Generate_field(0.1,0.1,n,xx,yy,'Nint')
+    nn=randint(700, 1200)
+    print("t ="+str(tt)+" n ="+str(nn))
+    gf=fg.Generate_field(0.5,0.5,nn,xx,yy,'Nint')
     data[tt,:,:] = gf.assemble_field(1,margin=0)
 
-##
-
-x = linspace(10,12,300)
-y = linspace(10,12,300)
+for tt in range(0,t):
+    pcolormesh(xx,yy,data[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
+    title('Assamble: %03d' % tt)
+    plt.savefig('field_%03d.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -50,17 +49,21 @@ eddytd={}
 eddytdn={}
 
 t0 = 0
-t  = 1000
+t  = 1
 
 levels = {'max':data.max(),'min':0.05,'step':0.05}
-eddytd = trackeddy.tracking.analyseddyzt(data,x,y,t0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
-                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True,debug=False)
+eddytd = trackeddy.tracking.analyseddyzt(data,x,y,t0,t,1,levels,\
+    preferences=preferences,areamap='',mask='',maskopt='forcefit',\
+    destdir='',physics='',diagnostics=False,plotdata=False,pprint=True,\
+    debug=False)
 
 ####
 
 levels  = {'max':data.min(),'min':-0.05,'step':-0.05}
-eddytdn = trackeddy.tracking.analyseddyzt(data,x,y,t0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
-                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True,debug=False)
+eddytdn = trackeddy.tracking.analyseddyzt(data,x,y,t0,t,1,levels,\
+    preferences=preferences,areamap='',mask='',maskopt='forcefit',\
+    destdir='',physics='',diagnostics=False,plotdata=False,pprint=True,\
+    debug=False)
 
 pos_f = reconstruct_syntetic(shape(data),x,y,eddytd)
 neg_f = reconstruct_syntetic(shape(data),x,y,eddytdn)

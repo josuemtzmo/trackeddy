@@ -213,7 +213,7 @@ def addtimetrack(ts,eddydt,eddys,neweddies,debug=False):
         print("\n *******New eddy TIME******")
         pdb.set_trace()
     for neweddy in neweddies:
-        number=len(eddydt.keys())+1
+        number=len(eddydt.keys())
         #print(neweddy)
         eddydt['eddyn_'+str(number)]={'neddy':[number],'time':np.array([ts]),\
                             'position_default':[eddys['Position'][neweddy]],\

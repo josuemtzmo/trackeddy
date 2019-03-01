@@ -18,7 +18,7 @@ import importlib
 importlib.reload(ttrack)
 
 
-t  = 1000
+t  = 3
 n  = 13
 
 xx = linspace(10,12,200)
@@ -30,9 +30,8 @@ yy = linspace(10,12,200)
 
 data = zeros((t,300,300))
 for tt in range(t):
-    print(tt)
-    gf=fg.Generate_field(0.1,0.1,randint(5, 15),xx,yy,'nrand')
-    data[tt,:,:] = gf.assemble_field(1,'Nint')
+    gf=fg.Generate_field(0.1,0.1,randint(5, 15),xx,yy,'int')
+    data[tt,:,:] = gf.assemble_field(1)
 
 ##
 
@@ -50,7 +49,6 @@ eddytd={}
 eddytdn={}
 
 t0 = 0
-t  = 1000
 
 levels = {'max':data.max(),'min':0.05,'step':0.05}
 eddytd = trackeddy.tracking.analyseddyzt(data,x,y,t0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
