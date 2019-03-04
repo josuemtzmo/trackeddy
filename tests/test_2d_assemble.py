@@ -22,6 +22,9 @@ import cmocean as cm
 import random
 import pytest
 
+import warnings
+warnings.filterwarnings("ignore")
+
 #################################
 ##   Import tools to create    ##
 ##     syntetic fields         ##

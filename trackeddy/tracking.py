@@ -14,6 +14,7 @@ from trackeddy.printfunc import *
 from trackeddy.savedata import *
 import seawater as sw
 from scipy import ndimage
+from astropy import convolution
 import sys
 import time
 import pdb 
@@ -674,10 +675,8 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
         if ma.is_masked(data):
             if len(np.shape(data))<3:
                 mask = ma.getmask(data[:,:])
-                data = data.filled(fill_value=0)
             else:
                 mask = ma.getmask(data[0,:,:])
-                data = data.filled(fill_value=0)
         else:
             if len(np.shape(data))<3:
                 mask = np.zeros(np.shape(data[:,:]))
@@ -760,9 +759,11 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
         elif filters['spatial']['type'] == 'moving' and filters['spatial']['window'] != None:
             if filters['spatial']['mode'] == 'uniform':
                 nofilterdata = data[ii,:,:]
-                nofilterdata = nofilterdata - ndimage.uniform_filter(nofilterdata, size = filters['spatial']['window'])
+                nofilterdata = nofilterdata - convolution.convolve(nofilterdata, kernel = ones((filters['spatial']['window'],filters['spatial']['window'])))
                 dataanomaly = ma.masked_array(nofilterdata, mask)
             if filters['spatial']['mode'] == 'gaussian':
+                raise Warning('ndimage.gaussian_filter may create artefacts near nan values. Therefore, data is filled with zeros.')
+                data = data.filled(fill_value=0)
                 nofilterdata = data[ii,:,:]
                 nofilterdata = nofilterdata - ndimage.gaussian_filter(nofilterdata, size = filters['spatial']['window'])
                 dataanomaly = ma.masked_array(nofilterdata, mask)       
