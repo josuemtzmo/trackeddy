@@ -53,13 +53,13 @@ eddytd = analyseddyzt(data,x,y,t0,t,1,levels,preferences=preferences,areamap='',
                     ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True,debug=False)
 
 
-@pytest.mark.ttrackeddy_save
+@pytest.mark.ttrackeddy
 def test_data2npy():
     save_data('./test.npy', eddytd)
     assert os.path.isfile('./test.npy')
 
 
-@pytest.mark.ttrackeddy_save
+@pytest.mark.ttrackeddy
 def test_tracknpy2nc():
     track2nc = Trackeddy2dataset('./test.npy','./','nc')
     track2nc.file2dict()
@@ -67,13 +67,13 @@ def test_tracknpy2nc():
     assert os.path.isfile('./output_000.nc')
 
 
-@pytest.mark.ttrackeddy_save
+@pytest.mark.ttrackeddy
 def test_trackdata2nc():
     track2nc = Trackeddy2dataset(eddytd,'./','nc')
     track2nc.trackeddy2nc()
     assert os.path.isfile('./output_001.nc')
 
-@pytest.mark.ttrackeddy_save
+@pytest.mark.ttrackeddy
 def test_rm_files():
     os.remove('./test.npy')
     os.remove('./output_000.nc')
