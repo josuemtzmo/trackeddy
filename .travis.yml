@@ -13,6 +13,7 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
   - conda install -c conda-forge --file ./install_requirements.txt
+  - conda install -c anaconda basemap
   - pip install -e .
 script: pytest -m ttrackeddy --cov=trackeddy
 after_success:
