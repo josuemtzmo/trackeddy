@@ -33,7 +33,7 @@ def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_d
     if tt==0:
         time[:]=tt
     elif type(init_time)==int or type(init_time)==float:
-        time[:]=range(tt)+init_time
+        time[:]=np.array(range(tt))+init_time
     else:
         calendar = 'standard'
         t_units = 'days since 1970-01-01 00:00'
