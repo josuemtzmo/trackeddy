@@ -14,7 +14,6 @@ import sys
 from trackeddy.tracking import *
 from trackeddy.datastruct import *
 from trackeddy.geometryfunc import *
-from trackeddy.init import *
 from trackeddy.physics import *
 from numpy import *
 from pylab import *
