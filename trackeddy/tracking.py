@@ -544,7 +544,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
         elif filters['spatial']['type'] == 'moving' and filters['spatial']['window'] != None:
             if filters['spatial']['mode'] == 'uniform':
                 nofilterdata = data[ii,:,:]
-                nofilterdata = nofilterdata - convolution.convolve(nofilterdata, kernel = ones((filters['spatial']['window'],filters['spatial']['window'])))
+                nofilterdata = nofilterdata - convolution.convolve(nofilterdata, kernel = np.ones((filters['spatial']['window'],filters['spatial']['window'])))
                 dataanomaly = ma.masked_array(nofilterdata, mask)
             if filters['spatial']['mode'] == 'gaussian':
                 raise Warning('ndimage.gaussian_filter may create artefacts near nan values. Therefore, data is filled with zeros.')
