@@ -109,3 +109,7 @@ version_control/
 .pytest_cache/
 
 .debug
+.vscode*
+
+docs/generated
+docs/pages/generated

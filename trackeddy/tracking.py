@@ -18,30 +18,60 @@ import sys
 import time
 import pdb 
 
-def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',maskopt='contour',preferences=None,mode='gaussian',basemap=False,checkgauss=True,areaparms=None,usefullfit=False,diagnostics=False,plotdata=False,debug=False):
-    '''
-    *************Scan Eddym***********
+def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',maskopt='contour',preferences=None,mode='gaussian',basemap=False,checkgauss=True,areaparms=None,usefullfit=False,diagnostics=False,plotdata=False,debug=False):
+    '''scan_eddym wraps the identification and Gaussian fit functions.
+
     Function to identify each eddy using closed contours,
     also this function checks if the elipse adjusted have
     a consistent eccentricity, vorticty and other parameters.
-    Usage:
-    ssh= Sea Surface Height in cm
-    lon,lat=longitude and latitude of your grid.
-    levels=where the code will find the closed contours.
-    date=date in julian days
-    areamap=Section of interest
-    mask=Continent mask
+
+    Parameters
+    ----------
+    args:
+        data: array
+            Sea Surface Height in cm.
+        lon: array|list
+            Longitude of data field.
+        lat: array|list 
+            Latitude of data field.
+        levels: array|list
+            Discrete levels where the code will find the closed contours.
+        date: int | datetime 
+            Date in julian days.
+        areamap: list
+            Section of interest [lon0,lon1,lat0,lat1].
+        mask: np.mask 
+            Continent mask.
     
-    Example:
-    ssh=Read netCDF4 data with mask or create a mask for your data
-    lon=Import your longitude coordinates, if your grid is regular, you can use a linspace instead
-    lat=Import your latitude coordinates (same as above).
-    levels=List of the levels in which ones you want to find the eddies
-    date=Date as Julian Days
-    areamap=array([[0,len(lon)],[0,len(lat)]]) Array with the index of your area of interest.
+    Returns
+    -------
+    eddys: dict
+        OrderedDict of identified eddies.
+    check: boolean
+        Status of identification.
+    total_contours: int
+        Total number of contours analysed.
+
+    Example
+    -------
+    data: 
+        Read netCDF4 data with mask or create a mask for your data.
+    lon: 
+        Import your longitude coordinates, if your grid is regular, you can use a linspace instead.
+    lat: 
+        Import your latitude coordinates (same as above).
+    levels: 
+        List of the levels in which ones you want to find the eddies.
+    date: 
+        Date as Julian Days.
+    areamap: 
+        array([[0,len(lon)],[0,len(lat)]]) Array with the index 
+        of your area of interest.
+    
     I used some auxilar functions, each one has his respective author.
     Author: Josue Martinez Moreno, 2017
     '''
+
     # Defining lists inside dictionary 
     ellipse_path=[]
     contour_path=[]
@@ -50,18 +80,18 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     gaussianfitdict=[]
     gaussfit2d=[]
     # Data shape
-    shapedata=np.shape(ssh)
+    shapedata=np.shape(data)
     # Diagnostics to list, which allows to print multiple diagnostics at the same time. 
     # (Be carefull because it uses a lot of memory)
     if type(diagnostics) != list:
         diagnostics=[diagnostics]
     # Check if data is masked
-    elif ssh is ma.masked:
-        print('Invalid ssh data, must be masked')
+    elif data is ma.masked:
+        print('Invalid data data, must be masked')
         return
     # Make sure the shape of the data is identical to the grid.
     elif shapedata == [len(lat), len(lon)]:
-        print('Invalid ssh data size, should be [length(lat) length(lon]')
+        print('Invalid  data size, should be [length(lat) length(lon]')
         return
     #Check that area to analyze is valid
     elif np.shape(areamap) == shapedata:
@@ -74,8 +104,8 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
         return
     #Saving mask for future post-processing.  
     if mask!='':
-        ssh=np.ma.masked_array(ssh, mask)
-    sshnan=ssh.filled(np.nan)
+        data=np.ma.masked_array(data, mask)
+    datanan=data.filled(np.nan)
     # Obtain the contours of a surface (contourf), this aproach is better than the contour.
     if len(np.shape(lon))== 1 and len(np.shape(lat)) == 1:
         Lon,Lat=np.meshgrid(lon,lat)
@@ -89,10 +119,10 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     # Plot contours according to the data.   
     if len(shapedata)==3:
         CS=plt.contourf(lon[areamap[0,0]:areamap[0,1]],lat[areamap[1,0]:areamap[1,1]],\
-                sshnan[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
+                datanan[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
     else:
         CS=plt.contourf(lon[areamap[0,0]:areamap[0,1]],lat[areamap[1,0]:areamap[1,1]],\
-                sshnan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
+                datanan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
     if preferences==None:
         preferences={'ellipse':0.85,'eccentricity':0.85,'gaussian':0.8}
     # Close the contour plot.
@@ -153,13 +183,13 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
             centertop=[ymindex-yidmin+threshold-2,xmindex-xidmin+threshold-1]
             
             if len(shapedata)==3:
-                ssh4gauss=sshnan[date,yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
-                ssh_in_contour=insideness_contour(ssh4gauss*1,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
+                data4gauss=datanan[date,yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
+                data_in_contour=insideness_contour(data4gauss*1,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
             else:
-                ssh4gauss=sshnan[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
-                ssh_in_contour=insideness_contour(ssh4gauss*1,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
+                data4gauss=datanan[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
+                data_in_contour=insideness_contour(data4gauss*1,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
             
-            checkcontour = check_closecontour(CONTeach,lon_contour,lat_contour,ssh4gauss)
+            checkcontour = check_closecontour(CONTeach,lon_contour,lat_contour,data4gauss)
             
             if checkcontour==False:
                 xx=np.nan
@@ -195,7 +225,7 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                                     xx,yy,CONTeach[:,0],CONTeach[:,1])
                         
                         if eddycenter == 'maximum':
-                            center_eddy=contourmaxvalue(ssh_in_contour,lon_contour,\
+                            center_eddy=contourmaxvalue(data_in_contour,lon_contour,\
                                                  lat_contour,levels,date,threshold)
                             center_eddy[3]=center_eddy[3]+xidmin-threshold+1
                             center_eddy[4]=center_eddy[4]+yidmin-threshold+1
@@ -204,9 +234,9 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
 
                         elif eddycenter == 'masscenter':
                             center_eddy=centroidvalue(CONTeach[:,0],CONTeach[:,1],\
-                                                ssh_in_contour,lon_contour,\
+                                                data_in_contour,lon_contour,\
                                                 lat_contour,levels,date,threshold)
-                            center_extrem=contourmaxvalue(ssh_in_contour,lon_contour,\
+                            center_extrem=contourmaxvalue(data_in_contour,lon_contour,\
                                                         lat_contour,levels,date)
                             center_extrem[3]=center_extrem[3]+xidmin-threshold+1
                             center_extrem[4]=center_extrem[4]+yidmin-threshold+1
@@ -217,26 +247,26 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                             if checkgauss==True:
                                 if len(shapedata)==3:
                                     profile,checkM=extractprofeddy(mayoraxis,\
-                                                   ssh4gauss,lon_contour,lat_contour,50,\
+                                                   data4gauss,lon_contour,lat_contour,50,\
                                                    gaus='One',kind='linear',\
                                                    gaussrsquarefit=preferences['gaussian'],\
                                                    diagnostics=diagnostics)
                                     if checkM==True:
                                         profile,checkm=extractprofeddy(minoraxis,\
-                                                       ssh4gauss,lon_contour,\
+                                                       data4gauss,lon_contour,\
                                                        lat_contour,50,\
                                                        gaus='One',kind='linear',\
                                                        gaussrsquarefit=preferences['gaussian'],\
                                                        diagnostics=diagnostics)
                                 else:
                                     profile,checkM=extractprofeddy(mayoraxis,\
-                                                   ssh4gauss,lon_contour,lat_contour,50,\
+                                                   data4gauss,lon_contour,lat_contour,50,\
                                                    gaus='One',kind='linear',\
                                                    gaussrsquarefit=preferences['gaussian'],\
                                                    diagnostics=diagnostics)
                                     if checkM==True:
                                         profile,checkm=extractprofeddy(minoraxis,\
-                                                       ssh4gauss,lon_contour,\
+                                                       data4gauss,lon_contour,\
                                                        lat_contour,50,\
                                                        gaus='One',kind='linear',\
                                                        gaussrsquarefit=preferences['gaussian'],\
@@ -245,17 +275,17 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                                 if checkM==True and checkm==True: 
                                     if levels[0] > 0:
                                         level=levels[0]
-                                        extremvalue=np.nanmax(ssh_in_contour)
+                                        extremvalue=np.nanmax(data_in_contour)
                                     else:
                                         level=levels[1]
-                                        extremvalue=np.nanmin(ssh_in_contour)
+                                        extremvalue=np.nanmin(data_in_contour)
 
                                     initial_guess=[a,b,phi,0,0,0]
                                     #print("\n ---pre fit---")
                                     #pdb.set_trace()
                                     fixvalues=[lon_contour,lat_contour,extremvalue,\
                                                center_extrem[0],center_extrem[1]]
-                                    gausssianfitp,R2=fit2Dcurve(ssh_in_contour,\
+                                    gausssianfitp,R2=fit2Dcurve(data_in_contour,\
                                                   fixvalues,\
                                                   level,initial_guess=initial_guess,date='',\
                                                   mode=mode,diagnostics=diagnostics)
@@ -359,41 +389,41 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
                         f, (ax1, ax2) = plt.subplots(1, 2,figsize=(13, 6))
                         if len(shapedata)==3:
                             ax1.contourf(lon[areamap[0,0]:areamap[0,1]],lat[areamap[1,0]:areamap[1,1]],\
-                                ssh[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]])
+                                data[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]])
                             cc=ax2.pcolormesh(lon[areamap[0,0]:areamap[0,1]],\
                                               lat[areamap[1,0]:areamap[1,1]],\
-                              ssh[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
-                              vmin=ssh[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]].min(),\
-                              vmax=ssh[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]].max())
+                              data[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                              vmin=data[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]].min(),\
+                              vmax=data[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]].max())
                             cca=ax2.contour(lon[areamap[0,0]:areamap[0,1]],\
                                             lat[areamap[1,0]:areamap[1,1]],\
-                                            ssh[date,areamap[1,0]:areamap[1,1],\
+                                            data[date,areamap[1,0]:areamap[1,1],\
                                             areamap[0,0]:areamap[0,1]],levels=levels,cmap='jet')
                             ax2.clabel(cca, fontsize=9, inline=1)
                         else:
                             cca=ax1.contourf(lon[areamap[0,0]:areamap[0,1]],\
                                              lat[areamap[1,0]:areamap[1,1]],\
-                                             sshnan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                                             datanan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
                                              levels=levels)
                             ax1.plot(CONTeach[:,0],CONTeach[:,1],'-r')
                             ax2.plot(CONTeach[:,0],CONTeach[:,1],'-r')
                             ax2.pcolormesh(lon[areamap[0,0]:areamap[0,1]],\
                                            lat[areamap[1,0]:areamap[1,1]],\
-                                           sshnan[areamap[1,0]:areamap[1,1],\
+                                           datanan[areamap[1,0]:areamap[1,1],\
                                            areamap[0,0]:areamap[0,1]],vmin=-20,vmax=20)
                             plt.show()
                             f, (ax1, ax2) = plt.subplots(1, 2,figsize=(13, 6))
                             ax1.contourf(lon[areamap[0,0]:areamap[0,1]],\
                                          lat[areamap[1,0]:areamap[1,1]],\
-                                         ssh[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]])
+                                         data[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]])
                             cc=ax2.pcolormesh(lon[areamap[0,0]:areamap[0,1]],\
                                               lat[areamap[1,0]:areamap[1,1]],\
-                              ssh[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
-                              vmin=ssh[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]].min(),\
-                              vmax=ssh[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]].max())
+                              data[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                              vmin=data[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]].min(),\
+                              vmax=data[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]].max())
                             cca=ax2.contour(lon[areamap[0,0]:areamap[0,1]],\
                                             lat[areamap[1,0]:areamap[1,1]],\
-                                            ssh[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                                            data[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
                                             levels=levels,cmap='jet')
                             ax2.clabel(cca, fontsize=9, inline=1)
                         ax1.plot(CONTeach[:,0],CONTeach[:,1],'*r')
@@ -439,16 +469,39 @@ def scan_eddym(ssh,lon,lat,levels,date,areamap,mask='',destdir='',physics='',edd
     return eddys,check,total_contours
 
 def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddycenter='masscenter',preferences=None,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False,debug=False):
-    '''
-    *************Analys eddy in z and t ***********
-    Function to identify each eddy using closed contours, 
-    moving in time and contour levels
-    Usage:
-    
-    Example:
+    '''Identify each eddy using closed contours.
 
+    Function to identify each eddy using closed contours, 
+    moving in time and contour levels.
+    
+    Parameters
+    ----------
+    args:
+        data: array
+            Sea Surface Height in cm.
+        x: array|list
+            Longitude of data field.
+        y: array|list 
+            Latitude of data field.
+        levels: array|list
+            Discrete levels where the code will find the closed contours.
+        areamap: list
+            Section of interest [lon0,lon1,lat0,lat1].
+        mask: np.mask 
+            Continent mask.
+    
+    Returns
+    -------
+        
+
+    Example
+    -------
+        data: 
+            Read netCDF4 data with mask or create a mask for your data.
+    I used some auxilar functions, each one has his respective author.
     Author: Josue Martinez Moreno, 2017
     '''
+
     if pprint == True:
         pp = Printer(); 
     if len(np.shape(data)) < 3:

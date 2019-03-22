@@ -111,10 +111,7 @@ def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue=
     eddyt0={str(eddydt[key]['neddy'][0]): '' for key in eddydt}# if eddydt[key]['timetracking']==True}
     
     if analysis=='insideness':
-        for t0key in eddyt0.keys():
-            t0contour=eddydt['eddyn_'+str(t1key)]['contour']
-        
-            t0key=0
+        pass
             
     elif analysis=='overlap':
         for t0key in eddyt0.keys():

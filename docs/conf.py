@@ -32,14 +32,12 @@
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
+    'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
+    'numpydoc',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -172,3 +170,5 @@ numfig_secnum_depth=2
 
 def setup(app):
     app.add_stylesheet('css/custom.css')
+
+autosummary_generate = True

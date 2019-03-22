@@ -2,6 +2,7 @@ import time
 tic=time.time()
 import matplotlib
 matplotlib.use('Agg')
+matplotlib.rcParams.update({'font.size': 32})
 import trackeddy
 import trackeddy.tracking as ttrack
 from trackeddy.geometryfunc import *
@@ -17,8 +18,7 @@ import trackeddy.utils.field_generator as fg
 import importlib
 importlib.reload(ttrack)
 
-
-t  = 3
+t  = 5
 n  = 13
 
 xx = linspace(10,12,200)
@@ -30,7 +30,7 @@ yy = linspace(10,12,200)
 
 data = zeros((t,300,300))
 for tt in range(t):
-    gf=fg.Generate_field(0.1,0.1,randint(5, 15),xx,yy,'int')
+    gf=fg.Generate_field(0.1,0.1,randint(5, 8),xx,yy,'Nint')
     data[tt,:,:] = gf.assemble_field(1)
 
 ##
@@ -172,72 +172,89 @@ for tt in range(shape(data)[0]):
 
 import seaborn as sns
 import pandas as pd
-from scipy.stats import spearmanr,linregress
 
 figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_f]).T
 df = pd.DataFrame(data, columns=[r"$KE_c$", r"$KE_r$"])
-g1 = sns.jointplot(x=r"$KE_c$", y=r"$KE_r$", data=df, kind="kde",cmap='Blues',joint_kws={'shade_lowest':False})
+g1 = sns.jointplot(x=r"$KE_c$", y=r"$KE_r$", data=df, kind="kde",cmap='Blues',joint_kws={'shade_lowest':False}, fontsize=32)
 
 lims = [100, 0]
 g1.ax_joint.plot(lims, lims, '--k')
 
-s,i,r,p,std=linregress(m_ke_c,m_ke_f)
+res = stats.theilslopes(df[r"$KE_r$"].values,df[r"$KE_c$"].values, 0.95)
 
+lnr2=res[1] + res[2]*range(100)
+lnr3=res[1] + res[3]*range(100)
+g1.ax_joint.fill_between(range(100),lnr2, lnr3, facecolor='b',alpha=0.5)
+
+r=res[0]
 x0=0
-y0=s*x0+i
+y0=res[1] + res[0]*x0
 x1=100
-y1=s*x1+i
+y1=res[1] + res[0]*x1
 
 g1.ax_joint.plot([x0,x1], [y0,y1], '-.b')
-g1.ax_joint.text(60,20,r'R = %2f' % r, color='b')
+g1.ax_joint.text(60,20,r'R = %.2f' % r, color='b')
 g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate flat: ',mean([abs(y0/100),abs(1-y1/100)]))
+g1.ax_joint.legend_.remove()
 plt.savefig('e_vs_e.png')
 
 figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_w]).T
 df = pd.DataFrame(data, columns=[r"$KE_c$", r"$KE_r$"])
-g1 = sns.jointplot(x=r"$KE_c$", y=r"$KE_r$", data=df, kind="kde",cmap='Blues',joint_kws={'shade_lowest':False})
+g1 = sns.jointplot(x=r"$KE_c$", y=r"$KE_r$", data=df, kind="kde",cmap='Blues',joint_kws={'shade_lowest':False}, fontsize=32)
 
 lims = [100, 0]
 g1.ax_joint.plot(lims, lims, '--k')
 
-s,i,r,p,std=linregress(m_ke_c,m_ke_w)
+res = stats.theilslopes(df[r"$KE_r$"].values,df[r"$KE_c$"].values, 0.95)
 
+lnr2=res[1] + res[2]*range(100)
+lnr3=res[1] + res[3]*range(100)
+g1.ax_joint.fill_between(range(100),lnr2, lnr3, facecolor='b',alpha=0.5)
+
+r=res[0]
 x0=0
-y0=s*x0+i
+y0=res[1] + res[0]*x0
 x1=100
-y1=s*x1+i
+y1=res[1] + res[0]*x1
 
 g1.ax_joint.plot([x0,x1], [y0,y1], '-.b')
-g1.ax_joint.text(60,20,r'R = %2f' % r, color='b')
+g1.ax_joint.text(60,20,r'R = %.2f' % r, color='b')
 g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate sin: ',mean([abs(y0/100),abs(1-y1/100)]))
+g1.ax_joint.legend_.remove()
 plt.savefig('w_vs_e.png')
 
 figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_j]).T
 df = pd.DataFrame(data, columns=[r"$KE_c$", r"$KE_r$"])
-g1 = sns.jointplot(x=r"$KE_c$", y=r"$KE_r$", data=df, kind="kde",cmap='Blues',joint_kws={'shade_lowest':False})
+g1 = sns.jointplot(x=r"$KE_c$", y=r"$KE_r$", data=df, kind="kde",cmap='Blues',joint_kws={'shade_lowest':False}, fontsize=32)
 
 lims = [100, 0]
 g1.ax_joint.plot(lims, lims, '--k')
 
-s,i,r,p,std=linregress(m_ke_c,m_ke_j)
+res = stats.theilslopes(df[r"$KE_r$"].values,df[r"$KE_c$"].values, 0.95)
 
+lnr2=res[1] + res[2]*range(100)
+lnr3=res[1] + res[3]*range(100)
+g1.ax_joint.fill_between(range(100),lnr2, lnr3, facecolor='b',alpha=0.5)
+
+r=res[0]
 x0=0
-y0=s*x0+i
+y0=res[1] + res[0]*x0
 x1=100
-y1=s*x1+i
+y1=res[1] + res[0]*x1
 
 g1.ax_joint.plot([x0,x1], [y0,y1], '-.b')
-g1.ax_joint.text(60,20,r'R = %2f' % r, color='b') 
+g1.ax_joint.text(60,20,r'R = %.2f' % r, color='b') 
 g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate jet: ',mean([abs(y0/100),abs(1-y1/100)]))
+g1.ax_joint.legend_.remove()
 plt.savefig('j_vs_e.png')
 
 

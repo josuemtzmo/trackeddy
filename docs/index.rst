@@ -24,7 +24,12 @@ Welcome to trackeddy's documentation!
    pages/Applications
    pages/Results
    about
-   
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API Reference:
+
+   pages/Function_description
 
 .. toctree::
    :caption: Help & References:
