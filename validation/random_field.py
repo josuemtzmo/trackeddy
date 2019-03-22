@@ -18,8 +18,8 @@ import trackeddy.utils.field_generator as fg
 import importlib
 importlib.reload(ttrack)
 
-t  = 5
-n  = 13
+t  = 1000
+n  = 15
 
 xx = linspace(10,12,200)
 yy = linspace(10,12,200)
@@ -30,7 +30,7 @@ yy = linspace(10,12,200)
 
 data = zeros((t,300,300))
 for tt in range(t):
-    gf=fg.Generate_field(0.1,0.1,randint(5, 8),xx,yy,'Nint')
+    gf=fg.Generate_field(0.1,0.1,randint(5, n),xx,yy,'Nint')
     data[tt,:,:] = gf.assemble_field(1)
 
 ##
@@ -66,7 +66,7 @@ neg_f = reconstruct_syntetic(shape(data),x,y,eddytdn)
 f_field = pos_f+neg_f
 
 for tt in range(t0,t):
-    f = plt.figure()
+    f = plt.figure(dpi=300)
     gs = gridspec.GridSpec(2, 1)
     ax1 = plt.subplot(gs[0])
     ax1.pcolormesh(x,y,data[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
@@ -74,7 +74,7 @@ for tt in range(t0,t):
     ax2.pcolormesh(f_field[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
     ax2.contour(f_field[tt,:,:])
     ax1.set_title('Assamble: %03d' % tt)
-    plt.savefig('time_%03d.png' %tt)
+    plt.savefig('plots_bk/time_%03d.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -94,18 +94,29 @@ for t in range(0,t):
 
 wave_data = waves+data
 
-levels = {'max':data.max(),'min':0.05,'step':0.05}
-eddytd=ttrack.analyseddyzt(data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
+levels = {'max':wave_data.max(),'min':0.05,'step':0.05}
+eddytd=ttrack.analyseddyzt(wave_data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
                     ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True)
 
-levels = {'max':data.min(),'min':-0.05,'step':-0.05}
-eddytdn=ttrack.analyseddyzt(data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
+levels = {'max':wave_data.min(),'min':-0.05,'step':-0.05}
+eddytdn=ttrack.analyseddyzt(wave_data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
                     ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True)
 
-pos_w = reconstruct_syntetic(shape(data),x,y,eddytd)
-neg_w = reconstruct_syntetic(shape(data),x,y,eddytdn)
+pos_w = reconstruct_syntetic(shape(wave_data),x,y,eddytd)
+neg_w = reconstruct_syntetic(shape(wave_data),x,y,eddytdn)
 
 w_field = pos_w+neg_w
+
+for tt in range(t0,t):
+    f = plt.figure(dpi=300)
+    gs = gridspec.GridSpec(2, 1)
+    ax1 = plt.subplot(gs[0])
+    ax1.pcolormesh(x,y,wave_data[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
+    ax2 = plt.subplot(gs[1])
+    ax2.pcolormesh(w_field[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
+    ax2.contour(w_field[tt,:,:])
+    ax1.set_title('Assamble: %03d' % tt)
+    plt.savefig('plots_bk/time_w_%03d.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -126,18 +137,29 @@ for t in range(0,t):
     jets[t,:,:] = amp*cos((k_y*(k_y*Y+phase+sin(k_x*X-t))))
 jet_data = jets+data
 
-levels = {'max':data.max(),'min':0.05,'step':0.05}
-eddytd=ttrack.analyseddyzt(data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
+levels = {'max':jet_data.max(),'min':0.05,'step':0.05}
+eddytd=ttrack.analyseddyzt(jet_data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
                     ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True)
 
-levels = {'max':data.min(),'min':-0.05,'step':-0.05}
-eddytdn=ttrack.analyseddyzt(data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
+levels = {'max':jet_data.min(),'min':-0.05,'step':-0.05}
+eddytdn=ttrack.analyseddyzt(jet_data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
                     ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True)
 
-pos_f = reconstruct_syntetic(shape(data),x,y,eddytd)
-neg_f = reconstruct_syntetic(shape(data),x,y,eddytdn)
+pos_f = reconstruct_syntetic(shape(jet_data),x,y,eddytd)
+neg_f = reconstruct_syntetic(shape(jet_data),x,y,eddytdn)
 
 j_field = pos_f+neg_f
+
+for tt in range(t0,t):
+    f = plt.figure(dpi=300)
+    gs = gridspec.GridSpec(2, 1)
+    ax1 = plt.subplot(gs[0])
+    ax1.pcolormesh(x,y,jet_data[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
+    ax2 = plt.subplot(gs[1])
+    ax2.pcolormesh(j_field[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
+    ax2.contour(w_field[tt,:,:])
+    ax1.set_title('Assamble: %03d' % tt)
+    plt.savefig('plots_bk/time_j_%03d.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -176,6 +198,9 @@ import pandas as pd
 figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_f]).T
 df = pd.DataFrame(data, columns=[r"$KE_c$", r"$KE_r$"])
+
+df.to_pickle('./ke_validation')
+
 g1 = sns.jointplot(x=r"$KE_c$", y=r"$KE_r$", data=df, kind="kde",cmap='Blues',joint_kws={'shade_lowest':False}, fontsize=32)
 
 lims = [100, 0]
