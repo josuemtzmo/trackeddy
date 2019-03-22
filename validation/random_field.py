@@ -18,8 +18,8 @@ import trackeddy.utils.field_generator as fg
 import importlib
 importlib.reload(ttrack)
 
-t  = 1000
-n  = 15
+t  = 5
+n  = 13
 
 xx = linspace(10,12,200)
 yy = linspace(10,12,200)
@@ -66,8 +66,8 @@ neg_f = reconstruct_syntetic(shape(data),x,y,eddytdn)
 f_field = pos_f+neg_f
 
 for tt in range(t0,t):
-    f = plt.figure(dpi=300)
-    gs = gridspec.GridSpec(2, 1)
+    f = plt.figure(dpi=300,figsize=(5,10))
+    gs = gridspec.GridSpec(1, 2)
     ax1 = plt.subplot(gs[0])
     ax1.pcolormesh(x,y,data[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
     ax2 = plt.subplot(gs[1])
@@ -108,8 +108,8 @@ neg_w = reconstruct_syntetic(shape(wave_data),x,y,eddytdn)
 w_field = pos_w+neg_w
 
 for tt in range(t0,t):
-    f = plt.figure(dpi=300)
-    gs = gridspec.GridSpec(2, 1)
+    f = plt.figure(dpi=300,figsize=(5,10))
+    gs = gridspec.GridSpec(1, 2)
     ax1 = plt.subplot(gs[0])
     ax1.pcolormesh(x,y,wave_data[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
     ax2 = plt.subplot(gs[1])
@@ -151,8 +151,8 @@ neg_f = reconstruct_syntetic(shape(jet_data),x,y,eddytdn)
 j_field = pos_f+neg_f
 
 for tt in range(t0,t):
-    f = plt.figure(dpi=300)
-    gs = gridspec.GridSpec(2, 1)
+    f = plt.figure(dpi=300,figsize=(5,10))
+    gs = gridspec.GridSpec(1, 2)
     ax1 = plt.subplot(gs[0])
     ax1.pcolormesh(x,y,jet_data[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
     ax2 = plt.subplot(gs[1])
