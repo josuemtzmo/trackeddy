@@ -98,7 +98,6 @@ phd_research/
 *_bk
 *_bk.ipynb
 *.ipynb_bk
-_*/
 *.bk
 *.nfs*
 #docs/Makefile
