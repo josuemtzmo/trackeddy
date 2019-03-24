@@ -30,7 +30,7 @@ yy = linspace(10,12,200)
 
 data = zeros((t,300,300))
 for tt in range(t):
-    gf=fg.Generate_field(0.05,0.05,randint(5, n),xx,yy,'Nint')
+    gf=fg.Generate_field(0.05,0.05,randint(5, n),xx,yy,'int')
     data[tt,:,:] = gf.assemble_field(1)
 
 ##
@@ -44,6 +44,7 @@ y = linspace(10,12,300)
 ################################################################################
 ################################################################################
 
+print('Running')
 preferences={'ellipse':0.85,'eccentricity':0.85,'gaussian':0.8}
 eddytd={}
 eddytdn={}
@@ -52,13 +53,13 @@ t0 = 0
 
 levels = {'max':data.max(),'min':0.05,'step':0.05}
 eddytd = trackeddy.tracking.analyseddyzt(data,x,y,t0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
-                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True,debug=False)
+                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=False,debug=False)
 
 ####
 
 levels  = {'max':data.min(),'min':-0.05,'step':-0.05}
 eddytdn = trackeddy.tracking.analyseddyzt(data,x,y,t0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
-                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True,debug=False)
+                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=False,debug=False)
 
 pos_f = reconstruct_syntetic(shape(data),x,y,eddytd)
 neg_f = reconstruct_syntetic(shape(data),x,y,eddytdn)
@@ -79,7 +80,7 @@ for tt in range(t0,t):
     ax2.xaxis.set_major_formatter(plt.NullFormatter())
     #ax1.set_title('Assamble: %03d' % tt)
 
-    plt.savefig('plots_bk/time_%03dn.png' %tt)
+    plt.savefig('plots_bk/time_%03d.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -101,11 +102,11 @@ wave_data = waves+data
 
 levels = {'max':wave_data.max(),'min':0.05,'step':0.05}
 eddytd=ttrack.analyseddyzt(wave_data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
-                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True)
+                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=False)
 
 levels = {'max':wave_data.min(),'min':-0.05,'step':-0.05}
 eddytdn=ttrack.analyseddyzt(wave_data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
-                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True)
+                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=False)
 
 pos_w = reconstruct_syntetic(shape(wave_data),x,y,eddytd)
 neg_w = reconstruct_syntetic(shape(wave_data),x,y,eddytdn)
@@ -125,7 +126,7 @@ for tt in range(t0,t):
     ax2.yaxis.set_major_locator(plt.NullLocator())
     ax2.xaxis.set_major_formatter(plt.NullFormatter())
     #ax1.set_title('Assamble: %03d' % tt)
-    plt.savefig('plots_bk/time_w_%03dn.png' %tt)
+    plt.savefig('plots_bk/time_w_%03d.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -148,11 +149,11 @@ jet_data = jets+data
 
 levels = {'max':jet_data.max(),'min':0.05,'step':0.05}
 eddytd=ttrack.analyseddyzt(jet_data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
-                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True)
+                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=False)
 
 levels = {'max':jet_data.min(),'min':-0.05,'step':-0.05}
 eddytdn=ttrack.analyseddyzt(jet_data,x,y,0,t,1,levels,preferences=preferences,areamap='',mask='',maskopt='forcefit'\
-                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=True)
+                    ,destdir='',physics='',diagnostics=False,plotdata=False,pprint=False)
 
 pos_f = reconstruct_syntetic(shape(jet_data),x,y,eddytd)
 neg_f = reconstruct_syntetic(shape(jet_data),x,y,eddytdn)
@@ -172,7 +173,7 @@ for tt in range(t0,t):
     ax2.yaxis.set_major_locator(plt.NullLocator())
     ax2.xaxis.set_major_formatter(plt.NullFormatter())
     #ax1.set_title('Assamble: %03d' % tt)
-    plt.savefig('plots_bk/time_j_%03dn.png' %tt)
+    plt.savefig('plots_bk/time_j_%03d.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -212,7 +213,7 @@ figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_f]).T
 df = pd.DataFrame(data, columns=[r"$KE_c$", r"$KE_r$"])
 
-df.to_pickle('./ke_validation_n')
+df.to_pickle('./ke_validation_f')
 
 g1 = sns.jointplot(x=r"$KE_c$", y=r"$KE_r$", data=df, kind="kde",cmap='Blues',joint_kws={'shade_lowest':False}, fontsize=32)
 
@@ -237,7 +238,7 @@ g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate flat: ',mean([abs(y0/100),abs(1-y1/100)]))
 g1.ax_joint.legend_.remove()
-plt.savefig('e_vs_en.png')
+plt.savefig('e_vs_e.png')
 
 figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_w]).T
@@ -265,7 +266,8 @@ g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate sin: ',mean([abs(y0/100),abs(1-y1/100)]))
 g1.ax_joint.legend_.remove()
-plt.savefig('w_vs_en.png')
+plt.savefig('w_vs_e.png')
+df.to_pickle('./ke_validation_w')
 
 figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_j]).T
@@ -293,7 +295,8 @@ g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate jet: ',mean([abs(y0/100),abs(1-y1/100)]))
 g1.ax_joint.legend_.remove()
-plt.savefig('j_vs_en.png')
+plt.savefig('j_vs_e.png')
+df.to_pickle('./ke_validation_j')
 
 
 # for ii in range(0,30):

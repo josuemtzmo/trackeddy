@@ -597,7 +597,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
         elif filters['spatial']['type'] == 'moving' and filters['spatial']['window'] != None:
             if filters['spatial']['mode'] == 'uniform':
                 nofilterdata = data[ii,:,:]
-                if filters['spatial']['window']%2 != 0:
+                if filters['spatial']['window']%2 == 0:
                     ker=np.ones((filters['spatial']['window']+1,filters['spatial']['window']+1))
                 else:
                     ker=np.ones((filters['spatial']['window'],filters['spatial']['window']))
