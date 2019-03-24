@@ -18,8 +18,8 @@ import trackeddy.utils.field_generator as fg
 import importlib
 importlib.reload(ttrack)
 
-t  = 5
-n  = 13
+t  = 1000
+n  = 20
 
 xx = linspace(10,12,200)
 yy = linspace(10,12,200)
@@ -30,7 +30,7 @@ yy = linspace(10,12,200)
 
 data = zeros((t,300,300))
 for tt in range(t):
-    gf=fg.Generate_field(0.1,0.1,randint(5, n),xx,yy,'Nint')
+    gf=fg.Generate_field(0.05,0.05,randint(5, n),xx,yy,'Nint')
     data[tt,:,:] = gf.assemble_field(1)
 
 ##
@@ -66,15 +66,20 @@ neg_f = reconstruct_syntetic(shape(data),x,y,eddytdn)
 f_field = pos_f+neg_f
 
 for tt in range(t0,t):
-    f = plt.figure(dpi=300,figsize=(5,10))
+    f = plt.figure(dpi=300,figsize=(10,5))
     gs = gridspec.GridSpec(1, 2)
     ax1 = plt.subplot(gs[0])
     ax1.pcolormesh(x,y,data[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
+    ax1.yaxis.set_major_locator(plt.NullLocator())
+    ax1.xaxis.set_major_formatter(plt.NullFormatter())
     ax2 = plt.subplot(gs[1])
     ax2.pcolormesh(f_field[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
-    ax2.contour(f_field[tt,:,:])
-    ax1.set_title('Assamble: %03d' % tt)
-    plt.savefig('plots_bk/time_%03d.png' %tt)
+    #ax2.contour(f_field[tt,:,:])
+    ax2.yaxis.set_major_locator(plt.NullLocator())
+    ax2.xaxis.set_major_formatter(plt.NullFormatter())
+    #ax1.set_title('Assamble: %03d' % tt)
+
+    plt.savefig('plots_bk/time_%03dn.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -108,15 +113,19 @@ neg_w = reconstruct_syntetic(shape(wave_data),x,y,eddytdn)
 w_field = pos_w+neg_w
 
 for tt in range(t0,t):
-    f = plt.figure(dpi=300,figsize=(5,10))
+    f = plt.figure(dpi=300,figsize=(10,5))
     gs = gridspec.GridSpec(1, 2)
     ax1 = plt.subplot(gs[0])
     ax1.pcolormesh(x,y,wave_data[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
+    ax1.yaxis.set_major_locator(plt.NullLocator())
+    ax1.xaxis.set_major_formatter(plt.NullFormatter())
     ax2 = plt.subplot(gs[1])
     ax2.pcolormesh(w_field[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
-    ax2.contour(w_field[tt,:,:])
-    ax1.set_title('Assamble: %03d' % tt)
-    plt.savefig('plots_bk/time_w_%03d.png' %tt)
+    #ax2.contour(w_field[tt,:,:])
+    ax2.yaxis.set_major_locator(plt.NullLocator())
+    ax2.xaxis.set_major_formatter(plt.NullFormatter())
+    #ax1.set_title('Assamble: %03d' % tt)
+    plt.savefig('plots_bk/time_w_%03dn.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -151,15 +160,19 @@ neg_f = reconstruct_syntetic(shape(jet_data),x,y,eddytdn)
 j_field = pos_f+neg_f
 
 for tt in range(t0,t):
-    f = plt.figure(dpi=300,figsize=(5,10))
+    f = plt.figure(dpi=300,figsize=(10,5))
     gs = gridspec.GridSpec(1, 2)
     ax1 = plt.subplot(gs[0])
     ax1.pcolormesh(x,y,jet_data[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
+    ax1.yaxis.set_major_locator(plt.NullLocator())
+    ax1.xaxis.set_major_formatter(plt.NullFormatter())
     ax2 = plt.subplot(gs[1])
     ax2.pcolormesh(j_field[tt,:,:],vmin=-1,vmax=1,cmap=cm.cm.balance)
-    ax2.contour(w_field[tt,:,:])
-    ax1.set_title('Assamble: %03d' % tt)
-    plt.savefig('plots_bk/time_j_%03d.png' %tt)
+    #ax2.contour(w_field[tt,:,:])
+    ax2.yaxis.set_major_locator(plt.NullLocator())
+    ax2.xaxis.set_major_formatter(plt.NullFormatter())
+    #ax1.set_title('Assamble: %03d' % tt)
+    plt.savefig('plots_bk/time_j_%03dn.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -199,7 +212,7 @@ figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_f]).T
 df = pd.DataFrame(data, columns=[r"$KE_c$", r"$KE_r$"])
 
-df.to_pickle('./ke_validation')
+df.to_pickle('./ke_validation_n')
 
 g1 = sns.jointplot(x=r"$KE_c$", y=r"$KE_r$", data=df, kind="kde",cmap='Blues',joint_kws={'shade_lowest':False}, fontsize=32)
 
@@ -224,7 +237,7 @@ g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate flat: ',mean([abs(y0/100),abs(1-y1/100)]))
 g1.ax_joint.legend_.remove()
-plt.savefig('e_vs_e.png')
+plt.savefig('e_vs_en.png')
 
 figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_w]).T
@@ -252,7 +265,7 @@ g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate sin: ',mean([abs(y0/100),abs(1-y1/100)]))
 g1.ax_joint.legend_.remove()
-plt.savefig('w_vs_e.png')
+plt.savefig('w_vs_en.png')
 
 figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_j]).T
@@ -280,7 +293,7 @@ g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate jet: ',mean([abs(y0/100),abs(1-y1/100)]))
 g1.ax_joint.legend_.remove()
-plt.savefig('j_vs_e.png')
+plt.savefig('j_vs_en.png')
 
 
 # for ii in range(0,30):

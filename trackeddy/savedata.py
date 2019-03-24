@@ -36,11 +36,11 @@ def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_d
         time[:]=np.array(range(tt))+init_time
     else:
         calendar = 'standard'
-        t_units = 'days since 1970-01-01 00:00'
+        t_units = 'days since 1970-01-01 00:00 UTC'
         time.units=t_units
         time.calendar=calendar
         dates=[init_time + timedelta(days=i) for i in range(0,tt)]
-        time[:] = nc4.date2num(dates, units=units, calendar=calendar)
+        time[:] = nc4.date2num(dates, units=t_units, calendar=calendar)
    
     time.cartesian_axis = "Time"
         
