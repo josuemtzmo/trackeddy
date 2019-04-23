@@ -346,31 +346,6 @@ def centroidvalue(contcoordx,contcoordy,var,x,y,levels,date,threshold=1):
     coord=np.asarray([xcpos,ycpos])
     return coord
 
-def gaus(x,a,x0,sigma):
-    '''
-    *************** gaus *******************
-    Build a gausian curve.
-    Notes:
-    
-    Args:
-        x (list|array): Array of positions.
-        a (float): Amplitud of gaussian.
-        x0 (float): Center of Gausian.
-        sigma (float): Deviation.
-    Returns:
-        gauss (array) - Array of gaussian values.
-    Usage:
-        x=np.arange(-5,5,0.1)
-        x0=0
-        a=3
-        sigma=2
-        gaussian=gaus(x,a,x0,sigma)
-        plot(x,gaussian)
-        show()
-    '''
-    gauss=a*np.exp(-(x-x0)**2/(2*sigma**2))
-    return gauss
-
 def adjust1Gaus(x,y):
     '''
     *************** adjust1Gaus *******************
@@ -399,40 +374,6 @@ def adjust1Gaus(x,y):
     covar = out[1] #covariance matrix output
 
     gausfit = gauss_fit(v,x) 
-    return gausfit
-
-def adjustMGaus(x,y):
-    '''
-    *************** adjustMGaus *******************
-    Fit multiple gaussian in a curve curve.
-    Notes:
-        
-    Args:
-        x(list|array): Coordinates in x of data.
-        y(list|array): Data to be ajusted with multiple gaussians. 
-    Returns:
-        gausfit(list|array) - Data ajusted.
-    Usage:
-        x=np.arange(-5,5,0.1)
-        x0=0
-        a=3
-        sigma=2
-        gaussian=gaus(x,a,x0,sigma)+gaus(x,a-2,x0+2,sigma-1)
-        gaussianfit=adjustMGaus(x,gaussian)
-    '''
-    gauss_fit = lambda p, x: p[0]*(1/np.sqrt(2*np.pi*(p[2]**2)))*np.exp(-(x-p[1])**2/(2*p[2]**2))+\
-            p[3]*(1/np.sqrt(2*np.pi*(p[5]**2)))*np.exp(-(x-p[4])**2/(2*p[5]**2)) #1d Gaussian func
-    e_gauss_fit = lambda p, x, y: (gauss_fit(p,x) -y) #1d Gaussian fit
-
-    n=len(x)
-    #v0=range(0,n,int(n/10))
-    v0=[1,int(n/3),1,1,int(n/2),1,1,2*int(n/3),1]
-    #v0= [1,10,1,1,30,1] #inital guesses for Gaussian Fit. - just do it around the peaks
-    out = leastsq(e_gauss_fit, v0[:], args=(x, y), maxfev=1000, full_output=1) #Gauss Fit
-    v = out[0] #fit parameters out
-    covar = out[1] #covariance matrix output
-
-    gausfit = gauss_fit(v,x) # this will only work if the units are pixel and not wavelength
     return gausfit
 
 def twoD_Paraboloid(coords, amplitude, xo, yo, a, b,offset):
@@ -921,9 +862,6 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
             plt.show()
         pp.timepercentprint(0,loop_len,1,xx,key)
     return fieldfit
-
-def phase_angle(v,u,lon,lat):
-    phi=arctan(v,u)
     
 def insideness_contour(data,center,levels,mask=False,maskopt=None,diagnostics=False):
     '''

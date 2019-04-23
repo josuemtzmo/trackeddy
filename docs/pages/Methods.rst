@@ -96,9 +96,11 @@ some capabilities of TrackEddy:
     Then each of the mesoscale sea surface height anomaly field was analysed.
     :numref:`eddyidentif` shows the location of each identified eddy
     (:math:`n \sim 2401`) from the satellite Aviso+ dataset during the
-    1st of January 1993. :numref:`eddyidentif_model` shows the trajectory of the
-    identified eddies from the ACCESS-OM2 simulation with life-spams longer than
-    3 weeks for 1993 (:math:`n \sim ????`).
+    1st of January 1993.
+    
+    .. :numref:`eddyidentif_model` shows the trajectory of the
+    .. identified eddies from the ACCESS-OM2 simulation with life-spams longer than
+    .. 3 weeks for 1993 (:math:`n \sim ????`).
 
     .. _eddyidentif:
     .. figure:: ../images/eddy_identified.png
@@ -110,15 +112,15 @@ some capabilities of TrackEddy:
       January 1993. Magenta stars show the location of positive eddies and
       green stars the location of negative eddies.
 
-    .. _eddyidentif_model:
-    .. figure:: ../images/eddy_identified_model.png
-      :align: center
-      :scale: 40 %
-      :alt: Alt content
+    .. .. _eddyidentif_model:
+    .. .. figure:: ../images/eddy_identified_model.png
+    ..   :align: center
+    ..   :scale: 40 %
+    ..   :alt: Alt content
 
-      Trajectory of identified eddies with life-spams longer than 3 weeks. Red
-      dots corresponds to the initial location and green triangles correspond to
-      the last location.
+    ..   Trajectory of identified eddies with life-spams longer than 3 weeks. Red
+    ..   dots corresponds to the initial location and green triangles correspond to
+    ..   the last location.
 
 Currently, the algorithm is focused on methods to estimate TEKE from SSH and
 SSHa fields and it has been tested at identifying,
@@ -279,8 +281,8 @@ case will happen for the negative or cold cores. The differentiation
 between cyclonic and anticyclonic can be done during post-processing or
 at the Eddy Contour Replacement algorithm.
 
-This algorithm is designed to cycle through :math:`N_{(1:n)}` levels
-(:numref:`ident_scheme`), which are defined as a dictionary containing the
+This algorithm is designed to cycle through :math:`N_{(1:n)}` levels, 
+which are defined as a dictionary containing the
 maximum value, minimum value and steps::
 
   levels={'max':100,'min':1,'step':1}

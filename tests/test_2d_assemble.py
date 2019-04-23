@@ -14,13 +14,15 @@ import sys
 from trackeddy.tracking import *
 from trackeddy.datastruct import *
 from trackeddy.geometryfunc import *
-from trackeddy.init import *
 from trackeddy.physics import *
 from numpy import *
 from pylab import *
 import cmocean as cm
 import random
 import pytest
+
+import warnings
+warnings.filterwarnings("ignore")
 
 #################################
 ##   Import tools to create    ##

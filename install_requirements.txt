@@ -13,4 +13,5 @@ seawater
 cmocean
 cartopy
 gsw
+astropy
 pytest-cov

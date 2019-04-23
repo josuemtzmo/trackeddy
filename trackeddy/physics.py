@@ -119,20 +119,6 @@ def ssh2ke(data,x,y,mask,anomval=100):
     u,v = geovelfield(data,x,y,mask,anomval)
     return KE(u,v)
 
-def PolyArea(x,y):
-    '''
-    
-    '''
-    polygon=[[x[ii],y[ii]] for ii in range(len(x))]
-    area = 0.0
-
-    n = len(polygon)
-    for i in range(n):
-        i1 = (i+1)%n
-        area += polygon[i][0]*polygon[i1][1] - polygon[i1][0]*polygon[i][1]       
-    area *= 0.5
-    return abs(area)
-
 def checkscalearea(checkarea,lon,lat,ellipsex,ellipsey,contourx='',contoury=''):
     if checkarea==False:
         ellipsarea=None
@@ -186,3 +172,6 @@ def checkscalearea(checkarea,lon,lat,ellipsex,ellipsey,contourx='',contoury=''):
     else:
         raise Exception('Unexpected dictionary format. Check the Area Check documentation.')
     return areastatus
+
+def phase_angle(v,u,lon,lat):
+    phi=arctan(v,u)

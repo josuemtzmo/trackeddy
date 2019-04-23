@@ -98,7 +98,6 @@ phd_research/
 *_bk
 *_bk.ipynb
 *.ipynb_bk
-_*/
 *.bk
 *.nfs*
 #docs/Makefile
@@ -109,3 +108,7 @@ version_control/
 .pytest_cache/
 
 .debug
+.vscode*
+
+docs/generated
+docs/pages/generated
