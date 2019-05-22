@@ -51,7 +51,7 @@ def fit_ellipse(x,y,diagnostics=False):
     y = np.sin(R) + 1. + 0.1*np.random.rand(len(R))
     ellipse,status=fit_ellipse(x,y,diagnostics=False)
     '''
-    orientation_tolerance = 1e-3;
+    orientation_tolerance = 1e-3
     x=x[:]
     y=y[:]
     mean_x=np.mean(x)
@@ -70,19 +70,28 @@ def fit_ellipse(x,y,diagnostics=False):
     r2 = np.mean(1 - res / (a.T.size * a.T.var()))
     
     a,b,c,d,e=x2[0]
-    
+
+    if b == 0 and a<c:
+        anglexaxis_rad=0
+    elif b==0 and c<a:
+        anglexaxis_rad=np.pi/2
+    else:
+        anglexaxis_rad = np.arctan((c-a-np.sqrt((a-c)**2+b**2))/b)
+
     if ( min(abs(b/a),abs(b/c)) > orientation_tolerance ):
-        orientation_rad = 1/2 * np.arctan( b/(c-a) )
+        #TODO: Replace this non sign definite orientation_rad for anglexaxis 
+        # which is a sign definite.
+        orientation_rad = 1/2 * np.arctan(b/(c-a))
         cos_phi = np.cos( orientation_rad )
         sin_phi = np.sin( orientation_rad )
         a,b,c,d,e = [a*cos_phi**2 - b*cos_phi*sin_phi + c*sin_phi**2,0,a*sin_phi**2 + b*cos_phi*sin_phi + \
                      c*cos_phi**2,d*cos_phi - e*sin_phi,d*sin_phi + e*cos_phi]
         mean_x,mean_y=cos_phi*mean_x - sin_phi*mean_y,sin_phi*mean_x + cos_phi*mean_y       
     else:
-        orientation_rad = 0;
-        cos_phi = np.cos( orientation_rad );
-        sin_phi = np.sin( orientation_rad );
-    test = a*c;
+        orientation_rad = 0
+        cos_phi = np.cos(orientation_rad)
+        sin_phi = np.sin(orientation_rad)
+    test = a*c
     if test>0 :#and r2>0.8 and r2<1:
         detect='Ellipse'
         status=True
@@ -92,22 +101,16 @@ def fit_ellipse(x,y,diagnostics=False):
     else:
         detect='Hyperbola'
         status=False
-    if status==True:
-        # make sure coefficients are positive as required
-        if (a<0):
-            a=abs(a)
-            c=abs(c)
-            d=abs(d)
-            e=abs(e)
-        
+    if status==True:        
         # final ellipse parameters
-        X0          = mean_x - (d/2)/a;
-        Y0          = mean_y - (e/2)/c;
-        F           = 1 + (d**2)/(4*a) + (e**2)/(4*c);
-        a           = np.sqrt( F/a )
-        b           = np.sqrt( F/c );    
-        long_axis   = 2*max(a,b);
-        short_axis  = 2*min(a,b);
+        X0          = mean_x - (d/2)/a
+        Y0          = mean_y - (e/2)/c
+        F           = 1 + (d**2)/(4*a) + (e**2)/(4*c)
+        a           = np.sqrt(abs(F/a))
+        b           = np.sqrt(abs(F/c))
+
+        long_axis   = 2*max(a,b)
+        short_axis  = 2*min(a,b)
 
         # rotate the axes backwards to find the center point of the original TILTED ellipse
         R           = np.array([[ cos_phi,sin_phi],[-sin_phi,cos_phi ]])
@@ -127,9 +130,9 @@ def fit_ellipse(x,y,diagnostics=False):
         ellipse_x_r     = X0 + a*np.cos(theta_r)
         ellipse_y_r     = Y0 + b*np.sin(theta_r)
         rotated_ellipse =  np.dot(R, np.array([ellipse_x_r,ellipse_y_r]))
-        
+
         # pack ellipse into a structure
-        ellipse_t = {'a':a,'b':b,'phi':orientation_rad,'X0':X0,'Y0':Y0,\
+        ellipse_t = {'a':a,'b':b,'phi':anglexaxis_rad,'X0':X0,'Y0':Y0,\
                      'X0_in':X0_in,'Y0_in':Y0_in,'long_axis':long_axis,\
                      'short_axis':short_axis,'minoraxis':new_horz_line,\
                      'majoraxis':new_ver_line,'ellipse':rotated_ellipse\
@@ -439,16 +442,23 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
 
     #print(sigma_y,sigma_x,sigma_y/sigma_x)
     if sigma_y or sigma_x != 0:
-        a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
-        b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
-        c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
-        g = amplitude*np.exp( - (a*((x-xo)**2) + 2*b*(x-xo)*(y-yo) + c*((y-yo)**2)))
+        #a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
+        #b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
+        #c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
+        #g = amplitude*np.exp( - (a*((x-xo)**2) + 2*b*(x-xo)*(y-yo) + c*((y-yo)**2)))
+        cos_phi = np.cos(theta)
+        sin_phi = np.sin(theta)
+        a = (cos_phi**2)/(2*sigma_x**2) + (sin_phi**2)/(2*sigma_y**2)
+        b = (np.sin(2*theta))/(4*sigma_x**2) - (np.sin(2*theta))/(4*sigma_y**2)
+        c = (sin_phi**2)/(2*sigma_x**2) + (cos_phi**2)/(2*sigma_y**2)
+        g = amplitude*np.exp(-(a*(x-xo)**2 + 2*b*(x-xo)*(y-yo) + c*(y-yo)**2))
     else: 
         g = (x-xo)*0 + (y-yo)*0
     return g.ravel()
 
 def gaussian2Dresidual(popt, coords, varm):
-    residual = np.exp(np.abs(np.float128(np.nanmean(varm - twoD_Gaussian(coords,*popt).reshape(np.shape(varm)))))) - 1
+    g=twoD_Gaussian(coords,*popt).reshape(np.shape(varm))
+    residual = np.exp(np.abs(np.float128(np.nanmean(abs(varm - g))))) - 1
     #print('Residual:',np.nanmean(residual))
     return residual
 
@@ -809,7 +819,6 @@ def reconstruct_syntetic(varshape,lon,lat,eddytd,mode='gaussian',rmbfit=False,us
     for xx in range(0,loop_len):
         key=keys[xx]
         counter=0
-        #print(key)
         if one_time!=None and type(one_time)==int:
             timeloop=[one_time]
         else:
