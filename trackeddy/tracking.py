@@ -118,11 +118,15 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
     max_y=Lat[-1,-1]
     # Plot contours according to the data.   
     if len(shapedata)==3:
-        CS=plt.contourf(lon[areamap[0,0]:areamap[0,1]],lat[areamap[1,0]:areamap[1,1]],\
-                datanan[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
+        CS=plt.contourf(Lon[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                        Lat[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+               datanan[date,areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                        levels=levels)
     else:
-        CS=plt.contourf(lon[areamap[0,0]:areamap[0,1]],lat[areamap[1,0]:areamap[1,1]],\
-                datanan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],levels=levels)
+        CS=plt.contourf(Lon[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                        Lat[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                datanan[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
+                        levels=levels)
     if preferences==None:
         preferences={'ellipse':0.85,'eccentricity':0.85,'gaussian':0.8}
     # Close the contour plot.
@@ -183,11 +187,11 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
             centertop=[ymindex-yidmin+threshold-2,xmindex-xidmin+threshold-1]
             
             if len(shapedata)==3:
-                data4gauss=datanan[date,yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
-                data_in_contour=insideness_contour(data4gauss*1,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
+                data4gauss=datanan[date,yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold].copy()
+                data_in_contour=insideness_contour(data4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
             else:
-                data4gauss=datanan[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold]
-                data_in_contour=insideness_contour(data4gauss*1,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
+                data4gauss=datanan[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold].copy()
+                data_in_contour=insideness_contour(data4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
             
             checkcontour = check_closecontour(CONTeach,lon_contour,lat_contour,data4gauss)
             
