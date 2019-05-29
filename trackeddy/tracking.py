@@ -472,7 +472,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
         #    save_data(destdir+'day'+str(date)+'_one_step_cont'+str(total_contours)+'.dat', variable)
     return eddys,check,total_contours
 
-def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddycenter='masscenter',preferences=None,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False,debug=False):
+def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddycenter='masscenter',preferences=None,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,timeanalysis='overlap',destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False,debug=False):
     '''Identify each eddy using closed contours.
 
     Function to identify each eddy using closed contours, 
@@ -648,9 +648,9 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
                 numbereddieslevels=numbereddieslevels+numbereddies
                 pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddies),[0,len(levellist),ll])
         if ii==t0:
-            eddytd=dict_eddyt(ii,eddz,debug=debug)
+            eddytd=dict_eddyt(ii,eddz,analysis=timeanalysis,debug=debug)
         else:
-            eddytd=dict_eddyt(ii,eddz,eddytd,data=dataanomaly,x=x,y=y,debug=debug) 
+            eddytd=dict_eddyt(ii,eddz,eddytd,data=dataanomaly,analysis=timeanalysis,x=x,y=y,debug=debug) 
         if pprint==True:
             pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddieslevels))
     if destdir!='':

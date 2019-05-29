@@ -60,7 +60,7 @@ def datastruct_time(ts,eddys,eddydt):
                 '2dgaussianfit':eddys['2DGaussianFit'][nn],'timetracking':True}
     return dictime
 
-def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue='maxvalue',coords='latlon',diagnostics=False,debug=False):
+def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="overlap",maxvalue='maxvalue',coords='latlon',diagnostics=False,debug=False):
     '''
     ********************** dict_eddyt **********************
     Create a dictionary with all the eddies and it's track on time. When 'ts==0' 
@@ -165,6 +165,10 @@ def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue=
             plt.plot(posxs,posys,'or')
             plt.plot(t0contour[-1][0],t0contour[-1][1])
             plt.show()
+            
+    elif analysis=='none':
+        neweddies=[int(key) for key in eddyt1 if eddyt1[key]=='']    
+        eddydt=addtimetrack(ts,eddydt,eddys,neweddies,debug=debug)   
         
     else:
         for t0key in eddyt0.keys():
