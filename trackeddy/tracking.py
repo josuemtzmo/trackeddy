@@ -472,7 +472,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
         #    save_data(destdir+'day'+str(date)+'_one_step_cont'+str(total_contours)+'.dat', variable)
     return eddys,check,total_contours
 
-def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddycenter='masscenter',preferences=None,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,timeanalysis='overlap',destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False,debug=False):
+def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddycenter='masscenter',preferences=None,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,timeanalysis='closest',destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False,debug=False):
     '''Identify each eddy using closed contours.
 
     Function to identify each eddy using closed contours, 
