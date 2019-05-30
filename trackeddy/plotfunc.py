@@ -23,9 +23,9 @@ def basemap_mplot(x,y,data,title,projection='ortho',lat_0=-90,lon_0=-100,boundin
                 ttl=plt.title(title[count], fontsize=fontsize)
                 ttl.set_position([.5, 1.05+fontsize*0.001])
                 if projection == 'ortho' or projection=='mbtfpq':
-                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution,ax=ax[ii])
+                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution,ax=ax)
                 else:
-                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,llcrnrlon=x.min(),llcrnrlat=y.min(),urcrnrlon=x.max(),urcrnrlat=y.max(),boundinglat=boundinglat,resolution=resolution,ax=ax[ii])
+                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,llcrnrlon=x.min(),llcrnrlat=y.min(),urcrnrlon=x.max(),urcrnrlat=y.max(),boundinglat=boundinglat,resolution=resolution,ax=ax)
                 lonm,latm=map(X,Y)
                 map.drawmeridians(np.arange(0,360,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
                 map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
