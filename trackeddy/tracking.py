@@ -68,7 +68,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
         array([[0,len(lon)],[0,len(lat)]]) Array with the index 
         of your area of interest.
     
-    I used some auxilar functions, each one has his respective author.
+    I used some auxilar functions, each one has their respective author.
     Author: Josue Martinez Moreno, 2017
     '''
 

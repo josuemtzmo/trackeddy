@@ -6,6 +6,7 @@ import warnings
 import os
 import time
 import subprocess
+import pandas as pd
 warnings.filterwarnings("ignore")
 
 def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_description='',units='',dt='',dim='2D',format='NETCDF4'):
@@ -52,22 +53,11 @@ def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_d
         levels[:] = z
         levels.units = 'meters [m]'
     else:
-        #f.createDimension('z', 1)
-        #levels = f.createVariable('z', 'i4', 'z')
-        #varnc = f.createVariable(varname, 'f4', ('time','z', 'lat', 'lon'))
         varnc = f.createVariable(varname, 'f4', ('time', 'lat', 'lon'))
-        #levels[:] = 0
-        #for ttt in range(0,tt):
-        #    for yy in range(0,np.shape(var)[1]):
-        #        for xx in range(0,np.shape(var)[2]):
         if tt==0:
             varnc[tt,:,:] = var
         else:
             varnc[:,:,:] = var
-        #if tt==0:
-        #    varnc[tt,0,:,:] = var
-        #else:
-        #    varnc[:,0,:,:] = var
     
     today = datetime.today()
     time_num = today.toordinal()
@@ -87,8 +77,8 @@ def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_d
 
 
 class Trackeddy2dataset():
-    """
-    infield =  Input field or File
+    """Trackeddy2dataset clas converts the full trackeddy dictionary output into a hdf5 or netCDF4.
+    
     """
     def __init__(self,infield,outpath,outformat,source='',reference='',time_coverage=['','']):
         self.outpath = outpath
@@ -243,12 +233,114 @@ class Trackeddy2dataset():
                     grp.create_dataset(key1,data=item1)    
     
 
-def save_data(path, variable):
-    '''
-    *********Function to save data as npy***********
-    Usage:
-    
-    Example:
+def dict2pd(eddydict,inittime='01-01-1993',n=0,polarity='pos',ensemble=None):
+    '''dict2pd converts the full trackeddy dictionary output into a pandas dataframe.
 
+    Function to convert trackeddy output into pandas dataframe.
+    Note that this conversion drops the ellipse path and contour path.
+
+    Parameters
+    ----------
+    args:
+        eddydict: dict
+            Dictionary containing all eddy information (Includes tracking).
+        inittime: date string
+            Date string identifying the beginning of the analysed record.
+        n: int
+            number of previous eddies
+        polarity: string
+            Polarity of identified eddies (positive or negative). If the "neg" flag is selected 
+            and the amplitude value is positive, the eddy amplitude will be multiplied by -1.
+        ensemble: int
+            Adds an identifier in case of using multiple experiments or tracking parameters.
+    
+    Returns
+    -------
+    dataframe: pandas.Dataframe
+
+    Example
+    -------
+    Look into file conversion.ipynb.
+    
+    Author: Josue Martinez Moreno, 2019
     '''
-    np.save(path, variable)
+    itime=datetime.strptime(inittime,"%d-%m-%Y").toordinal()
+    new_dict={}
+    neddy=[]
+    time=[]
+    cm_x_coord=[]
+    cm_y_coord=[]
+    area_eddy=[]
+    area_gaussian=[]
+    max_x_coord=[]
+    max_y_coord=[]
+    amplitude=[]
+    gaussian_sigma_x=[]
+    gaussian_sigma_y=[]
+    angle=[]
+    level=[]
+    gaussian_angle=[]
+    timetracking=[]
+    ordinal_time=[]
+    for ii in eddydict.keys():
+        for jj in range(len(eddydict[ii]['time'])):
+            neddy.append(int(n)+eddydict[ii]['neddy'][0])
+            time.append(pd.Timestamp(pd.Timestamp(datetime.fromordinal(itime+eddydict[ii]['time'][jj]))))
+            
+            if type(eddydict[ii]['position_default'][0])==np.float64:
+                cm_x_coord.append(eddydict[ii]['position_default'][0]) #degrees
+                cm_y_coord.append(eddydict[ii]['position_default'][1]) #degrees
+            else:
+                cm_x_coord.append(eddydict[ii]['position_default'][jj][0]) #degrees
+                cm_y_coord.append(eddydict[ii]['position_default'][jj][1]) #degrees
+            
+            if type(eddydict[ii]['area'][0])==np.float64:
+                area_eddy.append(eddydict[ii]['area'][0]) #m^2
+                area_gaussian.append(eddydict[ii]['area'][2]) #m^2
+                angle.append(eddydict[ii]['angle'][0])
+            else:
+                area_eddy.append(eddydict[ii]['area'][jj][0]) #m^2
+                area_gaussian.append(eddydict[ii]['area'][jj][2]) #m^2
+                angle.append(eddydict[ii]['angle'][jj][0])
+            
+            level.append(float(eddydict[ii]['level'][jj]))
+            
+            max_x_coord.append(eddydict[ii]['position_maxvalue'][jj][0]) #degrees
+            max_y_coord.append(eddydict[ii]['position_maxvalue'][jj][1]) #degrees
+            if polarity=='pos' or polarity=='positive':
+                amplitude.append(eddydict[ii]['position_maxvalue'][jj][2]) #units of input field
+            elif polarity=='neg' or polarity=='negative':
+                if eddydict[ii]['position_maxvalue'][jj][2] > 0:
+                    amplitude.append(-1*eddydict[ii]['position_maxvalue'][jj][2]) #units of input field
+                else:
+                    amplitude.append(eddydict[ii]['position_maxvalue'][jj][2]) #units of input field
+            else:
+                raise ValueError('Polarity only accepts as argument:"pos" or "neg"') 
+            
+            gaussian_sigma_x.append(eddydict[ii]['2dgaussianfit'][jj][0]) #degrees
+            gaussian_sigma_y.append(eddydict[ii]['2dgaussianfit'][jj][1]) #degrees
+
+            gaussian_angle.append(eddydict[ii]['2dgaussianfit'][jj][2])
+            
+            timetracking.append(int(eddydict[ii]['timetracking']))
+            ordinal_time.append(itime+eddydict[ii]['time'][jj])
+            
+    if ensemble==None:
+        new_dict={'time':time,'neddy':neddy,'center_mass_loc_x':cm_x_coord,'center_mass_loc_y':cm_y_coord,
+             'area_eddy':area_eddy,'area_gaussian':area_gaussian,'angle_gaussian':gaussian_angle,'angle':angle,
+             'maxima_loc_x':max_x_coord,
+             'maxima_loc_y':max_y_coord,'eddy_amplitude':amplitude,'gaussian_spread_x':gaussian_sigma_x,
+             'gaussian_spread_y':gaussian_sigma_y,'time_tracking':timetracking,'level':level}
+    elif type(ensemble)==int or type(ensemble)==float:
+        ensemble=[ensemble for ii in range(0,len(neddy))]
+        new_dict={'time':time,'neddy':neddy,'center_mass_loc_x':cm_x_coord,'center_mass_loc_y':cm_y_coord,
+             'area_eddy':area_eddy,'area_gaussian':area_gaussian,'angle_gaussian':gaussian_angle,'angle':angle,
+             'maxima_loc_x':max_x_coord,
+             'maxima_loc_y':max_y_coord,'eddy_amplitude':amplitude,'gaussian_spread_x':gaussian_sigma_x,
+             'gaussian_spread_y':gaussian_sigma_y,'time_tracking':timetracking,'level':level,'ensemble':ensemble}
+    else:
+        raise ValueError('The ensemble value should be None or an integer or float') 
+    
+    dataframe=pd.DataFrame(data=new_dict)
+    dataframe.set_index('time')
+    return dataframe
