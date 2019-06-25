@@ -672,9 +672,9 @@ def extractprofeddy(axis,field,lon,lat,n,gaus='One',kind='linear',gaussrsquarefi
         Check scan_eddym function.
     '''
     try:
-        fieldnan=field.filled(np.nan)
+        fieldnan=field.filled(0)
     except:
-        field[~np.isfinite(field)]=np.nan
+        field[~np.isfinite(field)]=0
         fieldnan=field
         
     if type(diagnostics) != list:

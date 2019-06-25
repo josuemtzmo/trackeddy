@@ -165,8 +165,8 @@ def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue=
             plt.plot(posxs,posys,'or')
             plt.plot(t0contour[-1][0],t0contour[-1][1])
             plt.show()
-        
-    else:
+            
+    elif analysis=='closest':
         for t0key in eddyt0.keys():
             eddydist=[]
             t0position=eddydt['eddyn_'+str(t0key)]['position_'+maxvalue][-1]
@@ -203,6 +203,13 @@ def dict_eddyt(ts,eddys,eddydt='',data="",x="",y="",analysis="closest",maxvalue=
                 eddydt['eddyn_'+str(oldeddy)]['timetracking']=1
             elif type(eddydt['eddyn_'+str(oldeddy)]['timetracking'])==int:
                 eddydt['eddyn_'+str(oldeddy)]['timetracking']=eddydt['eddyn_'+str(oldeddy)]['timetracking']+1
+            
+    elif analysis=='none':
+        neweddies=[int(key) for key in eddyt1 if eddyt1[key]=='']    
+        eddydt=addtimetrack(ts,eddydt,eddys,neweddies,debug=debug)   
+    
+    else:
+        raise ValueError('The tracking options are: "insideness", "overlap", "closest", and "none". Make sure you select the right option.') 
     return eddydt
 
 def addtimetrack(ts,eddydt,eddys,neweddies,debug=False):
@@ -246,7 +253,6 @@ def jointimetrack(ts,eddydt,eddys,t0track,t1track):
     
     eddydt['eddyn_'+str(t0track)]['timetracking']=True
     return eddydt
-
 
 def dict_eddyz(data,x,y,ts,levelindex,levellist,maxlevel,eddys,eddz='',threshold=1.5,diagnostics=False,debug=False):
     '''

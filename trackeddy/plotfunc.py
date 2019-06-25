@@ -22,7 +22,10 @@ def basemap_mplot(x,y,data,title,projection='ortho',lat_0=-90,lon_0=-100,boundin
                 title=[title]
                 ttl=plt.title(title[count], fontsize=fontsize)
                 ttl.set_position([.5, 1.05+fontsize*0.001])
-                map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution)
+                if projection == 'ortho' or projection=='mbtfpq':
+                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution,ax=ax)
+                else:
+                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,llcrnrlon=x.min(),llcrnrlat=y.min(),urcrnrlon=x.max(),urcrnrlat=y.max(),boundinglat=boundinglat,resolution=resolution,ax=ax)
                 lonm,latm=map(X,Y)
                 map.drawmeridians(np.arange(0,360,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
                 map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
@@ -33,7 +36,10 @@ def basemap_mplot(x,y,data,title,projection='ortho',lat_0=-90,lon_0=-100,boundin
             elif xan!=1 and yan==1:
                 ttl=ax[ii].set_title(title[count], fontsize=fontsize)
                 ttl.set_position([.5, 1.05+fontsize*0.001])
-                map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution,ax=ax[ii])
+                if projection == 'ortho' or projection=='mbtfpq':
+                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution,ax=ax[ii])
+                else:
+                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,llcrnrlon=x.min(),llcrnrlat=y.min(),urcrnrlon=x.max(),urcrnrlat=y.max(),boundinglat=boundinglat,resolution=resolution,ax=ax[ii])
                 lonm,latm=map(X,Y)
                 map.drawmeridians(np.arange(0,360,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
                 map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
@@ -44,7 +50,10 @@ def basemap_mplot(x,y,data,title,projection='ortho',lat_0=-90,lon_0=-100,boundin
             elif xan==1 and yan!=1:
                 ttl=ax[jj].set_title(title[count], fontsize=fontsize)
                 ttl.set_position([.5, 1.05+fontsize*0.001])
-                map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution,ax=ax[jj])
+                if projection == 'ortho' or projection=='mbtfpq':
+                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution,ax=ax[ii])
+                else:
+                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,llcrnrlon=x.min(),llcrnrlat=y.min(),urcrnrlon=x.max(),urcrnrlat=y.max(),boundinglat=boundinglat,resolution=resolution,ax=ax[ii])
                 lonm,latm=map(X,Y)
                 map.drawmeridians(np.arange(0,360,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
                 map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
@@ -55,7 +64,10 @@ def basemap_mplot(x,y,data,title,projection='ortho',lat_0=-90,lon_0=-100,boundin
             else:
                 ttl=ax[jj,ii].set_title(title[count], fontsize=fontsize)
                 ttl.set_position([.5, 1.05+fontsize*0.001])
-                map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution,ax=ax[jj,ii])
+                if projection == 'ortho' or projection=='mbtfpq':
+                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,boundinglat=boundinglat,resolution=resolution,ax=ax[jj,ii])
+                else:
+                    map = Basemap(projection=projection,lat_0=lat_0,lon_0=lon_0,llcrnrlon=x.min(),llcrnrlat=y.min(),urcrnrlon=x.max(),urcrnrlat=y.max(),boundinglat=boundinglat,resolution=resolution,ax=ax[jj,ii])
                 lonm,latm=map(X,Y)
                 map.drawmeridians(np.arange(0,360,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
                 map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],fontsize=int(fontsize*0.6))
@@ -76,7 +88,7 @@ def basemap_mplot(x,y,data,title,projection='ortho',lat_0=-90,lon_0=-100,boundin
             elif scale == 'Lin' and vmin != '' and vmax != '':
                 im=m.pcolormesh(lonm,latm,data[count],cmap=cmap,vmin=vmin, vmax=vmax)
             elif scale == 'Linc' and vmin != '' and vmax != '':
-                im=m.contourf(lonm,latm,data[count],cmap=cmap,vmin=vmin, vmax=vmax)
+                im=m.contourf(lonm,latm,data[count],cmap=cmap,vmin=vmin, vmax=vmax,levels=np.linspace(vmin,vmax))
             elif scale == 'SymLog' and vmin != '' and vmax != '':
                 im=m.pcolormesh(lonm,latm,data[count],cmap=cmap,norm=colors.SymLogNorm(linthresh=0.01, linscale=0.01,vmin=vmin, vmax=vmax))
             elif scale == 'Log' and vmin != '' and vmax != '':
