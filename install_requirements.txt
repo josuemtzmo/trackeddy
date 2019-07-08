@@ -15,4 +15,3 @@ cartopy
 gsw
 astropy
 pytest-cov
-openblas=0.3.5
