@@ -889,12 +889,30 @@ def insideness_contour(data,center,levels,mask=False,maskopt=None,diagnostics=Fa
         data_rmove[data>levels[0]]=1
         
     markers,features=np.asarray(ndimage.label(data_rmove))
-    
+
     if markers.max()!=1 and maskopt==None:
         markers=markers*0
-        returnmasked=True    
-        
-    elif markers.max()!=1 and maskopt=='contour' or maskopt=='forcefit':
+        returnmasked=True
+
+    elif markers.max()!=1 and maskopt=='maskomax': 
+        plt.pcolormesh(markers)
+        plt.colorbar()
+        plt.title('1')
+        plt.show()
+        #TODO: Look into how to remove only the other maximum value
+        print(features,np.shape(markers))
+        for ii in range(features):
+            if ii != markers[center[0],center[1]-1]:
+                markers[markers==ii]==1
+        #markers=markers-markers[center[0],center[1]-1]
+
+        plt.pcolormesh(markers)
+        plt.colorbar()
+        plt.title('2')
+        plt.show()
+        returnmasked=True
+
+    elif markers.max()!=1 and (maskopt=='contour' or maskopt=='forcefit'):
         if center[1]==np.shape(markers)[1]:
             markers[markers!=markers[center[0],center[1]-1]]=0
         elif center[0]==np.shape(markers)[0]:
@@ -906,8 +924,10 @@ def insideness_contour(data,center,levels,mask=False,maskopt=None,diagnostics=Fa
             
     elif maskopt=='contour' or maskopt=='forcefit':
         markers=1-markers
+        returnmasked=True
     else:
         markers=markers*0  
+        returnmasked=True
     
     if levels[0]<0 and maskopt!='forcefit':
         markers[data>0]=1

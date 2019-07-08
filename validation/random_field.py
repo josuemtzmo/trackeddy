@@ -19,7 +19,7 @@ import importlib
 importlib.reload(ttrack)
 import sys
 
-t  = 1000
+t  = 10
 n  = 20
 
 xx = linspace(10,12,200)
@@ -29,15 +29,15 @@ yy = linspace(10,12,200)
 #gf=fg.Generate_field(0.1,0.1,n,xx,yy,'nrand')
 #data = gf.assemble_field(t,'Nint')
 
+x = linspace(10,12,300)
+y = linspace(10,12,300)
+
 data = zeros((t,300,300))
 for tt in range(t):
     gf=fg.Generate_field(0.05,0.05,randint(5, n),xx,yy,'int')
     data[tt,:,:] = gf.assemble_field(1)
 
 ##
-
-x = linspace(10,12,300)
-y = linspace(10,12,300)
 
 ################################################################################
 ################################################################################
@@ -80,8 +80,40 @@ for tt in range(t0,t):
     ax2.yaxis.set_major_locator(plt.NullLocator())
     ax2.xaxis.set_major_formatter(plt.NullFormatter())
     #ax1.set_title('Assamble: %03d' % tt)
+    plt.show()
+    #plt.savefig('plots_n/time_%03d.png' %tt)
 
-    plt.savefig('plots_bk/time_%03d.png' %tt)
+m_ke_c = []
+m_ke_f = []
+m_ke_w = []
+m_ke_j = []
+
+for tt in range(shape(data)[0]):
+    u_c,v_c = geovelfield( data[tt,:,:]  ,x,y)
+    u_f,v_f = geovelfield(f_field[tt,:,:],x,y)
+    #u_w,v_w = geovelfield(w_field[tt,:,:],x,y)
+    #u_j,v_j = geovelfield(j_field[tt,:,:],x,y)
+    ke_c = KE(u_c,v_c)
+    ke_f = KE(u_f,v_f)
+    #ke_w = KE(u_w,v_w)
+    #ke_j = KE(u_j,v_j)
+    m_ke_c.append(mean(ke_c))
+    m_ke_f.append(mean(ke_f))
+    #m_ke_w.append(mean(ke_w))
+    #m_ke_j.append(mean(ke_j))
+
+import seaborn as sns
+import pandas as pd
+
+figure(dpi=300)
+data=np.vstack([m_ke_c,m_ke_f]).T
+df = pd.DataFrame(data, columns=[r"$KE_c$", r"$KE_r$"])
+
+sys.exit()
+
+df.to_pickle('./ke_validation_f_n')
+
+sys.exit()
 
 ################################################################################
 ################################################################################
@@ -129,7 +161,7 @@ for tt in range(t0,t):
     ax2.yaxis.set_major_locator(plt.NullLocator())
     ax2.xaxis.set_major_formatter(plt.NullFormatter())
     #ax1.set_title('Assamble: %03d' % tt)
-    plt.savefig('plots_bk/time_w_%03d.png' %tt)
+    plt.savefig('plots_n/time_w_%03d.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -178,7 +210,7 @@ for tt in range(t0,t):
     ax2.yaxis.set_major_locator(plt.NullLocator())
     ax2.xaxis.set_major_formatter(plt.NullFormatter())
     #ax1.set_title('Assamble: %03d' % tt)
-    plt.savefig('plots_bk/time_j_%03d.png' %tt)
+    plt.savefig('plots_n/time_j_%03d.png' %tt)
 
 ################################################################################
 ################################################################################
@@ -194,16 +226,16 @@ m_ke_j = []
 for tt in range(shape(data)[0]):
     u_c,v_c = geovelfield( data[tt,:,:]  ,x,y)
     u_f,v_f = geovelfield(f_field[tt,:,:],x,y)
-    u_w,v_w = geovelfield(w_field[tt,:,:],x,y)
-    u_j,v_j = geovelfield(j_field[tt,:,:],x,y)
+    #u_w,v_w = geovelfield(w_field[tt,:,:],x,y)
+    #u_j,v_j = geovelfield(j_field[tt,:,:],x,y)
     ke_c = KE(u_c,v_c)
     ke_f = KE(u_f,v_f)
-    ke_w = KE(u_w,v_w)
-    ke_j = KE(u_j,v_j)
+    #ke_w = KE(u_w,v_w)
+    #ke_j = KE(u_j,v_j)
     m_ke_c.append(mean(ke_c))
     m_ke_f.append(mean(ke_f))
-    m_ke_w.append(mean(ke_w))
-    m_ke_j.append(mean(ke_j))
+    #m_ke_w.append(mean(ke_w))
+    #m_ke_j.append(mean(ke_j))
 
 ################################################################################
 ################################################################################
@@ -218,7 +250,7 @@ figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_f]).T
 df = pd.DataFrame(data, columns=[r"$KE_c$", r"$KE_r$"])
 
-df.to_pickle('./ke_validation_f')
+df.to_pickle('./ke_validation_f_n')
 
 g1 = sns.jointplot(x=r"$KE_c$", y=r"$KE_r$", data=df, kind="kde",cmap='Blues',joint_kws={'shade_lowest':False}, fontsize=32)
 
@@ -243,7 +275,7 @@ g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate flat: ',mean([abs(y0/100),abs(1-y1/100)]))
 g1.ax_joint.legend_.remove()
-plt.savefig('e_vs_e.png')
+plt.savefig('e_vs_e_n.png')
 
 figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_w]).T
@@ -271,8 +303,8 @@ g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate sin: ',mean([abs(y0/100),abs(1-y1/100)]))
 g1.ax_joint.legend_.remove()
-plt.savefig('w_vs_e.png')
-df.to_pickle('./ke_validation_w')
+plt.savefig('w_vs_e_n.png')
+#df.to_pickle('./ke_validation_w_n')
 
 figure(dpi=300)
 data=np.vstack([m_ke_c,m_ke_j]).T
@@ -300,8 +332,8 @@ g1.ax_marg_x.set_xlim(0,100)
 g1.ax_marg_y.set_ylim(0,100)
 print('estimate jet: ',mean([abs(y0/100),abs(1-y1/100)]))
 g1.ax_joint.legend_.remove()
-plt.savefig('j_vs_e.png')
-df.to_pickle('./ke_validation_j')
+plt.savefig('j_vs_e_n.png')
+#df.to_pickle('./ke_validation_j_n')
 
 
 # for ii in range(0,30):
