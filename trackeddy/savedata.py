@@ -23,10 +23,10 @@ def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_d
     f.createDimension('lon', len(lon))
     f.createDimension('lat', len(lat))
     f.createDimension('time', tt)
-    longitude = f.createVariable('lon', 'f4', 'lon',zlib=True,least_significant_digit=5)
-    latitude = f.createVariable('lat', 'f4', 'lat',zlib=True,least_significant_digit=5)
+    longitude = f.createVariable('lon', 'f4', 'lon',zlib=True)
+    latitude = f.createVariable('lat', 'f4', 'lat',zlib=True)
     
-    time = f.createVariable('time', 'i4', 'time',zlib=True,least_significant_digit=5)
+    time = f.createVariable('time', 'i4', 'time',zlib=True)
     
     longitude[:] = lon
     latitude[:] = lat
@@ -47,13 +47,13 @@ def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_d
         
     if dim == '3D':
         f.createDimension('z', len(z))
-        levels = f.createVariable('z', 'i4', 'z',zlib=True,least_significant_digit=5)
-        varnc = f.createVariable(varname, 'f4', ('time', 'z', 'lat', 'lon'),zlib=True,least_significant_digit=5)
+        levels = f.createVariable('z', 'i4', 'z',zlib=True)
+        varnc = f.createVariable(varname, 'f4', ('time', 'z', 'lat', 'lon'),zlib=True)
         varnc[:,:,:,:] = var
         levels[:] = z
         levels.units = 'meters [m]'
     else:
-        varnc = f.createVariable(varname, 'f4', ('time', 'lat', 'lon'),zlib=True,least_significant_digit=5)
+        varnc = f.createVariable(varname, 'f4', ('time', 'lat', 'lon'),zlib=True)
         if tt==0:
             varnc[tt,:,:] = var
         else:
