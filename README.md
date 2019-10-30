@@ -11,8 +11,8 @@ This code will let you identify and track any normal shape in a 2D space. The pr
 
 ![Alt Text](https://github.com/Josue-Martinez-Moreno/trackeddy/blob/master/output/eddyn_13.gif "Eddy trajectory in the Souther Ocean")
 
-# Beta Fase Release:
-Now the source code supports the extraction of eddies each time step and moving in Z. Some bugs need to be fixed but right now it can be implemented in some data analysis.
+# v1.0 Release:
+Now the source code supports the extraction of eddies each time step and moving in Z.
 
 ![Alt Text](https://github.com/Josue-Martinez-Moreno/trackeddy/blob/develop/output/eke.png "Decomposition of the Kinetic energy in the Southern Ocean [Data provided by Adele Morrison].")
 
@@ -46,10 +46,9 @@ Work in progress!
 
 ## To learn more about the module TrackEddy
 
-Work in progress!
+* Martínez-Moreno, J., Hogg, A. McC., Kiss, A. E., Constantinou, N. C., and Morrison, A. K. (2019). Kinetic energy of eddy-like features from sea surface altimetry. *Journal of Advances in Modeling Earth Systems*, **11**, doi:[10.1029/2019MS001769](https://doi.org/10.1029/2019MS001769) 
 
 ### References:
-* Faghmous, J. H., Frenger, I., Yao, Y., Warmka, R., Lindell, A., & Kumar, V. (2015). A daily global mesoscale ocean eddy dataset from satellite altimetry. Scientific data, 2.
-* Chang, Y. L., & Oey, L. Y. (2014). Analysis of STCC eddies using the Okubo–Weiss parameter on model and satellite data. Ocean Dynamics, 64(2), 259-271.
-* Chelton, D. B., Schlax, M. G., Samelson, R. M., & de Szoeke, R. A. (2007). Global observations of large oceanic eddies. Geophysical Research Letters, 34(15).
-Work in progress!
+* Faghmous, J. H., Frenger, I., Yao, Y., Warmka, R., Lindell, A., & Kumar, V. (2015). A daily global mesoscale ocean eddy dataset from satellite altimetry. *Scientific Data*, **2**, 150028.
+* Chang, Y. L., & Oey, L. Y. (2014). Analysis of STCC eddies using the Okubo–Weiss parameter on model and satellite data. *Ocean Dynamics*, **64(2)**, 259-271.
+* Chelton, D. B., Schlax, M. G., Samelson, R. M., & de Szoeke, R. A. (2007). Global observations of large oceanic eddies. *Geophysical Research Letters*, **34(15)**, L15606.
