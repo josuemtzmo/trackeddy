@@ -9,7 +9,6 @@ import pylab as plt
 from trackeddy.datastruct import *
 from trackeddy.geometryfunc import *
 from trackeddy.physics import *
-from trackeddy.printfunc import *
 from trackeddy.savedata import *
 import seawater as sw
 from scipy import ndimage

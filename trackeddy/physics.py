@@ -104,8 +104,8 @@ def rossbyR(lon,lat):
     Barotropic Rossby radius
     '''
     try:
-        path=os.path.expanduser(os.path.dirname(os.path.realpath(__file__)))
-        RrD_file=xarray.open_mfdataset(path+'/../input/rossby_g.nc')
+        path=os.path.expanduser(os.path.dirname(os.path.realpath('__file__')))
+        RrD_file=xarray.open_dataset(path+'/../input/rossby_g.nc')
         lon=round(lon,2)
         lat=round(lat,2)
         if lon<0:
