@@ -12,11 +12,11 @@ This code will let you identify and track any normal shape in a 2D space. The pr
 ![Alt Text](https://github.com/Josue-Martinez-Moreno/trackeddy/blob/master/output/eddyn_13.gif "Eddy trajectory in the Souther Ocean")
 
 # v1.0 Release:
-Now the source code supports the extraction of eddies each time step and moving in Z.
+The source code supports the extraction of eddies each time step and moving in vertical coordinate `Z`.
 
 ![Alt Text](https://github.com/Josue-Martinez-Moreno/trackeddy/blob/develop/output/eke.png "Decomposition of the Kinetic energy in the Southern Ocean [Data provided by Adele Morrison].")
 
-## To get the code
+## Installing TrackEddy
 
 1. Make a new directory where you want the repository.
 1. Clone the TrackEddy repository from Github. In the command prompt, type:
@@ -27,7 +27,7 @@ This make the package an editable install so that it can be updated with future 
 `pip install --user .`
 
 
-## To update the code later
+## Updating TrackEddy
 
 1. Move into your TrackEddy directory.
 1. Update your GitHub repository.
@@ -40,13 +40,10 @@ or, for local installation:
 `pip install --ignore-installed --user .`
 
 
-## To test the code
+## Read more about TrackEddy in
 
-Work in progress!
+* Martínez-Moreno, J., Hogg, A. McC., Kiss, A. E., Constantinou, N. C., and Morrison, A. K. (2019). Kinetic energy of eddy-like features from sea surface altimetry. *Journal of Advances in Modeling Earth Systems*, **11(10)**, 3090-3105. doi:[10.1029/2019MS001769](https://doi.org/10.1029/2019MS001769) 
 
-## To learn more about the module TrackEddy
-
-* Martínez-Moreno, J., Hogg, A. McC., Kiss, A. E., Constantinou, N. C., and Morrison, A. K. (2019). Kinetic energy of eddy-like features from sea surface altimetry. *Journal of Advances in Modeling Earth Systems*, **11**, doi:[10.1029/2019MS001769](https://doi.org/10.1029/2019MS001769) 
 
 ### References:
 * Faghmous, J. H., Frenger, I., Yao, Y., Warmka, R., Lindell, A., & Kumar, V. (2015). A daily global mesoscale ocean eddy dataset from satellite altimetry. *Scientific Data*, **2**, 150028.
