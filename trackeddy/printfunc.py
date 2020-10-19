@@ -9,9 +9,15 @@ class Printer():
     Print things to stdout on one line dynamically
     """ 
     def __init__(self):
-        self.tic=time.clock()
+        self.tic = self.ttime()
         sys.stdout.flush()
         self.data=[]
+
+    def ttime(self):
+        if sys.version_info.major <= 3 and sys.version_info.minor < 8:
+            return time.clock()
+        else:
+            return time.time()
         
     def printtextoneline(self,string):
         sys.stdout.write("\r\x1b[K"+string.__str__())
@@ -20,7 +26,7 @@ class Printer():
     def timepercentprint(self,minv,maxv,step,i,neddies,loop2=None,diagnostics=False):
         data=[]
         percent=(float(i+1)/maxv)*100.0
-        etime=round(time.clock()-self.tic)
+        etime=round(self.ttime()-self.tic)
         stmtime=round((etime/percent)*100)
         
         progress=int(10/(maxv/(step*(i+1))))

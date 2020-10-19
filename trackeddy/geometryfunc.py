@@ -109,8 +109,8 @@ def fit_ellipse(x,y,diagnostics=False):
         a           = np.sqrt(abs(F/a))
         b           = np.sqrt(abs(F/c))
 
-        long_axis   = 2*max(a,b)
-        short_axis  = 2*min(a,b)
+        long_axis   = 2 * max(a,b)
+        short_axis  = 2 * min(a,b)
 
         # rotate the axes backwards to find the center point of the original TILTED ellipse
         R           = np.array([[ cos_phi,sin_phi],[-sin_phi,cos_phi ]])
@@ -129,7 +129,7 @@ def fit_ellipse(x,y,diagnostics=False):
         theta_r         = np.linspace(0,2*np.pi,len(y));
         ellipse_x_r     = X0 + a*np.cos(theta_r)
         ellipse_y_r     = Y0 + b*np.sin(theta_r)
-        rotated_ellipse =  np.dot(R, np.array([ellipse_x_r,ellipse_y_r]))
+        rotated_ellipse =  np.dot(R, np.array([ellipse_x_r, ellipse_y_r]))
 
         # pack ellipse into a structure
         ellipse_t = {'a':a,'b':b,'phi':anglexaxis_rad,'X0':X0,'Y0':Y0,\
@@ -285,13 +285,13 @@ def contourmaxvalue(var,x,y,levels,date=''):
         center_eddy=contourmaxvalue(contcoordx,contcoordx,sshnan,lon,lat,levels,date)
     '''
     if len(np.shape(var))==3 or date=='':
-        if levels[0]>0:
+        if levels > 0:
             sshextrem=np.nanmax(var[date,:,:])
         else:
             sshextrem=np.nanmin(var[date,:,:])
         indexes=find2D(var[date,:,:],sshextrem)
     else:
-        if levels[0]>0:
+        if levels > 0:
             sshextrem=np.nanmax(var)
         else:
             sshextrem=np.nanmin(var)
@@ -879,14 +879,8 @@ def insideness_contour(data,center,levels,mask=False,maskopt=None,diagnostics=Fa
     if type(diagnostics) != list:
         diagnostics=[diagnostics]
     data_rmove=np.array(np.zeros(np.shape(data)))
-    if (type(levels)==int or len(levels)==1 ) and levels < 0:
-        data_rmove[data<levels]=1
-    elif (type(levels)==int or len(levels)==1 ) and levels > 0:
-        data_rmove[data>levels]=1
-    elif levels[1]<0:
-        data_rmove[data<levels[1]]=1
-    else:
-        data_rmove[data>levels[0]]=1
+
+    data_rmove[data>levels]=1
         
     markers,features=np.asarray(ndimage.label(data_rmove))
 
@@ -929,16 +923,16 @@ def insideness_contour(data,center,levels,mask=False,maskopt=None,diagnostics=Fa
         markers=markers*0  
         returnmasked=True
     
-    if levels[0]<0 and maskopt!='forcefit':
+    if levels < 0 and maskopt!='forcefit':
         markers[data>0]=1
-    elif levels[0]>0 and maskopt!='forcefit':
+    elif levels > 0 and maskopt!='forcefit':
         markers[data<0]=1
-    elif levels[0]<0 and maskopt=='forcefit':
-        markers[np.multiply(data<levels[1]/2, data>levels[1]-levels[0]/4)]=0
-        data[np.multiply(data<levels[1]/2, data>levels[1]-levels[0]/4)]=0
-    elif levels[0]>0 and maskopt=='forcefit':
-        markers[np.multiply(data>levels[0]/2, data<levels[0]-levels[0]/4)]=0
-        data[np.multiply(data>levels[0]/2, data<levels[0]-levels[0]/4)]=0
+    elif levels < 0 and maskopt=='forcefit':
+        markers[ np.multiply( data < levels/2, data > levels-levels/4) ]=0
+        data[ np.multiply( data < levels/2, data > levels-levels/4) ]=0
+    elif levels > 0 and maskopt=='forcefit':
+        markers[ np.multiply(data > levels/2, data < levels-levels/4) ]=0
+        data[ np.multiply(data > levels/2, data < levels-levels/4) ]=0
         
     maskeddata=ma.masked_array(data, markers)
     if ("contours" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):
@@ -957,8 +951,7 @@ def insideness_contour(data,center,levels,mask=False,maskopt=None,diagnostics=Fa
         return maskeddata,markers 
     else:
         return maskeddata
-              
-    
+
 def gaussareacheck(values,level,areaparms,gauss2dfit,contour_area,contour_x=None,contour_y=None):
     #print('gauss check')
     Lon, Lat = np.meshgrid(values[0], values[1])

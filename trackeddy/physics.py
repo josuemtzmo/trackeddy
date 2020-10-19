@@ -7,6 +7,7 @@ import seawater as sw
 from netCDF4 import Dataset
 import os
 import xarray
+import trackeddy
 
 def okuboweissparm(u,v,lat,lon,z):
     if z==0:
@@ -104,7 +105,7 @@ def rossbyR(lon,lat):
     Barotropic Rossby radius
     '''
     try:
-        path=os.path.expanduser(os.path.dirname(os.path.realpath('__file__')))
+        path=os.path.dirname(trackeddy.__file__)
         RrD_file=xarray.open_dataset(path+'/../input/rossby_g.nc')
         lon=round(lon,2)
         lat=round(lat,2)
