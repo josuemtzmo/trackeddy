@@ -9,7 +9,7 @@ from trackeddy.geometryfunc import *
 from trackeddy.physics import *
 
 # Load Data
-filepath = '../input/dt_global_allsat_phy_l4_20160901.nc'
+filepath = './input/dt_global_allsat_phy_l4_20160901.nc'
 
 track_class = TrackEddy(filepath)
 

@@ -28,7 +28,7 @@ class TrackEddy():
         self.coords = coords
         self.identified_eddies={}
         
-        dx,dy = self.coords['X'].diff('X').mean() , self.coords['Y'].diff('Y').
+        dx,dy = self.coords['X'].diff('X').mean() , self.coords['Y'].diff('Y').mean()
         
         self.preferences = {'ellipse_error':[2*dy,2*dx],'eccentricity':0.5,'gaussian':0.8}
 
@@ -38,8 +38,7 @@ class TrackEddy():
         close_contours_ji = extract_contours(self.DataArray,level,self.coords)
         number_close_contours = np.shape(close_contours_ji)[0]
         coords_range = coordinates_range(self.coords)
-        mean()
-
+        
         contours=[]
         contours_rossby=[]
 
@@ -86,7 +85,7 @@ class TrackEddy():
                 # single_level_dict(contours_yx_deg, ellipse_dict,level)
                 continue
 
-            data_inside_contour = extract_data_inside_contour()
+            data_inside_contour = extract_data_inside_contour(self.DataArray,self.coords,contours_yx_deg)
             
 
             theta_r = np.linspace(0, 2 * np.pi, len(contours_yx_deg))
@@ -104,12 +103,15 @@ class TrackEddy():
 
 
 
-def extract_data_inside_contour(data,coords,contours):
-
-    xidmin,xidmax=find2l(lon,lon,CONTeach[:,0].min(),CONTeach[:,0].max())
-    yidmin,yidmax=find2l(lat,lat,CONTeach[:,1].min(),CONTeach[:,1].max())
-
-    data4gauss=datanan[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold].copy()
+def extract_data_inside_contour(datarray,coords,contours,halo = 3):
+    # Find max and min of coordinates
+    yidmin,yidmax=find2l(coords['Y'],coords['Y'],contours[:,0].min(),contours[:,0].max())
+    xidmin,xidmax=find2l(coords['X'],coords['X'],contours[:,1].min(),contours[:,1].max())
+    # Slice of coordinates
+    xslice = slice(xidmin.values-halo,xidmax.values+halo)
+    yslice = slice(yidmin.values-halo,yidmax.values+halo)
+    # Extract sliced data
+    data4gauss = datarray.isel({'X':xslice,'Y':yslice}).copy()
 
     data_inside_contour=insideness_contour(data4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
 
