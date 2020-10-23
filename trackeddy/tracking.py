@@ -31,7 +31,8 @@ class TrackEddy():
         dx,dy = self.coords['X'].diff('X').mean() , self.coords['Y'].diff('Y').mean()
         
         self.preferences = {'ellipse_error':[2*dy,2*dx],'eccentricity':0.5,'gaussian':0.8}
-
+        self.mask_contour_opt = "contour"
+        
     @check_single_level
     def _scan_eddy_single_level(self,level,method='',fit_gaussian=True,geo=True):
         # We are using skimage.measure.find_contours, which returns the contour using indexes, thus for each contour we will convert to xy space.
@@ -47,10 +48,10 @@ class TrackEddy():
             if not is_contour_close(close_contours_ji[n_contour]):
                 continue
             # Convert ij contour to xy contour.
-            contours_yx_deg = contour_ji_2_yx(close_contours_ji[n_contour],
+            contour_yx_deg = contour_ji_2_yx(close_contours_ji[n_contour],
                                 coords_range,
                                 self.DataArray.shape)
-            contours.append(contours_yx_deg)
+            contours.append(contour_yx_deg)
             # Compute area of polygon.
             area = poly_area(close_contours_ji[n_contour],
                                 coords_range,
@@ -58,12 +59,12 @@ class TrackEddy():
                                 geo)
             # Compute equivalent radius.
             radius = np.sqrt(area)/np.pi
-            Rossby_radius = rossbyR(*np.flipud(contours_yx_deg.mean(axis=0)))
+            Rossby_radius = rossbyR(*np.flipud(contour_yx_deg.mean(axis=0)))
             # Check area of closed contour.
             if radius >= Rossby_radius:
                 continue
             # Fit ellipse
-            ellipse_dict = ellipse_fit_leastsq(contours_yx_deg)
+            ellipse_dict = ellipse_fit_leastsq(contour_yx_deg)
             # Check if fitting a ellipse was succesful.
             if not ellipse_dict:
                 continue
@@ -82,40 +83,54 @@ class TrackEddy():
 
             if not fit_gaussian:
                 # TODO: finish coding single level dict
-                # single_level_dict(contours_yx_deg, ellipse_dict,level)
+                # single_level_dict(contour_yx_deg, ellipse_dict,level)
                 continue
 
-            data_inside_contour = extract_data_inside_contour(self.DataArray,self.coords,contours_yx_deg)
+            # Get centre location of contour 
+            # (i.e. top center location of close contour)
+            xslice, yslice, centertop = get_centre_location(self.coords,contour_yx_deg)
+            # Extract sliced data as np.array
+            data4gauss = self.DataArray.isel({'X':xslice,'Y':yslice}).copy()
+            # Check that subset of data is 2D.
+            if 0 in data4gauss.shape:
+                continue
+            # Extract data inside contour and mask regions of the data.
+            data_inside_contour = insideness_contour(data4gauss.values,centertop, level, self.mask_contour_opt)
+
+            eddy_c_location = find_eddy_max_or_cmass(data4gauss,contour_yx_deg,level,halo=3)
             
+            #TODO add gaussian profile test?
 
-            theta_r = np.linspace(0, 2 * np.pi, len(contours_yx_deg))
-            yx = ellipse_dict['generator'].predict_xy(theta_r) + contours_yx_deg.mean(axis=0)
+            # FIT gaussian
+            fixvalues = [contour_yx_deg[:,1],contour_yx_deg[:,0],\
+                        eddy_c_location[2]]
 
-            contours_rossby.append(contours_yx_deg)
+            initial_guess = [eddy_c_location[0], eddy_c_location[1],\
+                            
+                            ]
 
+            gausssianfitp,R2 = fit2Dcurve(data_inside_contour,\
+                            fixvalues,\
+                            levels,initial_guess=initial_guess,date='',\
+                            mode=mode,diagnostics=diagnostics)
+
+            
+            twoD_Gaussian(coords, sigma_x, sigma_y, theta, offset=0)
+
+
+
+            theta_r = np.linspace(0, 2 * np.pi, len(contour_yx_deg))
+            yx = ellipse_dict['generator'].predict_xy(theta_r) + contour_yx_deg.mean(axis=0)
+
+            contours_rossby.append(contour_yx_deg)
 
         return contours, contours_rossby
     
     # TODO: export same data structure with fitted gaussian and without.
-    def single_level_dict(contours_yx_deg,ellipse_dict):
-        theta_r = np.linspace(0, 2 * np.pi, len(contours_yx_deg))
-        yx = ellipse_dict['generator'].predict_xy(theta_r) + contours_yx_deg.mean(axis=0)
+    def single_level_dict(contour_yx_deg,ellipse_dict):
+        theta_r = np.linspace(0, 2 * np.pi, len(contour_yx_deg))
+        yx = ellipse_dict['generator'].predict_xy(theta_r) + contour_yx_deg.mean(axis=0)
 
-
-
-def extract_data_inside_contour(datarray,coords,contours,halo = 3):
-    # Find max and min of coordinates
-    yidmin,yidmax=find2l(coords['Y'],coords['Y'],contours[:,0].min(),contours[:,0].max())
-    xidmin,xidmax=find2l(coords['X'],coords['X'],contours[:,1].min(),contours[:,1].max())
-    # Slice of coordinates
-    xslice = slice(xidmin.values-halo,xidmax.values+halo)
-    yslice = slice(yidmin.values-halo,yidmax.values+halo)
-    # Extract sliced data
-    data4gauss = datarray.isel({'X':xslice,'Y':yslice}).copy()
-
-    data_inside_contour=insideness_contour(data4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
-
-    return data_inside_contour
 
 
 #plt.plot(contours_xy_deg[:,1],contours_xy_deg[:,0],'--g')
@@ -138,7 +153,28 @@ def extract_data_inside_contour(datarray,coords,contours,halo = 3):
     # def _fit_gaussian(self):
     #     pass
 
+#TODO PASS BOUNDS when optimising the gaussian fit.
+
+def get_centre_location(coords,contours,halo = 3):
+    """
+    """
+    # Find max and min of coordinates
+    yidmin, yidmax = find2l(coords['Y'],coords['Y'],contours[:,0].min(),contours[:,0].max())
+    xidmin, xidmax = find2l(coords['X'],coords['X'],contours[:,1].min(),contours[:,1].max())
+    # Find centre of contour. 
+    cmindex = find(contours[:,1], contours[:,1].max())
+    # Locate position of top centre of contour.
+    ymindex,xmindex = find2l(coords['Y'],coords['X'],contours[cmindex,0],contours[cmindex,1])
+    # Index location of centre contour.
+    centertop = [ ymindex-yidmin+halo-2, xmindex-xidmin+halo-1 ]
+    # Slice of coordinates
+    xslice = slice(xidmin.values-halo,xidmax.values+halo)
+    yslice = slice(yidmin.values-halo,yidmax.values+halo)
+    return xslice, yslice, centertop
+
 def ellipse_fit_leastsq(contour):
+    """
+    """
     # Fit ellipse using skimage.measure
     ellipse_m = EllipseModel()
     mean_loc_contour = contour.mean(axis=0)
@@ -148,9 +184,13 @@ def ellipse_fit_leastsq(contour):
         return {'x0' : xc, 'y0' : yc, 'a' : a, 'b': b, 'theta': theta, 'generator': ellipse_m, 'residual': residual}
 
 def is_contour_close(contour):
+    """
+    """
     return contour[0,0] == contour[-1,0] and contour[0,1] == contour[-1,1]
 
 def rossby_area(contour):
+    """
+    """
     # Flip contour from y,x to x,y
     rossby_radius = rossbyR(*np.flipud(contour.mean(axis=0)))
     rossby_area = np.pi*(rossby_radius**2)
@@ -158,7 +198,8 @@ def rossby_area(contour):
 
 
 def poly_area(contour_ji,coords_range,shape,geo=True):
-    # 
+    """
+    """
     if geo:
         verts= contour_ji_2_meters(contour_ji,coords_range,shape)
     else: 
@@ -170,12 +211,16 @@ def poly_area(contour_ji,coords_range,shape,geo=True):
 
 
 def contour_ji_2_meters(contour_ji,coords_range,shape):
+    """
+    """
     # Convert to meters, to compute area of polygon.
     yx_arc = np.pi*earth_radius*coords_range['range']/180
     yx_arc_min = np.pi*earth_radius*coords_range['mins']/180
     return ((contour_ji/shape)*yx_arc) + yx_arc_min
 
 def extract_contours(data,level,coords):
+    """
+    """
     contours_ji = find_contours(data.values, level=level)
     return contours_ji
 
@@ -186,6 +231,8 @@ def contour_ji_2_yx(contour_ji,coords_range,shape,geo=True):
     return ((contour_ji/shape)*coords_range['range']) + coords_range['mins']
 
 def coordinates_range(coords):
+    """
+    """
     xmin = min(coords['X']).values
     ymin = min(coords['Y']).values
     x_range = ( max(coords['X']) - xmin).values
@@ -194,12 +241,163 @@ def coordinates_range(coords):
     return {'range':np.array([y_range,x_range]),'mins':np.array([ymin,xmin])}
     
 
+def find_eddy_max_or_cmass(dataarray,contour,level,halo=3,eddy_center_method="maximum"):
+    """
+    """
+    if eddy_center_method == 'maximum':
+        eddy_c_location=contourmaxvalue(dataarray,contour[:,1],\
+                                contour[:,0],level)
+
+        eddy_c_location[3]=eddy_c_location[3]-halo+1
+        eddy_c_location[4]=eddy_c_location[4]-halo+1
+
+    elif eddy_center_method == 'masscenter':
+        eddy_c_location = centroidvalue(data_in_contour,dataarray.X,\
+                            dataarray.Y,level)
+
+        eddy_c_location[3]=eddy_c_location[3]-halo+1
+        eddy_c_location[4]=eddy_c_location[4]-halo+1
+    return eddy_c_location
 
 
+def contourmaxvalue(var,x,y,levels):
+    '''
+    *************** contourmaxvalue *******************
+    Find the maximum value inside an specific contour.
+    Notes:
+        
+    Args:
+        var (array): 3D Matrix representing a surface (np.shape(var)=(date,len(x),len(y))).
+        x (list|arrat): Contains the coordinate X of the grid of var.
+        y (list|arrat): Contains the coordinate Y of the grid of var.
+        levels (list): Level of the extracted contour.
+    Returns:
+        coord (list) - Location of the max value in the grid.
+    Usage:
+        center_eddy=contourmaxvalue(contcoordx,contcoordx,sshnan,lon,lat,levels,date)
+    '''
+    if levels > 0:
+        sshextrem=np.nanmax(var)
+    else:
+        sshextrem=np.nanmin(var)
+    indexes=find2D(var[:,:],sshextrem)
+    coord=[x[indexes[1][0]],y[indexes[0][0]],sshextrem,indexes[1][0],indexes[0][0]]
+    return coord
+
+def centroidvalue(var,x,y,levels):
+    '''
+    *************** centroidvalue *******************
+    Find the centroid inside an specific contour.
+    Notes:
+        
+    Args:
+        contcoordx (list|array): Contains the coordinates in X of the contour of the field var. 
+        contcoordy (list|array): Contains the coordinates in Y of the contour of the field var.
+        var (array): 3D Matrix representing a surface (np.shape(var)=(date,len(x),len(y))).
+        x (list|arrat): Contains the coordinate X of the grid of var.
+        y (list|arrat): Contains the coordinate Y of the grid of var.
+        levels (list): Level of the extracted contour.
+        date (int): Used if len(var)==3 (i.e. Var contains a time dimension).
+    Returns:
+        coord (list) - Location of the centroid in the grid.
+    Usage:
+        center_eddy=centroidvalue(contcoordx,contcoordx,sshnan,lon,lat,levels,date)
+    '''
+    var=var.filled(0)
+    var=np.abs(var)
+    sum_T=np.nansum(var)
+    sum_X=np.nansum(var,axis=0)
+    sum_Y=np.nansum(var,axis=1)
+    XM=0
+    for ii in range(len(sum_X)):
+        XM=XM+(sum_X[ii]*x[ii])
+    YM=0
+    for ii in range(len(sum_Y)):
+        YM=YM+(sum_Y[ii]*y[ii])
+    xcpos=XM/sum_T
+    ycpos=YM/sum_T
+    coord=np.asarray([xcpos,ycpos])
+    return coord
+
+def twoD_Gaussian(coords,xo,yo, sigma_x, sigma_y, theta, offset=0):
+    '''
+    *************** twoD_Gaussian *******************
+    Build a 2D gaussian.
+    Notes:
+        Remmember to do g.ravel().reshape(len(x),len(y)) for plotting purposes. 
+    Args:
+        coords [x,y] (list|array): Coordinates in x and y.
+        amplitude (float): Amplitud of gaussian.
+        x0 , yo (float): Center of Gausian.
+        sigma_x,sigma_y (float): Deviation.
+        theta (Float): Orientation.
+        offset (Float): Gaussian Offset.
+    Returns:
+        g.ravel() (list|array) - Gaussian surface in a list.
+    Usage:
+        Check scan_eddym function.
+    '''
+    x=coords[0]
+    y=coords[1]
+    amplitude = coords[2]
+
+    cos_phi = np.cos(theta)
+    sin_phi = np.sin(theta)
+    a = (cos_phi**2)/(2*sigma_x**2) + (sin_phi**2)/(2*sigma_y**2)
+    b = (np.sin(2*theta))/(4*sigma_x**2) - (np.sin(2*theta))/(4*sigma_y**2)
+    c = (sin_phi**2)/(2*sigma_x**2) + (cos_phi**2)/(2*sigma_y**2)
+    g = amplitude*np.exp(-(a*(x-xo)**2 + 2*b*(x-xo)*(y-yo) + c*(y-yo)**2))
+    return g.ravel()
+
+def _gaussian_compute_residual(gaussian_params, coords, original_data):
+    # Construct data.
+    fitted_gaussian = construct_gaussian(coords,*gaussian_params).reshape(np.shape(varm))
+    # Cost function.
+    residual = np.exp(np.nanmean(abs(original_data - fitted_gaussian))) - 1
+    return residual
 
 
+def minimize_surface_fitting(data,values,initial_guess=''):
+    '''
+    *************** minimize_surface_fitting *******************
+    Fit a surface to the data.
+    Notes:
+        
+    Args:
+        
+    Returns:
+        
+    Usage:
+        
+    '''
+    Lon, Lat = np.meshgrid(values[0], values[1])
+    coords=(Lon,Lat,values[2],values[3],values[4])
+    
+    mask=ma.getmask(data[:,:])
+    
+    if initial_guess=='':
+        initial_guess = [0,0,1,1,0,0,0,0]   
+
+    #TODO constrains of initial guess i.e. abs(initial_guess[0])
+    constraints = ({'type':'ineq', 'fun':lambda x : [3]        },
+                   {'type':'ineq', 'fun':lambda x : x[4]        },
+                   {'type':'ineq', 'fun':lambda x : 1-x[4]      },
+                   {'type':'ineq', 'fun':lambda x : 1-x[3]      })
+
+    minimized_function = minimize(_gaussian_compute_residual, initial_guess,
+                                args=(coords,data), method='SLSQP',
+                                options={'xtol': 1e-12, 'disp': False},
+                                constraints = my_constraints)
+
+    fit_params = minimized_function.x
+
+    return fitdict
 
 
+################################################################################
+################################################################################
+################################################################################
+################################################################################
 
 
 def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',maskopt='contour',preferences=None,mode='gaussian',basemap=False,checkgauss=True,areaparms=None,usefullfit=False,diagnostics=False,plotdata=False,debug=False):
@@ -364,10 +562,10 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
         
         if len(shapedata)==3:
             data4gauss=datanan[date,yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold].copy()
-            data_in_contour=insideness_contour(data4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
+            data_in_contour = insideness_contour(data4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
         else:
             data4gauss=datanan[yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold].copy()
-            data_in_contour=insideness_contour(data4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
+            data_in_contour = insideness_contour(data4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
         
         checkcontour = check_closecontour(CONTeach,lon_contour,lat_contour,data4gauss)
         

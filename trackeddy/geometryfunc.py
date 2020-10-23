@@ -299,7 +299,7 @@ def contourmaxvalue(var,x,y,levels,date=''):
     coord=[x[indexes[1][0]],y[indexes[0][0]],sshextrem,indexes[1][0],indexes[0][0]]
     return coord
 
-def centroidvalue(contcoordx,contcoordy,var,x,y,levels,date,threshold=1):
+def centroidvalue(var,x,y,levels,date):
     '''
     *************** centroidvalue *******************
     Find the centroid inside an specific contour.
@@ -458,7 +458,7 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
 
 def gaussian2Dresidual(popt, coords, varm):
     g=twoD_Gaussian(coords,*popt).reshape(np.shape(varm))
-    residual = np.exp(np.abs(np.float128(np.nanmean(abs(varm - g))))) - 1
+    residual = np.exp(np.nanmean(abs(varm - g))) - 1
     #print('Residual:',np.nanmean(residual))
     return residual
 
@@ -906,13 +906,13 @@ def insideness_contour(data,center,levels,mask=False,maskopt=None,diagnostics=Fa
         plt.show()
         returnmasked=True
 
-    elif markers.max()!=1 and (maskopt=='contour' or maskopt=='forcefit'):
-        if center[1]==np.shape(markers)[1]:
-            markers[markers!=markers[center[0],center[1]-1]]=0
-        elif center[0]==np.shape(markers)[0]:
-            markers[markers!=markers[center[0]-1,center[1]]]=0
+    elif markers.max() != 1 and (maskopt == 'contour' or maskopt == 'forcefit'):
+        if center[1] == np.shape(markers)[1]:
+            markers[markers!=markers[center[0],center[1]-1]] = 0
+        elif center[0] == np.shape(markers)[0]:
+            markers[markers!=markers[center[0]-1,center[1]]] = 0
         else:
-            markers[markers!=markers[center[0],center[1]]]=0
+            markers[markers!=markers[center[0],center[1]]] = 0
         markers=markers.max()-markers
         returnmasked=True 
             
