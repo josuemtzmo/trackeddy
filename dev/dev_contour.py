@@ -4,9 +4,6 @@ from netCDF4 import Dataset
 import os
 import cmocean as cm
 from trackeddy.tracking import *
-from trackeddy.datastruct import *
-from trackeddy.geometryfunc import *
-from trackeddy.physics import *
 
 # Load Data
 filepath = './input/dt_global_allsat_phy_l4_20160901.nc'
@@ -58,3 +55,35 @@ plt.show()
 #              ,maskopt='contour',diagnostics='contour',pprint=True,debug=False)
 
 
+# import cmocean as cm
+
+# Lon,Lat = np.meshgrid(fixvalues[1],fixvalues[0])
+# init_gaussian = construct_gaussian((Lat,Lon),*initial_guess).reshape(np.shape(data4gauss))
+
+# opt_gaussian = construct_gaussian((Lat,Lon),*gausssianfitp.x).reshape(np.shape(data4gauss))
+
+# plt.subplot(121)
+# plt.plot(contour_yx_deg[:,1],contour_yx_deg[:,0])
+# plt.contourf(Lon,Lat,data4gauss,vmin=-0.1,vmax=0.1,cmap=cm.cm.balance)
+# plt.contour(Lon,Lat,init_gaussian,colors = 'k')
+# plt.contour(Lon,Lat,opt_gaussian,vmin=-0.1,vmax=0.1,cmap=cm.cm.balance)
+
+# test = np.where(data4gauss==data4gauss.max())
+# plt.plot(Lon[test[0],test[1]],Lat[test[0],test[1]],'*c')
+
+# plt.plot(eddy_c_location[0],eddy_c_location[1],'.m')
+
+# plt.subplot(122)
+# plt.contourf(Lon,Lat,data4gauss-opt_gaussian,vmin=-0.1,vmax=0.1,cmap=cm.cm.balance)
+
+# plt.colorbar()
+# plt.show()
+
+# data4gauss.plot.contourf(levels=np.linspace(0,level,10))
+# plt.plot(contour_yx_deg[:,1],contour_yx_deg[:,0])
+# plt.plot(eddy_c_location[0],eddy_c_location[1],'.m')
+
+# contour_centroid = np.mean(contour_yx_deg,axis=0)
+# plt.plot(contour_centroid[1],contour_centroid[0],'*c')
+
+# plt.show()
