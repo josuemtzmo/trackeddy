@@ -99,6 +99,9 @@ def check_single_level(func):
 
         if type(self.level) != float and type(self.level) != int:
             raise ValueError("_scan_eddy_single_level only supports one level at the time, use _scan_eddy_multiple_level instead")
+        
+        if self.spatial_filter['type'] == 'convolution':
+            self.filter_data_spatially()
 
         contours, contours_rossby = func(self,*args, **kwargs)
 

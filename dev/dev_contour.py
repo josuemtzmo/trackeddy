@@ -4,17 +4,45 @@ from netCDF4 import Dataset
 import os
 import cmocean as cm
 from trackeddy.tracking import *
+from trackeddy.trackeddy import *
+
+import time 
 
 # Load Data
 filepath = './input/dt_global_allsat_phy_l4_20160901.nc'
 
-track_class = TrackEddy(filepath)
+# tic = time.time()
+# track_class = TrackEddy(filepath)
 
-closed_contours, contours_rossby = track_class._scan_eddy_single_level(level = 0.1,geo=True)
+# closed_contours, contours_rossby = track_class._scan_eddy_single_level(level = 0.1,geo=True)
+
+# toc = time.time()
+
+# print('New code: ', toc-tic, 's, Identified eddies:', *np.shape(contours_rossby))
+
+
+tic = time.time()
+
+data = xr.open_dataset(filepath)
+
+filters = {'time':{'type':'historical','t':None,'t0':None,'value':None},
+           'spatial':{'type':'moving','window':120,'mode':'uniform'}}
+
+preferences={'ellipse':0.7,'eccentricity':0.95,'gaussian':0.7}
+
+levels = {'max':0.3,'min':0.1,'step':0.1}
+
+eddytd=analyseddyzt(data.sla.values,data.longitude.values,data.latitude.values,0,np.shape(data.sla)[0],1,levels,mask='',maskopt='contour',timeanalysis='none'\
+                    ,preferences=preferences,filters=filters,destdir='',physics='',diagnostics=False,pprint=False)
+
+toc = time.time()
+
+print('New code: ', toc-tic, 's, Identified eddies:')
+
 
 data = xr.open_dataset(filepath).squeeze()
 
-plt.figure( figsize = (10, 5), dpi = 500)
+plt.figure( figsize = (5, 2), dpi = 300)
 # data.sla.plot.contourf(x='longitude',y='latitude')
 # data.sla.plot.contour(x='longitude',y='latitude',levels=[0.1])
 
@@ -71,7 +99,7 @@ plt.show()
 # test = np.where(data4gauss==data4gauss.max())
 # plt.plot(Lon[test[0],test[1]],Lat[test[0],test[1]],'*c')
 
-# plt.plot(eddy_c_location[0],eddy_c_location[1],'.m')
+# plt.plot(eddy_c_location[1],eddy_c_location[0],'.m')
 
 # plt.subplot(122)
 # plt.contourf(Lon,Lat,data4gauss-opt_gaussian,vmin=-0.1,vmax=0.1,cmap=cm.cm.balance)
