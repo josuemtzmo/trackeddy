@@ -4,7 +4,8 @@ from netCDF4 import Dataset
 import os
 import cmocean as cm
 from trackeddy.tracking import *
-from trackeddy.trackeddy import *
+import xarray as xr
+#from trackeddy.trackeddy import *
 
 import time 
 
@@ -30,7 +31,7 @@ filters = {'time':{'type':'historical','t':None,'t0':None,'value':None},
 
 preferences={'ellipse':0.7,'eccentricity':0.95,'gaussian':0.7}
 
-levels = {'max':0.3,'min':0.1,'step':0.1}
+levels = 0.1
 
 eddytd=analyseddyzt(data.sla.values,data.longitude.values,data.latitude.values,0,np.shape(data.sla)[0],1,levels,mask='',maskopt='contour',timeanalysis='none'\
                     ,preferences=preferences,filters=filters,destdir='',physics='',diagnostics=False,pprint=False)
