@@ -5,21 +5,21 @@ import os
 import cmocean as cm
 from trackeddy.tracking import *
 import xarray as xr
-#from trackeddy.trackeddy import *
+from trackeddy.trackeddy import *
 
 import time 
 
 # Load Data
-filepath = './input/dt_global_allsat_phy_l4_20160901.nc'
+filepath = '../input/dt_global_allsat_phy_l4_20160901.nc'
 
-# tic = time.time()
-# track_class = TrackEddy(filepath)
+tic = time.time()
+track_class = TrackEddy(filepath)
 
-# closed_contours, contours_rossby = track_class._scan_eddy_single_level(level = 0.1,geo=True)
+closed_contours, contours_rossby = track_class._scan_eddy_single_level(level = 0.1,geo=True)
 
-# toc = time.time()
+toc = time.time()
 
-# print('New code: ', toc-tic, 's, Identified eddies:', *np.shape(contours_rossby))
+print('New code: ', toc-tic, 's, Identified eddies:', *np.shape(contours_rossby))
 
 
 tic = time.time()
@@ -38,23 +38,23 @@ eddytd=analyseddyzt(data.sla.values,data.longitude.values,data.latitude.values,0
 
 toc = time.time()
 
-print('New code: ', toc-tic, 's, Identified eddies:')
+print('Old code: ', toc-tic, 's, Identified eddies:', len(eddytd))
 
 
 data = xr.open_dataset(filepath).squeeze()
 
-plt.figure( figsize = (5, 2), dpi = 300)
-# data.sla.plot.contourf(x='longitude',y='latitude')
-# data.sla.plot.contour(x='longitude',y='latitude',levels=[0.1])
+# plt.figure( figsize = (5, 2), dpi = 300)
+# # data.sla.plot.contourf(x='longitude',y='latitude')
+# # data.sla.plot.contour(x='longitude',y='latitude',levels=[0.1])
 
-for ii in range( np.shape( closed_contours )[0]):
-    plt.plot( closed_contours[ii][:,1], closed_contours[ii][:,0], '-r' )
+# for ii in range( np.shape( closed_contours )[0]):
+#     plt.plot( closed_contours[ii][:,1], closed_contours[ii][:,0], '-r' )
 
-for jj in range( np.shape( contours_rossby )[0]):
-    plt.plot( contours_rossby[jj][:,1], contours_rossby[jj][:,0], '-b',linewidth=0.5 )
-print(np.shape( closed_contours), np.shape(contours_rossby) )
+# for jj in range( np.shape( contours_rossby )[0]):
+#     plt.plot( contours_rossby[jj][:,1], contours_rossby[jj][:,0], '-b',linewidth=0.5 )
+# print(np.shape( closed_contours), np.shape(contours_rossby) )
 
-plt.show()
+# plt.show()
 
 # # Open netcdf Dataset.
 # ncfile     = Dataset(filepath)

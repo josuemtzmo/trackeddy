@@ -23,8 +23,14 @@ import copy
 
 earth_radius = 6371e3 #meters
 
-class TrackEddy():
+# New version: 32.3 s ± 1.94 s per loop (mean ± std. dev. of 7 runs, 1 loop each)
+# Old version: 48.9 s ± 1.68 s per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
+
+class TrackEddy(object):
+    """
+    
+    """
     @check_input
     def __init__(self,dataset,coords=None,variable=None,**kwargs):
         self.DataArray = dataset[variable].squeeze()
@@ -101,7 +107,7 @@ class TrackEddy():
             if 0 in data4gauss.shape:
                 continue
             # Extract data inside contour and mask regions of the data.
-            data_inside_contour = insideness_contour(data4gauss.values,centertop, level, self.mask_contour_opt)
+            data_inside_contour = extract_inside_contour(data4gauss.values,centertop, level, self.mask_contour_opt)
             # Eddy centre is the centroid of the close contour.
             eddy_c_location = find_centre_and_max(contour_yx_deg,data4gauss)
             
@@ -300,65 +306,6 @@ def coordinates_range(coords):
     y_range = ( max(coords['Y']) - ymin).values
     
     return {'range':np.array([y_range,x_range]),'mins':np.array([ymin,xmin])}
-    
-def contourmaxvalue(var,x,y,levels):
-    '''
-    *************** contourmaxvalue *******************
-    Find the maximum value inside an specific contour.
-    Notes:
-        
-    Args:
-        var (array): 3D Matrix representing a surface (np.shape(var)=(date,len(x),len(y))).
-        x (list|arrat): Contains the coordinate X of the grid of var.
-        y (list|arrat): Contains the coordinate Y of the grid of var.
-        levels (list): Level of the extracted contour.
-    Returns:
-        coord (list) - Location of the max value in the grid.
-    Usage:
-        center_eddy=contourmaxvalue(contcoordx,contcoordx,sshnan,lon,lat,levels,date)
-    '''
-    if levels > 0:
-        sshextrem=np.nanmax(var)
-    else:
-        sshextrem=np.nanmin(var)
-    indexes=find2D(var[:,:],sshextrem)
-    coord=[x[indexes[1][0]],y[indexes[0][0]],sshextrem,indexes[1][0],indexes[0][0]]
-    return coord
-
-def centroidvalue(var,x,y,levels):
-    '''
-    *************** centroidvalue *******************
-    Find the centroid inside an specific contour.
-    Notes:
-        
-    Args:
-        contcoordx (list|array): Contains the coordinates in X of the contour of the field var. 
-        contcoordy (list|array): Contains the coordinates in Y of the contour of the field var.
-        var (array): 3D Matrix representing a surface (np.shape(var)=(date,len(x),len(y))).
-        x (list|arrat): Contains the coordinate X of the grid of var.
-        y (list|arrat): Contains the coordinate Y of the grid of var.
-        levels (list): Level of the extracted contour.
-        date (int): Used if len(var)==3 (i.e. Var contains a time dimension).
-    Returns:
-        coord (list) - Location of the centroid in the grid.
-    Usage:
-        center_eddy=centroidvalue(contcoordx,contcoordx,sshnan,lon,lat,levels,date)
-    '''
-    var=var.filled(0)
-    var=np.abs(var)
-    sum_T=np.nansum(var)
-    sum_X=np.nansum(var,axis=0)
-    sum_Y=np.nansum(var,axis=1)
-    XM=0
-    for ii in range(len(sum_X)):
-        XM=XM+(sum_X[ii]*x[ii])
-    YM=0
-    for ii in range(len(sum_Y)):
-        YM=YM+(sum_Y[ii]*y[ii])
-    xcpos=XM/sum_T
-    ycpos=YM/sum_T
-    coord=np.asarray([xcpos,ycpos])
-    return coord
 
 def construct_gaussian(coords,amplitude,xo,yo, sigma_x, sigma_y, theta, offset=0):
     '''
@@ -421,8 +368,8 @@ def minimize_surface_fitting(data,values,initial_guess='',etol=1e-2):
     error = 1
     n = 0
     # Initial bound percentage for a and b. 
-    a_b_percent = 0.5 
-    # Increase bounds until we get a result smaller than etol.
+    a_b_percent = 4 
+    # Decrease bounds until we get a result smaller than etol.
     while error > etol:    
         # Construct bounds
         gaussian_bounds = (range_bounds(initial_guess[0],0.01), # Amplitud bounds
@@ -441,7 +388,7 @@ def minimize_surface_fitting(data,values,initial_guess='',etol=1e-2):
                                 bounds = gaussian_bounds)#,
                                 #constraints = gaussian_constraints)
         # Double percentage
-        a_b_percent = a_b_percent*2
+        a_b_percent = a_b_percent/2
         
         
         # Stop while if number of iterations is larger than 4.
@@ -473,7 +420,7 @@ def range_bounds(value,percent=0.1):
         return (value - abs(value) * percent, value + abs(value) * percent)
 
 
-def insideness_contour(data,center,levels,mask=False,maskopt=None,diagnostics=False):
+def extract_inside_contour(data,center,levels,mask=False,maskopt=None,diagnostics=False):
     '''
     
     '''
@@ -490,21 +437,10 @@ def insideness_contour(data,center,levels,mask=False,maskopt=None,diagnostics=Fa
         returnmasked=True
 
     elif markers.max()!=1 and maskopt=='maskomax': 
-        plt.pcolormesh(markers)
-        plt.colorbar()
-        plt.title('1')
-        plt.show()
-        #TODO: Look into how to remove only the other maximum value
-        print(features,np.shape(markers))
         for ii in range(features):
             if ii != markers[center[0],center[1]-1]:
                 markers[markers==ii]==1
         #markers=markers-markers[center[0],center[1]-1]
-
-        plt.pcolormesh(markers)
-        plt.colorbar()
-        plt.title('2')
-        plt.show()
         returnmasked=True
 
     elif markers.max() != 1 and (maskopt == 'contour' or maskopt == 'forcefit'):
