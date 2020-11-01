@@ -160,7 +160,18 @@ class TrackEddy(object):
             # plt.close()
 
         return contours, contours_rossby
+
+    def _scan_eddy_multiple_levels(self,levels,method='',fit_gaussian=True,geo=True):
+        """
+        
+        """
+        for level in levels:
+            self._scan_eddy_single_level(level,method='',fit_gaussian=True,geo=True)
     
+    def _scan_eddy_in_time(self):
+        pass
+
+
     # TODO: export same data structure with fitted gaussian and without.
     def single_level_dict(contour_yx_deg,ellipse_dict):
         theta_r = np.linspace(0, 2 * np.pi, len(contour_yx_deg))
@@ -206,20 +217,6 @@ def find_centre_and_max(contour_yx_deg,data_inside_contour):
 # plt.plot(yx[:,1],yx[:,0])
 # plt.plot(contours_xy_deg[:,1],contours_xy_deg[:,0],'--g')
 # plt.show()
-
-    # @check_multiple_level
-    # def _scan_eddy_multiple_level(self,levels,method='',fit=''):
-    #     for level in levels:
-    #         self._scan_eddy_single_level(self,level,method='',fit='')
-
-    # @check_scan_in_time
-    # def _scan_eddy_in_time():
-    #     pass
-
-    # def _fit_gaussian(self):
-    #     pass
-
-#TODO PASS BOUNDS when optimising the gaussian fit.
 
 def get_centre_location(coords,contours,halo = 3):
     """
