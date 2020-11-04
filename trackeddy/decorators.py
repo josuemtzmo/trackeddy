@@ -2,6 +2,7 @@ import functools
 import numpy as np
 import xarray as xr
 import inspect
+import warnings
 
 def check_input(init): 
     """
@@ -97,17 +98,54 @@ def check_single_level(func):
         if len(self.DataArray.dims)==3:
             raise ValueError("Dataset is 3D, use _scan_eddy_in_time instead")
 
-        if type(self.level) != float and type(self.level) != int:
+        if not isinstance(self.level, float) and not isinstance(self.level, int):
             raise ValueError("_scan_eddy_single_level only supports one level at the time, use _scan_eddy_multiple_level instead")
         
         if self.spatial_filter['type'] == 'convolution':
             self.filter_data_spatially()
+        
+        if self.polarity == 'both':
+            self.level = np.array([-abs(self.level),abs(self.level)])
+        elif self.polarity == 'pos' and np.sign(self.level)==1:
+            self.level = abs(self.level)
+        elif self.polarity == 'pos' and np.sign(self.level)==-1:
+            warnings.warn("Polarity and level sign are inconsistent, Polarity will replace level to: {0}".format(self.level), SyntaxWarning)
+            self.level = abs(self.level)
+        elif self.polarity == 'neg' and np.sign(self.level)==-1:
+            self.level = -abs(self.level)
+        elif self.polarity == 'neg' and np.sign(self.level)==1:
+            warnings.warn("Polarity and level sign are inconsistent, Polarity will replace level to: {0}".format(self.level), SyntaxWarning)
+            self.level = -abs(self.level)
+        else: 
+            raise ValueError('polarity and level argument must be provided.')
 
-        contours, contours_rossby = func(self,*args, **kwargs)
+        #contours, contours_rossby = func(self,*args, **kwargs)
+        func(self,*args, **kwargs)
 
-        return contours, contours_rossby
+        #return contours, contours_rossby
 
     return test_single_level
+
+
+def check_multiple_levels(func):
+    """
+    docstring
+    """
+    @functools.wraps(func)
+    def test_multiple_level(self, *args, **kwargs):  
+        arg_names = inspect.getfullargspec(func)[0]
+        for name, value in zip(arg_names[1:], args):
+            setattr(self, name, value)
+
+        for name, value in kwargs.items():
+            setattr(self, name, value)
+        
+        self.levels = np.array(self.levels,dtype=float)
+        func(self,*args, **kwargs)
+
+        #return contours, contours_rossby
+
+    return test_multiple_level
 
 def rename_dict(dims):
     rename_dims = {}

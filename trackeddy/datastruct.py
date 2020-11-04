@@ -3,11 +3,11 @@ import netCDF4 as nc4
 from datetime import datetime
 import pylab as plt
 import seawater as sw
-import warnings
+
 from trackeddy.savedata import *
 from trackeddy.geometryfunc import *
 from trackeddy.physics import *
-warnings.filterwarnings("ignore")
+
 import pdb
 
 def dict_eddym(contour, ellipse, position_selected,position_max,position_ellipse,majoraxis_eddy,minoraxis_eddy,area,angle,number,level,gaussianfitdict,gaussfit2d):

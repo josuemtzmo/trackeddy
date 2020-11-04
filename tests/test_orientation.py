@@ -21,8 +21,6 @@ import cmocean as cm
 import random
 import pytest
 
-import warnings
-warnings.filterwarnings("ignore")
 
 def orientation(angles):
     sigma_x=1.5

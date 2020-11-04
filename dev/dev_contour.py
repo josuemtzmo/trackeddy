@@ -10,38 +10,44 @@ from trackeddy.trackeddy import *
 import time 
 
 # Load Data
-filepath = '../input/dt_global_allsat_phy_l4_20160901.nc'
+filepath = './input/dt_global_allsat_phy_l4_20160901.nc'
 
 tic = time.time()
 track_class = TrackEddy(filepath)
 
-closed_contours, contours_rossby = track_class._scan_eddy_single_level(level = 0.1,geo=True)
+
+# One level analysis
+# track_class._scan_eddy_single_level(level = -0.1, polarity='neg', geo=True)
+
+# Multiple level analysis
+levels = np.arange(0.1 , 0.3, 0.1)
+track_class._scan_eddy_multiple_levels(levels = levels, polarity='neg', geo=True)
 
 toc = time.time()
 
-print('New code: ', toc-tic, 's, Identified eddies:', *np.shape(contours_rossby))
+print('New code: ', toc-tic, 's, Identified eddies:', *np.shape(track_class.identified_eddies_level))
 
 
-tic = time.time()
+# tic = time.time()
 
-data = xr.open_dataset(filepath)
+# data = xr.open_dataset(filepath)
 
-filters = {'time':{'type':'historical','t':None,'t0':None,'value':None},
-           'spatial':{'type':'moving','window':120,'mode':'uniform'}}
+# filters = {'time':{'type':'historical','t':None,'t0':None,'value':None},
+#            'spatial':{'type':'moving','window':120,'mode':'uniform'}}
 
-preferences={'ellipse':0.7,'eccentricity':0.95,'gaussian':0.7}
+# preferences={'ellipse':0.7,'eccentricity':0.95,'gaussian':0.7}
 
-levels = 0.1
+# levels = 0.1
 
-eddytd=analyseddyzt(data.sla.values,data.longitude.values,data.latitude.values,0,np.shape(data.sla)[0],1,levels,mask='',maskopt='contour',timeanalysis='none'\
-                    ,preferences=preferences,filters=filters,destdir='',physics='',diagnostics=False,pprint=False)
+# eddytd=analyseddyzt(data.sla.values,data.longitude.values,data.latitude.values,0,np.shape(data.sla)[0],1,levels,mask='',maskopt='contour',timeanalysis='none'\
+#                     ,preferences=preferences,filters=filters,destdir='',physics='',diagnostics=False,pprint=False)
 
-toc = time.time()
+# toc = time.time()
 
-print('Old code: ', toc-tic, 's, Identified eddies:', len(eddytd))
+# print('Old code: ', toc-tic, 's, Identified eddies:', len(eddytd))
 
 
-data = xr.open_dataset(filepath).squeeze()
+# data = xr.open_dataset(filepath).squeeze()
 
 # plt.figure( figsize = (5, 2), dpi = 300)
 # # data.sla.plot.contourf(x='longitude',y='latitude')

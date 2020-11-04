@@ -2,12 +2,12 @@ import numpy as np
 import netCDF4 as nc4
 from datetime import datetime, timedelta
 import pylab as plt
-import warnings
+
 import os
 import time
 import subprocess
 import pandas as pd
-warnings.filterwarnings("ignore")
+
 
 def vargeonc(filename,lat,lon,var,tt,varname,init_time=datetime(1993, 1, 1),nc_description='',units='',dt='',dim='2D',format='NETCDF4'):
     '''

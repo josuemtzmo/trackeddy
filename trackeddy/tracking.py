@@ -1,6 +1,5 @@
 from __future__ import print_function
-import warnings
-warnings.filterwarnings("ignore")
+
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
