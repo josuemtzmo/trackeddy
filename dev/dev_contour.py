@@ -21,7 +21,7 @@ track_class = TrackEddy(filepath)
 
 # Multiple level analysis
 levels = np.arange(0.1 , 0.3, 0.1)
-track_class._scan_eddy_multiple_levels(levels = levels, polarity='neg', geo=True)
+track_class._scan_eddy_multiple_levels(levels = levels, polarity='both', geo=True)
 
 toc = time.time()
 

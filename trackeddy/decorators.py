@@ -114,7 +114,7 @@ def check_single_level(func):
         elif self.polarity == 'neg' and np.sign(self.level)==-1:
             self.level = -abs(self.level)
         elif self.polarity == 'neg' and np.sign(self.level)==1:
-            warnings.warn("Polarity and level sign are inconsistent, Polarity will replace level to: {0}".format(self.level), SyntaxWarning)
+            warnings.warn("Polarity and level sign are inconsistent, Polarity will replace level to: {0}".format(-abs(self.level)), SyntaxWarning)
             self.level = -abs(self.level)
         else: 
             raise ValueError('polarity and level argument must be provided.')

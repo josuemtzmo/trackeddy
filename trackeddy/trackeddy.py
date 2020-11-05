@@ -115,6 +115,7 @@ class TrackEddy(object):
             #TODO add gaussian profile test?
             if not self.fit_gaussian:
                 # TODO: finish coding single level dict
+                # TODO: add residual field 
                 data_dict = {
                     'n': n,
                     'amp': eddy_c_location[2],
@@ -126,6 +127,7 @@ class TrackEddy(object):
                     'level': sign*abs(level),
                     'radius': radius,
                     'area': area,
+                    'residual': 0,
                     #'region_indexes':np.hstack((xslice, yslice))
                     'polarity':sign
                 }
@@ -217,12 +219,26 @@ class TrackEddy(object):
         """
         
         """
-
+        #Counter of level analysis
+        n_level_counter=0
         for level in self.levels:
-
+            
             self._scan_eddy_single_level(level, polarity,geo=True)
+            self._select_optimal_fit(n_level_counter)
+            
+            n_level_counter+=1
 
     
+    def _select_optimal_fit(self,n_level_counter):
+        if n_level_counter == 0:
+            self.multilevel_identified_eddies = self.identified_eddies_level
+        else:
+            loc_residual_gausian = self.multilevel_identified_eddies[['x','y','residual']]
+            
+
+        
+        
+
     def _scan_eddy_in_time(self):
         pass
 
