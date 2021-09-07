@@ -22,5 +22,6 @@ preferred-citation:
   doi: "10.1029/2019MS001769"
   volume: 11
   issue: 10
-  start: 3090-3105
+  start: 3090 # First page number
+  end: 3105 # Last page number
   year: 2019
