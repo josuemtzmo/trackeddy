@@ -119,7 +119,7 @@ def ssh2ke(data,x,y,mask,anomval=100):
     u,v = geovelfield(data,x,y,mask,anomval)
     return KE(u,v)
 
-def checkscalearea(checkarea,lon,lat,ellipsex,ellipsey,contourx='',contoury=''):
+def checkscalearea(checkarea,lon,lat,ellipsex,ellipsey,contourx=None,contoury=None):
     if checkarea==False:
         ellipsarea=None
         contarea=None
@@ -131,7 +131,7 @@ def checkscalearea(checkarea,lon,lat,ellipsex,ellipsey,contourx='',contoury=''):
             
         ellipsarea=gs.distance([[ellipsex.max()],[ellipsex.min()]],[[ellipsey.mean()],[ellipsey.mean()]],axis=0)[0][0]*\
                    gs.distance([[ellipsex.mean()],[ellipsex.mean()]],[[ellipsey.max()],[ellipsey.min()]],axis=0)[0][0]
-        if contourx!='' or contoury!='':
+        if contourx is not None or contoury is not None:
             contarea=gs.distance([[contourx.max()],[contourx.min()]],[[contoury.mean()],[contoury.mean()]],axis=0)[0][0]*\
                    gs.distance([[contourx.mean()],[contourx.mean()]],[[contoury.max()],[contoury.min()]],axis=0)[0][0]
         else:

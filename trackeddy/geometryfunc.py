@@ -458,7 +458,7 @@ def twoD_Gaussian(coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0)
 
 def gaussian2Dresidual(popt, coords, varm):
     g=twoD_Gaussian(coords,*popt).reshape(np.shape(varm))
-    residual = np.exp(np.abs(np.float128(np.nanmean(abs(varm - g))))) - 1
+    residual = np.exp(np.abs(np.float64(np.nanmean(abs(varm - g))))) - 1
     #print('Residual:',np.nanmean(residual))
     return residual
 
@@ -888,7 +888,7 @@ def insideness_contour(data,center,levels,mask=False,maskopt=None,diagnostics=Fa
     else:
         data_rmove[data>levels[0]]=1
         
-    markers,features=np.asarray(ndimage.label(data_rmove))
+    markers,features=np.asarray(ndimage.label(data_rmove),dtype="object")
 
     if markers.max()!=1 and maskopt==None:
         markers=markers*0
@@ -966,17 +966,21 @@ def gaussareacheck(values,level,areaparms,gauss2dfit,contour_area,contour_x=None
     fitted_curve = twoD_Gaussian(coords, *gauss2dfit)
     fittedata = fitted_curve.reshape(len(values[1]),len(values[0]))
     #fittedata = ma.masked_array(fittedata, mask)
-    try:
-        if level>0:
-            CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
-        else:
-            CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
-        plt.close()
-    
+    # try: 
+    if level>0:
+        CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
+    else:
+        CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
+    plt.close()
+
+    if CS.allsegs[0]:
         CONTS=CS.allsegs[0][0]
-        areastatus = checkscalearea(areaparms,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
-    except:
-        return False,0
+    else: 
+        return False, None
+    
+    areastatus = checkscalearea(areaparms,np.mean(CONTS[:,0]),np.mean(CONTS[:,1]),CONTS[:,0],CONTS[:,1])
+    # except(IndexError):
+    #     return False,0
         
     if areastatus['ellipse'] == None:
         test=False
@@ -985,6 +989,7 @@ def gaussareacheck(values,level,areaparms,gauss2dfit,contour_area,contour_x=None
     else:
         test=False
     #print('---------',test)
+
     return test,areastatus['ellipse']
 
 def checkgaussaxis2D(a,b,a_g,b_g):

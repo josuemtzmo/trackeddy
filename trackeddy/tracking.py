@@ -18,7 +18,7 @@ import sys
 import time
 import pdb 
 
-def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',eddycenter='masscenter',maskopt='contour',preferences=None,mode='gaussian',basemap=False,checkgauss=True,areaparms=None,usefullfit=False,diagnostics=False,plotdata=False,debug=False):
+def scan_eddym(data,lon,lat,levels,date,areamap,mask=None,destdir='',physics=None,eddycenter='masscenter',maskopt='contour',preferences=None,mode='gaussian',basemap=False,checkgauss=True,areaparms=None,usefullfit=False,diagnostics=False,plotdata=False,debug=False):
     '''scan_eddym wraps the identification and Gaussian fit functions.
 
     Function to identify each eddy using closed contours,
@@ -103,7 +103,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
         print('Invalid len of levels, please use the function for multiple levels or use len(levels)==2')
         return
     #Saving mask for future post-processing.  
-    if mask!='':
+    if isinstance(mask, np.ndarray):
         data=np.ma.masked_array(data, mask)
     datanan=data.filled(np.nan)
     # Obtain the contours of a surface (contourf), this aproach is better than the contour.
@@ -138,7 +138,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
     eddyn=0
     threshold=7
     threshold2D=20
-    numverlevels=np.shape(CONTS)[0]
+    numverlevels=np.shape(np.asarray(CONTS,dtype="object"))[0]
     fiteccen=1
     areachecker=np.inf
     ellipsarea=np.inf
@@ -158,7 +158,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
             print("\n *******EDDY******")
             pdb.set_trace()
         CONTSlvls=CONTS[ii]
-        numbereddies=np.shape(CONTSlvls)[0]
+        numbereddies=np.shape(np.asarray(CONTSlvls,dtype="object"))[0]
         # Loop over all the close contours.
         for jj in range(0,numbereddies):
             if debug==True:
@@ -302,7 +302,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
                                                                         gausssianfitp[0],\
                                                                         gausssianfitp[1])
                                         
-                                        #print('=======',gausscheck2D,fiteccen)
+                                        # print('=======',gausscheck2D,fiteccen <= preferences['eccentricity'])
                                         if fiteccen <= preferences['eccentricity'] and gausscheck2D==True:
                                             if xidmin <= threshold2D:
                                                 xidmin= threshold2D
@@ -361,6 +361,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
                                 levelprnt=CS.levels[1]
                                 levelm=np.vstack((levelm,levelprnt))
                         eddyn=eddyn+1
+
                     #diagnostics=True
                     if ("ellipse" in diagnostics) or ("all" in diagnostics) or (True in diagnostics):# and  check == True:
 
@@ -429,7 +430,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
                                             lat[areamap[1,0]:areamap[1,1]],\
                                             data[areamap[1,0]:areamap[1,1],areamap[0,0]:areamap[0,1]],\
                                             levels=levels,cmap='jet')
-                            ax2.clabel(cca, fontsize=9, inline=1)
+                            # ax2.clabel(cca, fontsize=9, inline=1)
                         ax1.plot(CONTeach[:,0],CONTeach[:,1],'*r')
                         ax1.plot(xx,yy,'-b')
                         ax1.plot(center[0],center[1],'ob')
@@ -472,7 +473,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask='',destdir='',physics='',ed
         #    save_data(destdir+'day'+str(date)+'_one_step_cont'+str(total_contours)+'.dat', variable)
     return eddys,check,total_contours
 
-def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddycenter='masscenter',preferences=None,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,timeanalysis='closest',destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False,debug=False):
+def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap=None,mask=None,physics=None,eddycenter='masscenter',preferences=None,checkgauss=True,areaparms=None,maskopt='contour',mode='gaussian',filters=None,timeanalysis='closest',destdir='',saveformat='nc',diagnostics=False,plotdata=False,pprint=False,debug=False):
     '''Identify each eddy using closed contours.
 
     Function to identify each eddy using closed contours, 
@@ -505,15 +506,14 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
     I used some auxilar functions, each one has his respective author.
     Author: Josue Martinez Moreno, 2017
     '''
-
     if pprint == True:
         pp = Printer(); 
     if len(np.shape(data)) < 3:
         raise Exception('If you whant to analyze in time the data need to be 3d [i.e. data(t,x,y)]')
         #return
-    if areamap=='':
+    if not isinstance(areamap, np.ndarray):
         areamap = np.array([[0,len(x)],[0,len(y)]])
-    if mask == '':
+    if not mask :
         if ma.is_masked(data):
             if len(np.shape(data))<3:
                 mask = ma.getmask(data[:,:])
@@ -563,6 +563,8 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
         pp = Printer(); 
     numbereddieslevels=0
     
+    eddz=None
+
     for ii in range(t0,t1,tstep):
         checkcount = 0 
         # Defining filters
@@ -647,6 +649,8 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap='',mask='',physics='',eddyc
             if pprint==True:
                 numbereddieslevels=numbereddieslevels+numbereddies
                 pp.timepercentprint(t0,t1,tstep,ii,'# of E '+ str(numbereddies),[0,len(levellist),ll])
+        if not eddz:
+            raise ValueError("No eddy was identified, try adjusting the levels step")
         if ii==t0:
             eddytd=dict_eddyt(ii,eddz,analysis=timeanalysis,debug=debug)
         else:

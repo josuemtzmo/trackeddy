@@ -9,7 +9,10 @@ class Printer():
     Print things to stdout on one line dynamically
     """ 
     def __init__(self):
-        self.tic=time.clock()
+        import platform
+        if platform.python_version_tuple() < ('3','10','0'):
+            raise ImportError('To use this option update to python > 3.10')
+        self.tic=time.time()
         sys.stdout.flush()
         self.data=[]
         
@@ -20,7 +23,7 @@ class Printer():
     def timepercentprint(self,minv,maxv,step,i,neddies,loop2=None,diagnostics=False):
         data=[]
         percent=(float(i+1)/maxv)*100.0
-        etime=round(time.clock()-self.tic)
+        etime=round(time.time()-self.tic)
         stmtime=round((etime/percent)*100)
         
         progress=int(10/(maxv/(step*(i+1))))
