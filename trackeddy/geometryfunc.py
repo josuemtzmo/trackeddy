@@ -16,6 +16,40 @@ from trackeddy.physics import *
 from trackeddy.printfunc import *
 import pdb
 
+
+
+def area_latlon_polygon(lonlat):
+    # https://gis.stackexchange.com/questions/413349/calculating-area-of-lat-lon-polygons-without-transformation-using-geopandas
+    
+    contour_lon = lonlat[:,0]
+    contour_lat = lonlat[:,1]
+
+    lon_rad = np.deg2rad(contour_lon)
+    lat_rad = np.deg2rad(contour_lat)
+
+    a = np.sin(lat_rad/2)**2 + np.cos(lat_rad)* np.sin(lon_rad/2)**2
+    colat = 2*np.arctan2( np.sqrt(a), np.sqrt(1-a) )
+
+    az = np.arctan2(np.cos(lat_rad) * np.sin(lon_rad), np.sin(lat_rad)) % (2*np.pi)
+
+    # Calculate diffs
+    # daz = np.diff(az) % (2*pi)
+    daz = np.diff(az)
+    daz = (daz + np.pi) % (2 * np.pi) - np.pi
+
+    deltas=np.diff(colat)/2
+    colat=colat[0:-1]+deltas
+
+    # Perform integral
+    integrands = (1-np.cos(colat)) * daz
+
+    # Integrate 
+    area = abs(sum(integrands))/(4*np.pi)
+
+    radius = 6378137
+    area_km = (area * 4 * np.pi * radius**2) * 1e-6 # km^2
+    return area_km
+
 def fit_ellipse(x,y,diagnostics=False):
     '''
     **************** fit_ellipse *****************
@@ -56,16 +90,16 @@ def fit_ellipse(x,y,diagnostics=False):
     y=y[:]
     mean_x=np.mean(x)
     mean_y=np.mean(y)
-    xp=x-mean_x
-    yp=y-mean_y
-    X=np.array([xp**2,xp*yp,yp**2,xp,yp]).T
+    xp = x-mean_x
+    yp = y-mean_y
+    X = np.array([xp**2,xp*yp,yp**2,xp,yp]).T
     
-    a=np.sum(X,axis=0)
-    b=np.dot(X.T,X)
+    a = np.sum(X,axis=0)
+    b = np.dot(X.T,X)
     
-    x2=np.linalg.lstsq(b.T, a.T)
-    
-    res=[np.linalg.norm(ii) for ii in b-a*x2[0]]
+    x2= np.linalg.lstsq(b.T, a.T, rcond=None)
+
+    res = [np.linalg.norm(ii) for ii in b-a*x2[0]]
     
     r2 = np.mean(1 - res / (a.T.size * a.T.var()))
     
@@ -145,18 +179,19 @@ def fit_ellipse(x,y,diagnostics=False):
                      'short_axis':'','minoraxis':'',\
                      'majoraxis':'','ellipse':'',\
                      'status':detect}
-    if (("ellipse" in diagnostics) or ("all" in diagnostics) or (True in diagnostics)) and status==True:
-        # draw
-        plt.plot( x,y,'b',label='data');
-        plt.plot( new_ver_line[0],new_ver_line[1],'k',label='minor axis' )
-        plt.plot( new_horz_line[0],new_horz_line[1],'b',label='major axis')
-        plt.plot( rotated_ellipse[0],rotated_ellipse[1],'r',label='Fitted ellipse $R^2$=%f' %r2 )
-        plt.legend(loc=1)
-        plt.show()
-        plt.plot(ellipse_x_r,ellipse_y_r,'m')
-        plt.plot(horz_line[0],horz_line[1])
-        plt.plot(ver_line[0],ver_line[1])
-        plt.show()
+    # if (("ellipse" in diagnostics) or ("all" in diagnostics) or (True in diagnostics)) and status==True:
+    #     # draw
+    #     plt.plot( x,y,'b',label='data');
+    #     plt.plot( new_ver_line[0],new_ver_line[1],'k',label='minor axis' )
+    #     plt.plot( new_horz_line[0],new_horz_line[1],'b',label='major axis')
+    #     plt.plot( rotated_ellipse[0],rotated_ellipse[1],'r',label='Fitted ellipse $R^2$=%f' %r2 )
+    #     plt.legend(loc=1)
+    #     plt.show()
+    #     plt.plot(ellipse_x_r,ellipse_y_r,'m')
+    #     plt.plot(horz_line[0],horz_line[1])
+    #     plt.plot(ver_line[0],ver_line[1])
+    #     plt.show()
+
     return ellipse_t,status,r2
 
 def PolyArea(x,y):
@@ -965,12 +1000,12 @@ def gaussareacheck(values,level,areaparms,gauss2dfit,contour_area,contour_x=None
     coords=(Lon,Lat,values[2],values[3],values[4])
     fitted_curve = twoD_Gaussian(coords, *gauss2dfit)
     fittedata = fitted_curve.reshape(len(values[1]),len(values[0]))
-    #fittedata = ma.masked_array(fittedata, mask)
-    # try: 
+
     if level>0:
         CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
     else:
         CS=plt.contour(values[0],values[1],fittedata,levels=[level,np.inf])
+    
     plt.close()
 
     if CS.allsegs[0]:

@@ -1,4 +1,9 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
+import numpy
+
+module1 = Extension('trackeddy._cntr',
+                    include_dirs=[numpy.get_include()],
+                    sources = ['trackeddy/src/cntr.c'])
 
 setup(
     name='trackeddy',
@@ -13,4 +18,5 @@ setup(
     zip_safe=False,
     #test_suite='nose.collector',
     #tests_require=['testme'],
+    ext_modules = [module1]
  )

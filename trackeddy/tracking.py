@@ -152,6 +152,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask=None,destdir='',physics=Non
     xx=np.nan
     yy=np.nan
     areastatus={'check':None,'contour':None,'ellipse':None}
+
     # Loop in contours of the levels defined.
     for ii in range(0,numverlevels):
         if debug==True:
@@ -169,8 +170,9 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask=None,destdir='',physics=Non
             
             #Relevant contour values 
             xidmin,xidmax=find2l(lon,lon,CONTeach[:,0].min(),CONTeach[:,0].max())
-            yidmin,yidmax=find2l(lat,lat,CONTeach[:,1].min(),CONTeach[:,1].max())
             
+            yidmin,yidmax=find2l(lat,lat,CONTeach[:,1].min(),CONTeach[:,1].max())
+
             if xidmin<=threshold-1:
                 xidmin=+threshold-1
             elif xidmax>=len(lon)-threshold:
@@ -185,7 +187,7 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask=None,destdir='',physics=Non
             cmindex=find(CONTeach[:,1],CONTeach[:,1].max())
             xmindex,ymindex=find2l(lon,lat,CONTeach[cmindex,0],CONTeach[cmindex,1])
             centertop=[ymindex-yidmin+threshold-2,xmindex-xidmin+threshold-1]
-            
+
             if len(shapedata)==3:
                 data4gauss=datanan[date,yidmin-threshold+1:yidmax+threshold,xidmin-threshold+1:xidmax+threshold].copy()
                 data_in_contour=insideness_contour(data4gauss,centertop,levels,maskopt=maskopt,diagnostics=diagnostics)
@@ -309,9 +311,10 @@ def scan_eddym(data,lon,lat,levels,date,areamap,mask=None,destdir='',physics=Non
                                             elif xidmax>=len(lon)-threshold2D:
                                                 xidmax=len(lon)-threshold2D
                                             if yidmin <= threshold2D:
-                                                xidmin= threshold2D
+                                                yidmin= threshold2D
                                             elif yidmax>=len(lat)-threshold2D:
                                                 yidmax=len(lat)-threshold2D
+
                                             fixvalues[0]=lon[xidmin-threshold2D+1:xidmax+threshold2D]
                                             fixvalues[1]=lat[yidmin-threshold2D+1:yidmax+threshold2D]
                                             gaussarea= gaussareacheck(fixvalues,level,\
@@ -607,7 +610,9 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap=None,mask=None,physics=None
                     ker=np.ones((filters['spatial']['window']+1,filters['spatial']['window']+1))
                 else:
                     ker=np.ones((filters['spatial']['window'],filters['spatial']['window']))
-                nofilterdata = nofilterdata - convolution.convolve(nofilterdata, kernel = ker)
+                convolved_data = convolution.convolve(nofilterdata, kernel = ker)
+                nofilterdata = nofilterdata - convolved_data
+                
                 dataanomaly = ma.masked_array(nofilterdata, mask)
             if filters['spatial']['mode'] == 'gaussian':
                 raise Warning('ndimage.gaussian_filter may create artefacts near nan values. Therefore, data is filled with zeros.')
@@ -623,7 +628,7 @@ def analyseddyzt(data,x,y,t0,t1,tstep,levels,areamap=None,mask=None,physics=None
             dataanomaly = ma.masked_array((data[ii,:,:].T-np.nanmean(np.squeeze(data[ii,:,:]),axis=1)).T, mask)
         else:
             raise ValueError("Define the filter argument like: /n filters={'time':{'type':'orthogonal','t':1,'t0':shape(data)[0]},'spatial':{'type':'moving','window':70,'mode':'uniform'}}")
-            
+
         for ll in range(0,len(levellist)):
             if levellist[ll]<0:
                 levels_scan=[-np.inf,levellist[ll]]
