@@ -3,13 +3,13 @@ import xarray as xr
 from scipy import ndimage
 from astropy import convolution
 from sklearn.neighbors import BallTree
-from scipy.optimize import minimize
+from scipy.optimize import least_squares, Bounds
 
 
 from trackeddy import _cntr as cntr
 from functools import wraps
 
-from frechetdist import frdist
+# from frechetdist import frdist
 
 from trackeddy.geometryfunc import area_latlon_polygon, eccentricity
 
@@ -33,7 +33,7 @@ class Eddy():
 
 def extract_contours(X, Y, data, level):
     # Convert to arrays to use the cntr library
-    c = cntr.Cntr(X, Y , data)
+    c = cntr.Cntr(X, Y, data)
     # Extract contours in the level  
     res = c.trace(level)
     # result is a list of arrays of vertices and path codes
@@ -184,7 +184,7 @@ class TrackEddy():
         eddies=[]
         discarded = []
 
-        contours, _ = extract_contours( self.X, self.Y, self.data2track, level)
+        contours, _ = extract_contours( self.X, self.Y, self.data2track.values, level)
 
         for contour in contours:
             eddy = Eddy(contour,level)
@@ -230,23 +230,73 @@ class TrackEddy():
             
             # TODO Extract the area from the contour.
             data_near_contour  = self._data_in_contour(eddy)
+            
+            if eddy.eddy_maxima[0] == 0:
+                eddy.discarded='eddy_is_island'
+                # discarded.append(eddy)
+                continue
 
             # TODO Extract center of mass of contour.
 
             #TODO FIT GAUSSIAN USING THE eddy_sign
-            X, Y = np.meshgrid(eddy_data[coords['x']].values, eddy_data[coords['y']].values)
+            X, Y = np.meshgrid(data_near_contour[self.coords['x']].values, data_near_contour[self.coords['y']].values)
 
+            # Create object to handle fitting of surfaces.
             F_surface = Fit_Surface(eddy, data_near_contour, X, Y)
             
+            # Fit the chosen feature.
             eddy.gaussian, fitdict = F_surface._fitting()
 
-            gauss_contour = extract_contours(X, Y, eddy.gaussian, eddy.level)
-            
+            # Extract the contour of the gaussian fitted + the eddy contour, since all the gaussians decay to zero, for a fair comparison.
+            # print(np.where(eddy.gaussian < eddy.level, eddy.contour_mask,1))
+            # tmp_mask = eddy.contour_mask * np.where(eddy.gaussian < eddy.level, eddy.contour_mask,1)
+            # print(tmp_mask)
+            # masked_gauss = np.where(tmp_mask, eddy.gaussian, eddy.level)
+            # eddy.gaussian[ ~ tmp_mask] = eddy.level
+            # print(masked_gauss)
+            gauss_contour, _ = extract_contours(X, Y, eddy.gaussian, eddy.eddy_sign * eddy.level)
+
+            #TODO Move to a decorator of extract_contours.
+            #Fix in case the mask cuts the contour
+            if len(gauss_contour) > 1 : 
+                gauss_contour = np.vstack(gauss_contour)
+            else: 
+                gauss_contour=gauss_contour[0]
+                        
+            # CONTINUE HERE
+            #TODO currently one of the curves is shorter so it assumes that they are not similar.
+
             eddy.contour_gaussian_error = compute_similarity(eddy.contour,gauss_contour)
-            if eddy.contour_ellipse_error > self.identification_criteria['gaussian_fit']:
+
+            import matplotlib.pyplot as plt
+
+            if eddy.contour_gaussian_error < self.identification_criteria['gaussian_fit']:
                 eddy.discarded='gaussian_fit'
+                # fig,ax = plt.subplots(1,2)
+            
+                # ax[0].pcolormesh(X,Y,data_near_contour)#,vmin=vmin,vmax=vmax)
+                # ax[1].pcolormesh(X,Y, eddy.gaussian)#,vmin=vmin,vmax=vmax)
+                # # ax[1].plot(gauss_contour[0][:,0],gauss_contour[0][:,1])
+                # ax[1].plot(eddy.contour[:,0],eddy.contour[:,1])
+                
+                # ax[1].plot(gauss_contour[:,0],gauss_contour[:,1])
+                # ax[0].set_title('rejected',color='r')
+                # plt.show()
                 # discarded.append(eddy)
                 continue
+            
+            
+            # fig,ax = plt.subplots(1,2)
+            
+            # ax[0].pcolormesh(X,Y,data_near_contour)#,vmin=vmin,vmax=vmax)
+            # ax[1].pcolormesh(X,Y, eddy.gaussian)#,vmin=vmin,vmax=vmax)
+            # # ax[1].plot(gauss_contour[0][:,0],gauss_contour[0][:,1])
+            # ax[1].plot(eddy.contour[:,0],eddy.contour[:,1])
+            
+            # ax[1].plot(gauss_contour[:,0],gauss_contour[:,1])
+            # ax[0].set_title('accepted')
+            # plt.show()
+
             # TODO check gaussian, check similarity between contour levels?
 
             eddies.append(eddy)
@@ -265,12 +315,7 @@ class TrackEddy():
         sift_x = np.argmax(np.sum(Xmask*Ymask,0))
         sift_y = np.argmax(np.sum(Xmask*Ymask,1))
 
-        try:
-            mask_shape = np.unique(np.sum(Xmask*Ymask,0))[1], np.unique(np.sum(Xmask*Ymask,1))[1]
-        except: 
-            print(pt)
-            import matplotlib.pyplot as plt
-            plt.pcolormesh(Xmask*Ymask)
+        mask_shape = np.unique(np.sum(Xmask*Ymask,0))[1], np.unique(np.sum(Xmask*Ymask,1))[1]
 
         x = self.X[Xmask*Ymask]
         y = self.Y[Xmask*Ymask]
@@ -317,6 +362,8 @@ class TrackEddy():
         if threshold == 'auto':
             diag_gridpoints= TR_corner - BL_corner
             thresh_value = int(0.5*np.max(diag_gridpoints))
+            if thresh_value <=3:
+                thresh_value = 3
         elif isinstance(threshold, int):
             thresh_value = threshold
         else: 
@@ -369,49 +416,75 @@ class TrackEddy():
         if mask == 'forcefit':
             # TODO reimplement the forcefit option, make a masked ring and then set to zero.
             pass
-        
-        return data_inside_contour.fillna(level), eddy_sign, eddy_maxima_loc, inside_contour
+
+        # data_inside_contour = data_inside_contour.interpolate_na(dim=self.coords['x'],method='nearest')
+
+        return data_inside_contour, eddy_sign, eddy_maxima_loc, inside_contour
 
     
 class Fit_Surface():
 
     def __init__(self,eddy,eddy_data,X,Y,mode='gaussian') -> None:
-        
-        # Initial guess to start fitting feature
-        self.initial_guess = eddy.ellipse_params
-        #TODO is the best to pass the coords from the eddy_data or should I provide the self.X and self.Y cropped? In fact, it may not matter. 
-        
+
         self.X = X
         self.Y = Y
         self.eddy_max = eddy.eddy_maxima[0]
         self.x_eddy = eddy.eddy_maxima[1]
         self.y_eddy = eddy.eddy_maxima[2]
+        self.level = eddy.level
         
-        self.data = eddy_data
+        # Initial guess to start fitting feature
+        self.initial_guess = np.hstack((self.x_eddy,self.y_eddy,eddy.ellipse_params))
+        #TODO is the best to pass the coords from the eddy_data or should I provide the self.X and self.Y cropped? In fact, it may not matter. 
+        
+        self.data = eddy_data - eddy.level
         self.mode = mode
+
         
     def _fitting(self):
 
-        
-
-        coords=(self.X,self.Y,self.eddy_max,self.x_eddy,self.y_eddy)
+        coords=(self.X,self.Y,self.eddy_max)
 
         fitdict = self.fit_curve(coords)
         
-        fitted_curve = gaussian(coords, *fitdict)
-        fitted_data=fitted_curve.reshape(*X.shape)    
+        fitted_curve = gaussian(coords,  *fitdict)
+        fitted_data=fitted_curve.reshape(*self.X.shape)
 
         return fitted_data, fitdict
+    
+    def construct_bounds(self):
+
+        xdelta = np.mean(np.diff(self.X,axis=1))
+        ydelta = np.mean(np.diff(self.Y,axis=0))
+
+        LCoordbounds = np.array([[ self.initial_guess[0] - xdelta ], [self.initial_guess[1] - ydelta ]])
+        UCoordbounds = np.array([[ self.initial_guess[0] + xdelta ], [self.initial_guess[1] + ydelta ]])
+
+        # Limit the bounds for the initial guess to 50% of their ellipse value. 
+        Lellipsebounds = np.array([[ init-0.5*init ] for init in self.initial_guess[2:]])
+        Uellipsebounds = np.array([[ init+0.5*init ] for init in self.initial_guess[2:]])
+
+        Lbounds = np.vstack((LCoordbounds,Lellipsebounds))
+        Ubounds = np.vstack((UCoordbounds,Uellipsebounds))
+
+        bounds = np.hstack((Lbounds,Ubounds)).T
+        bounds.sort(axis=0)
+
+        return bounds
+        
 
     def fit_curve(self, coords):
 
-        res = minimize(gaussian_residual, self.initial_guess, args=(coords,self.data),method='SLSQP')
+        # res = minimize(gaussian_residual, self.initial_guess, args=(coords,self.data),method='SLSQP')
+        bounds = self.construct_bounds()
+        
+        res = least_squares(gaussian_residual, self.initial_guess, args=(coords,self.data),bounds = bounds)
         
         fitdict = res.x
         
         return fitdict
         
-def gaussian(coords, sigma_x, sigma_y, theta):  
+def gaussian(coords, xo, yo, sigma_x, sigma_y, theta):  
     '''
     *************** gaussian *******************
     Build a 2D gaussian.
@@ -432,9 +505,6 @@ def gaussian(coords, sigma_x, sigma_y, theta):
     x=coords[0]
     y=coords[1]
     amplitude = coords[2]
-    
-    xo = float(coords[3])
-    yo = float(coords[4])
 
     cos_phi = np.cos(theta)
     sin_phi = np.sin(theta)
@@ -446,12 +516,10 @@ def gaussian(coords, sigma_x, sigma_y, theta):
     return g.ravel()
 
 def gaussian_residual(popt, coords, data2fit):
+
     gauss = gaussian(coords,*popt).reshape(np.shape(data2fit))
     residual = np.exp(np.abs(np.float64(np.nanmean(abs(data2fit - gauss))))) - 1
     return residual
-
-
-    
 
 
 def fit_ellipse(x,y,diagnostics=False):
@@ -570,24 +638,28 @@ def fit_ellipse(x,y,diagnostics=False):
     ellipse_y_r     = Y0 + b*np.sin(theta_r)
     rotated_ellipse =  np.dot(R, np.array([ellipse_x_r,ellipse_y_r]))
 
+    # Ensure that a is always larger than b
+    b, a = np.sort([a,b])
+
     return rotated_ellipse.T, (a,b,anglexaxis_rad)
 
 
 import math 
 def arc_length(curve):
-  '''
-  Args:
+    '''
+    Args:
     points: type arrays two values [[x, y], [x, y]]
-  Returns:
+    Returns:
     acc_length: curve length
-  Descriptions:
+    Descriptions:
     Calculate the length of the curve
-  '''
+    '''
 
-  acc_length = 0
-  for i in range(0, len(curve)-1):
-    acc_length += math.dist(curve[i], curve[i+1])
-  return acc_length
+    acc_length = 0
+    for i in range(0, len(curve)-1):
+        acc_length += math.dist(curve[i], curve[i+1])
+
+    return acc_length
 
 
 def compute_similarity(curve1,curve2):
@@ -600,3 +672,109 @@ def compute_similarity(curve1,curve2):
     result = max(1 - freshet_dist / (geo_avg_curve_len / math.sqrt(2)), 0)
     return round(result, 4)
 
+def _c(ca, i, j, p, q):
+
+    if ca[i, j] > -1:
+        return ca[i, j]
+    elif i == 0 and j == 0:
+        ca[i, j] = np.linalg.norm(p[i]-q[j])
+    elif i > 0 and j == 0:
+        ca[i, j] = max(_c(ca, i-1, 0, p, q), np.linalg.norm(p[i]-q[j]))
+    elif i == 0 and j > 0:
+        ca[i, j] = max(_c(ca, 0, j-1, p, q), np.linalg.norm(p[i]-q[j]))
+    elif i > 0 and j > 0:
+        ca[i, j] = max(
+            min(
+                _c(ca, i-1, j, p, q),
+                _c(ca, i-1, j-1, p, q),
+                _c(ca, i, j-1, p, q)
+            ),
+            np.linalg.norm(p[i]-q[j])
+            )
+    else:
+        ca[i, j] = float('inf')
+
+    return ca[i, j]
+
+
+def frdist(P, Q):
+    """
+    Computes the discrete Fréchet distance between
+    two curves. The Fréchet distance between two curves in a
+    metric space is a measure of the similarity between the curves.
+    The discrete Fréchet distance may be used for approximately computing
+    the Fréchet distance between two arbitrary curves,
+    as an alternative to using the exact Fréchet distance between a polygonal
+    approximation of the curves or an approximation of this value.
+
+    This is a Python 3.* implementation of the algorithm produced
+    in Eiter, T. and Mannila, H., 1994. Computing discrete Fréchet distance.
+    Tech. Report CD-TR 94/64, Information Systems Department, Technical
+    University of Vienna.
+    http://www.kr.tuwien.ac.at/staff/eiter/et-archive/cdtr9464.pdf
+
+    Function dF(P, Q): real;
+        input: polygonal curves P = (u1, . . . , up) and Q = (v1, . . . , vq).
+        return: δdF (P, Q)
+        ca : array [1..p, 1..q] of real;
+        function c(i, j): real;
+            begin
+                if ca(i, j) > −1 then return ca(i, j)
+                elsif i = 1 and j = 1 then ca(i, j) := d(u1, v1)
+                elsif i > 1 and j = 1 then ca(i, j) := max{ c(i − 1, 1), d(ui, v1) }
+                elsif i = 1 and j > 1 then ca(i, j) := max{ c(1, j − 1), d(u1, vj) }
+                elsif i > 1 and j > 1 then ca(i, j) :=
+                max{ min(c(i − 1, j), c(i − 1, j − 1), c(i, j − 1)), d(ui, vj ) }
+                else ca(i, j) = ∞
+                return ca(i, j);
+            end; /* function c */
+
+        begin
+            for i = 1 to p do for j = 1 to q do ca(i, j) := −1.0;
+            return c(p, q);
+        end.
+
+    Parameters
+    ----------
+    P : Input curve - two dimensional array of points
+    Q : Input curve - two dimensional array of points
+
+    Returns
+    -------
+    dist: float64
+        The discrete Fréchet distance between curves `P` and `Q`.
+
+    Examples
+    --------
+    >>> from frechetdist import frdist
+    >>> P=[[1,1], [2,1], [2,2]]
+    >>> Q=[[2,2], [0,1], [2,4]]
+    >>> frdist(P,Q)
+    >>> 2.0
+    >>> P=[[1,1], [2,1], [2,2]]
+    >>> Q=[[1,1], [2,1], [2,2]]
+    >>> frdist(P,Q)
+    >>> 0
+    """
+
+    p = P if len(P) >= len(Q) else Q
+    q = Q if len(P) >= len(Q) else P
+
+    p = np.array(p, np.float64)
+    q = np.array(q, np.float64)
+
+    len_p = len(p)
+    len_q = len(q)
+
+    # if len_p == 0 or len_q == 0:
+    #     raise ValueError('Input curves are empty.')
+
+    # if len_p != len_q or len(p[0]) != len(q[0]):
+    #     raise ValueError('Input curves do not have the same dimensions.')
+
+
+
+    ca = (np.ones((len_p, len_q), dtype=np.float64) * -1)
+
+    dist = _c(ca, len_p-1, len_q-1, p, q)
+    return dist
