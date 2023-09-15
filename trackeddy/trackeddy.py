@@ -176,6 +176,7 @@ class TrackEddy():
             raise ValueError("The nan_treatment can only be True or False")
         return data2track
     
+    
     def _detect_one_level(self, data2track, level):
 
         self.data2track = self.treat_nan(data2track)
@@ -185,7 +186,7 @@ class TrackEddy():
         discarded = []
 
         contours, _ = extract_contours( self.X, self.Y, self.data2track.values, level)
-
+        counter = 0
         for contour in contours:
             eddy = Eddy(contour,level)
 
@@ -197,7 +198,7 @@ class TrackEddy():
             # TODO add criteria selected by user here.
             if eddy.radius_eddy > 200:
                 eddy.discarded='area'
-                # discarded.append(eddy)
+                discarded.append(eddy)
                 continue
                 
             
@@ -208,7 +209,7 @@ class TrackEddy():
             eddy.ellipse_eccen = eccentricity(*eddy.ellipse_params[0:2])
             if eddy.ellipse_eccen > self.identification_criteria['eccentricity']:
                 eddy.discarded='eccentricity'
-                # discarded.append(eddy)
+                discarded.append(eddy)
                 continue
 
             
@@ -217,7 +218,7 @@ class TrackEddy():
             # Check if the similarity between the contours matches the user criteria.
             if eddy.contour_ellipse_error > self.identification_criteria['ellipse_fit']:
                 eddy.discarded='similarity'
-                # discarded.append(eddy)
+                discarded.append(eddy)
                 continue
 
             # Check if area is similar between fitted ellipse and contour
@@ -225,7 +226,7 @@ class TrackEddy():
             if not np.isclose(eddy.area_eddy,area_ellipse, rtol=1-self.identification_criteria['ellipse_fit']): 
             # Continue to next contour if ellipse fit is bad
                 eddy.discarded='ellipse_area'
-                # discarded.append(eddy)
+                discarded.append(eddy)
                 continue
             
             # TODO Extract the area from the contour.
@@ -233,7 +234,7 @@ class TrackEddy():
             
             if eddy.eddy_maxima[0] == 0:
                 eddy.discarded='eddy_is_island'
-                # discarded.append(eddy)
+                discarded.append(eddy)
                 continue
 
             # TODO Extract center of mass of contour.
@@ -256,48 +257,30 @@ class TrackEddy():
             # print(masked_gauss)
             gauss_contour, _ = extract_contours(X, Y, eddy.gaussian, eddy.eddy_sign * eddy.level)
 
-            #TODO Move to a decorator of extract_contours.
-            #Fix in case the mask cuts the contour
+            # No contour was extracted. This is an issue with the gaussian fitting optimization.
+            if not gauss_contour:
+                eddy.discarded='gaussian_fit_failed'
+                discarded.append(eddy)
+                continue
+
+            # TODO Move to a decorator of extract_contours.
+            # Fix in case the mask cuts the contour
             if len(gauss_contour) > 1 : 
                 gauss_contour = np.vstack(gauss_contour)
             else: 
                 gauss_contour=gauss_contour[0]
-                        
-            # CONTINUE HERE
-            #TODO currently one of the curves is shorter so it assumes that they are not similar.
-
+            
+            # Compute similarity between the eddy contour and the gaussian contour at the same level.
             eddy.contour_gaussian_error = compute_similarity(eddy.contour,gauss_contour)
 
-            import matplotlib.pyplot as plt
-
+            # If the similarity between contours doesn't match criteria the eddy is descarde.
             if eddy.contour_gaussian_error < self.identification_criteria['gaussian_fit']:
-                eddy.discarded='gaussian_fit'
-                # fig,ax = plt.subplots(1,2)
-            
-                # ax[0].pcolormesh(X,Y,data_near_contour)#,vmin=vmin,vmax=vmax)
-                # ax[1].pcolormesh(X,Y, eddy.gaussian)#,vmin=vmin,vmax=vmax)
-                # # ax[1].plot(gauss_contour[0][:,0],gauss_contour[0][:,1])
-                # ax[1].plot(eddy.contour[:,0],eddy.contour[:,1])
-                
-                # ax[1].plot(gauss_contour[:,0],gauss_contour[:,1])
-                # ax[0].set_title('rejected',color='r')
-                # plt.show()
-                # discarded.append(eddy)
+                eddy.discarded='gaussian_check'
+                discarded.append(eddy)
                 continue
-            
-            
-            # fig,ax = plt.subplots(1,2)
-            
-            # ax[0].pcolormesh(X,Y,data_near_contour)#,vmin=vmin,vmax=vmax)
-            # ax[1].pcolormesh(X,Y, eddy.gaussian)#,vmin=vmin,vmax=vmax)
-            # # ax[1].plot(gauss_contour[0][:,0],gauss_contour[0][:,1])
-            # ax[1].plot(eddy.contour[:,0],eddy.contour[:,1])
-            
-            # ax[1].plot(gauss_contour[:,0],gauss_contour[:,1])
-            # ax[0].set_title('accepted')
-            # plt.show()
 
-            # TODO check gaussian, check similarity between contour levels?
+            
+            #TODO convert eddy to a table, to join with a table outside. 
 
             eddies.append(eddy)
         return eddies,discarded
@@ -417,8 +400,7 @@ class TrackEddy():
             # TODO reimplement the forcefit option, make a masked ring and then set to zero.
             pass
 
-        # data_inside_contour = data_inside_contour.interpolate_na(dim=self.coords['x'],method='nearest')
-
+        # After some testing, leaving the nans outside the contour in data_inside_contour allows for better fitting of the gaussian and eddy detection.
         return data_inside_contour, eddy_sign, eddy_maxima_loc, inside_contour
 
     
@@ -518,7 +500,15 @@ def gaussian(coords, xo, yo, sigma_x, sigma_y, theta):
 def gaussian_residual(popt, coords, data2fit):
 
     gauss = gaussian(coords,*popt).reshape(np.shape(data2fit))
-    residual = np.exp(np.abs(np.float64(np.nanmean(abs(data2fit - gauss))))) - 1
+    
+    # residual = abs(data2fit - gauss)
+    
+    # residual = np.nansum(abs(data2fit - gauss))
+    # residual = np.nanmean(abs(data2fit - gauss))
+    #This seems to outperform the exp()
+    residual = np.nanstd(abs(data2fit - gauss)) * np.nanmean(abs(data2fit - gauss))
+
+    # residual = np.exp(np.float64(np.nanmean(abs(data2fit - gauss)))) - 1
     return residual
 
 
