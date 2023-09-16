@@ -1,5 +1,6 @@
 import numpy as np
 import xarray as xr
+import pandas as pd
 from scipy import ndimage
 from astropy import convolution
 from sklearn.neighbors import BallTree
@@ -13,24 +14,149 @@ from functools import wraps
 
 from trackeddy.geometryfunc import area_latlon_polygon, eccentricity
 
+
+# class eddy_identifier():
+#     """
+#     eddy_identifier A decorator
+
+#     Parameters
+#     ----------
+#     f : _type_
+#         _description_
+#     """
+#     def __init__(self, inline_func, *args, **kwargs):
+#         self.calls = 0
+#         self.df_store = pd.DataFrame({'' : []})
+#         self.inline_func = inline_func
+
+#     def __call__(self, *args, **kwargs):
+#         table = self.inline_func(*args, id = self.calls, **kwargs)
+#         if self.df_store.empty:
+#             self.df_store = table
+#         else:
+#             self.df_store = pd.concat((self.df_store, table))
+#         self.calls += 1
+#         return self.df_store
+        
+
+def eddy_identifier(f):
+    def wrapped(*args, **kwargs):
+        # print(wrapped.calls,f.__name__)
+        table = f(*args, id = wrapped.calls, **kwargs)
+        if wrapped.df_store.empty:
+            wrapped.df_store = table
+        else:
+            wrapped.df_store = pd.concat((wrapped.df_store, table))
+        wrapped.calls += 1
+        return wrapped.df_store
+    wrapped.calls = 0
+    wrapped.df_store = pd.DataFrame({'' : []})
+    return wrapped
+
+
 class Eddy():
     def __init__(self,contour,level) -> None:
         self.contour = contour
-        self.level = level
+        self.level = np.array(level)
         self.area_eddy = 0
         self.radius_eddy = 0
         self.ellipse = None
         self.ellipse_params=None
         self.contour_ellipse_error = 0
         self.ellipse_eccen = 0
-        self.discarded=None
         self.contour_center=None
         self.eddy_sign = 0
-        self.eddy_maxima=0
+        self.eddy_maxima = 0
+        self.gaussian_params=None
+        self.contour_gaussian_error = 0
+
+        # TODO remove these.
         self.contour_mask=None
         self.gaussian=None
         self.data_near_contour=None
 
+    def to_dict(self,out_properties=None):
+
+        if not out_properties:
+            out_properties = ['identifier','contour','level','area_eddy','radius_eddy','ellipse_params','contour_ellipse_error','ellipse_eccen','contour_center','eddy_sign','eddy_maxima','gaussian_params','contour_gaussian_error']
+
+        eddy_dict = {}
+        for property in out_properties:
+            attr = getattr(self,property)
+
+            if not isinstance(attr,np.ndarray):
+                attr = np.array(attr)
+            #     raise ValueError('The convertion to dict is expecting ndarray objects, check the eddy.{0} variable.'.format(property))
+
+            attr = attr.squeeze()
+            if len(attr.shape) > 2:
+                pass
+                # TODO Ravel data to export matrixes. 
+                # eddy_dict['contour_x']=attr[:,0]
+            elif len(attr.shape) == 2 and 2 in attr.shape:
+                eddy_dict['contour_path_x']=attr[:,0]
+                eddy_dict['contour_path_y']=attr[:,1]
+            elif not attr.shape:
+                eddy_dict[property]=attr
+            else:
+                match property:
+                    case 'ellipse_params':
+                        eddy_dict[property+'_a']=attr[0]
+                        eddy_dict[property+'_b']=attr[1]
+                        eddy_dict[property+'_theta']=attr[2]
+                    case 'contour_center':
+                        eddy_dict['contour_x']=attr[0]
+                        eddy_dict['contour_y']=attr[1]
+                    case 'eddy_maxima':
+                        eddy_dict['maxima']=attr[0]
+                        eddy_dict['maxima_x']=attr[1]
+                        eddy_dict['maxima_y']=attr[2]
+                    case 'gaussian_params':
+                        eddy_dict[property+'_x']=attr[0]
+                        eddy_dict[property+'_y']=attr[1]
+                        eddy_dict[property+'_sigma_x']=attr[2]
+                        eddy_dict[property+'_sigma_y']=attr[3]
+                        eddy_dict[property+'_theta']=attr[4]
+                    case _:
+                        raise ValueError("{0} doesn't exist, make sure the property is a attribute of the eddy class.".format(property))
+                    
+        return eddy_dict            
+        
+    def to_table(self,out_properties=None,**kwards):
+
+        eddy_dict = self.to_dict(out_properties)
+        table = pd.DataFrame.from_dict(eddy_dict,**kwards).reset_index()
+        
+        return table
+
+    def diagnose_eddy(self):
+        # Print or plot the eddy
+        pass
+    
+    @eddy_identifier
+    def store(self,id):
+        self.identifier=id
+        table = self.to_table()
+        return table
+
+    @eddy_identifier
+    def discarded(self,reason,id):
+        # self.identifier = id
+        self.reason = np.array(reason)
+        out_properties = ['reason','level','area_eddy','radius_eddy','contour_ellipse_error','contour_center','ellipse_eccen','eddy_sign','eddy_maxima','contour_gaussian_error'] 
+        dict = self.to_dict(out_properties)
+        table = pd.DataFrame(dict,index=[id])
+
+        #TODO concatenate all the discarded eddies.
+        return table
+    
+    def exit(self):
+        calls = eddy_identifier(self.store()).calls
+        print(calls)
+        
+        
+
+    
 def extract_contours(X, Y, data, level):
     # Convert to arrays to use the cntr library
     c = cntr.Cntr(X, Y, data)
@@ -69,6 +195,8 @@ class TrackEddy():
         self.Dataset = xr.open_mfdataset(path,**xrkwargs)
         self.rawdata = self.Dataset[variable]
         self.nan_treatment = nan_treatment
+        self.filter='space'
+
 
         self.identify_coords()
         self.check_coords()
@@ -151,11 +279,8 @@ class TrackEddy():
             raise ValueError("Define the filter_type argument between the options: 'convolution', 'meridional', and 'zonal'")
         return data2track
 
-    def _extract_domain(self):
-        pass
-
-
-    def _detect_snapshot(self, time):
+    def _detect_snapshot(self, time, levels):
+        
         if isinstance(time, int) :
             data_snapshot = self.rawdata.isel({self.coords['time']:time}).squeeze()
         elif isinstance(time, str) :
@@ -163,9 +288,18 @@ class TrackEddy():
 
         data_treated_nan = self.treat_nan(data_snapshot)
 
-        self._filter_data_(data_treated_nan,filter=filter)
+        filtered = self._filter_data_(data_treated_nan,filter=self.filter)
 
+        eddies_test = []
+        for level in levels:
+            
+            eddies, discarded = self._detect_one_level(filtered,level)
+
+            eddies_test.append(eddies)
+
+            # TODO Use BallTree to find the eddies in the eddy radius. 
         
+        return eddies_test
 
     def treat_nan(self,data_snapshot, nan_value=0):
         if not self.nan_treatment:
@@ -176,65 +310,61 @@ class TrackEddy():
             raise ValueError("The nan_treatment can only be True or False")
         return data2track
     
-    
+
     def _detect_one_level(self, data2track, level):
 
         self.data2track = self.treat_nan(data2track)
-        
-        # TODO Delete 2 lines
-        eddies=[]
-        discarded = []
 
         contours, _ = extract_contours( self.X, self.Y, self.data2track.values, level)
-        counter = 0
+        
+        df_eddy_store = pd.DataFrame({'' : []})
+        df_discarded_store = pd.DataFrame({'' : []})
+
         for contour in contours:
             eddy = Eddy(contour,level)
 
             # Brute force the removal of contours that are too large
             eddy.area_eddy = area_latlon_polygon(eddy.contour)
-            eddy.radius_eddy = np.sqrt(eddy.area_eddy/np.pi)
+            eddy.radius_eddy = np.array(np.sqrt(eddy.area_eddy/np.pi))
+
+            eddy.contour_center = np.mean(eddy.contour,0)
 
             # Continue to next contour if eddy size is too large.
             # TODO add criteria selected by user here.
             if eddy.radius_eddy > 200:
-                eddy.discarded='area'
-                discarded.append(eddy)
+                discarded = eddy.discarded('area')
                 continue
                 
             
             # TODO clean the fit_ellipse function and input only eddy.contour
             eddy.ellipse, eddy.ellipse_params = fit_ellipse(eddy.contour[:,0],eddy.contour[:,1])
 
+            # Check if area is similar between fitted ellipse and contour
+            # Discarding by area first improves the time. 
+            area_ellipse = area_latlon_polygon(eddy.ellipse)
+            if not np.isclose(eddy.area_eddy,area_ellipse, rtol=1-self.identification_criteria['ellipse_fit']): 
+            # Continue to next contour if ellipse fit is bad
+                discarded = eddy.discarded('ellipse_area')
+                continue
+            
             # Check eccentricity of ellipse.
             eddy.ellipse_eccen = eccentricity(*eddy.ellipse_params[0:2])
             if eddy.ellipse_eccen > self.identification_criteria['eccentricity']:
-                eddy.discarded='eccentricity'
-                discarded.append(eddy)
+                discarded = eddy.discarded(reason='eccentricity')
                 continue
 
-            
             eddy.contour_ellipse_error = compute_similarity(eddy.contour,eddy.ellipse)
             
             # Check if the similarity between the contours matches the user criteria.
             if eddy.contour_ellipse_error > self.identification_criteria['ellipse_fit']:
-                eddy.discarded='similarity'
-                discarded.append(eddy)
+                discarded = eddy.discarded(reason='similarity')
                 continue
 
-            # Check if area is similar between fitted ellipse and contour
-            area_ellipse = area_latlon_polygon(eddy.ellipse)
-            if not np.isclose(eddy.area_eddy,area_ellipse, rtol=1-self.identification_criteria['ellipse_fit']): 
-            # Continue to next contour if ellipse fit is bad
-                eddy.discarded='ellipse_area'
-                discarded.append(eddy)
-                continue
-            
             # TODO Extract the area from the contour.
             data_near_contour  = self._data_in_contour(eddy)
             
             if eddy.eddy_maxima[0] == 0:
-                eddy.discarded='eddy_is_island'
-                discarded.append(eddy)
+                discarded = eddy.discarded(reason='eddy_is_island')
                 continue
 
             # TODO Extract center of mass of contour.
@@ -246,7 +376,7 @@ class TrackEddy():
             F_surface = Fit_Surface(eddy, data_near_contour, X, Y)
             
             # Fit the chosen feature.
-            eddy.gaussian, fitdict = F_surface._fitting()
+            eddy.gaussian, eddy.gaussian_params = F_surface._fitting()
 
             # Extract the contour of the gaussian fitted + the eddy contour, since all the gaussians decay to zero, for a fair comparison.
             # print(np.where(eddy.gaussian < eddy.level, eddy.contour_mask,1))
@@ -259,8 +389,7 @@ class TrackEddy():
 
             # No contour was extracted. This is an issue with the gaussian fitting optimization.
             if not gauss_contour:
-                eddy.discarded='gaussian_fit_failed'
-                discarded.append(eddy)
+                discarded = eddy.discarded(reason='gaussian_fit_failed')
                 continue
 
             # TODO Move to a decorator of extract_contours.
@@ -275,15 +404,19 @@ class TrackEddy():
 
             # If the similarity between contours doesn't match criteria the eddy is descarde.
             if eddy.contour_gaussian_error < self.identification_criteria['gaussian_fit']:
-                eddy.discarded='gaussian_check'
-                discarded.append(eddy)
+                discarded = eddy.discarded(reason='gaussian_check')
                 continue
+            
+            # Copy identifier into the eddy object.            
+            eddy_info = eddy.store()
 
             
             #TODO convert eddy to a table, to join with a table outside. 
-
-            eddies.append(eddy)
-        return eddies,discarded
+            #TODO return discarded eddy, but only pass the center location and the radius. Only return those that have passed the area checks.
+            # eddies.append(eddy)
+        eddy_info = eddy_info.set_index('identifier')
+        eddy.exit()
+        return eddy_info, discarded
     
 
 
@@ -319,12 +452,6 @@ class TrackEddy():
 
         # Shift back to the original coordinates
         coord_ind = coord_slice + [sift_y,sift_x]
-
-        
-        eddy_X = self.X[coord_ind[:,0],coord_ind[:,1]]
-        eddy_Y = self.Y[coord_ind[:,0],coord_ind[:,1]]
-
-        eddy_coords = np.mean([eddy_X, eddy_Y],1)
         
         eddy.data_near_contour,contour_coords_grid = self._get_data_in_contour( coord_ind )
 
@@ -333,7 +460,6 @@ class TrackEddy():
 
         eddy.eddy_sign = eddy_sign
         eddy.eddy_maxima = eddy_maxima
-        eddy.contour_center =eddy_coords
         eddy.contour_mask = eddy_contour_mask
         return masked_data_near_contour
 
@@ -403,6 +529,56 @@ class TrackEddy():
         # After some testing, leaving the nans outside the contour in data_inside_contour allows for better fitting of the gaussian and eddy detection.
         return data_inside_contour, eddy_sign, eddy_maxima_loc, inside_contour
 
+    def plot_eddy_detection_in_level(self, filtered, eddies, discarded):
+
+        import matplotlib.pyplot as plt
+        import cmocean as cm
+        fig,ax = plt.subplots(1,2,figsize=(10,5),dpi=300)
+
+        ax[0].pcolormesh(self.X,self.Y , filtered.squeeze().values,cmap = cm.cm.balance,vmin=-0.5,vmax=0.5)
+
+        for idx in eddies.index:
+            Xcontour = eddies.loc[idx]['contour_path_x']
+            Ycontour = eddies.loc[idx]['contour_path_y']
+
+            x_cont = eddies.loc[idx]['contour_x']
+            y_cont = eddies.loc[idx]['contour_y']
+
+            ax[0].plot(Xcontour,Ycontour,'-m')
+            ax[0].plot(x_cont,y_cont,'.k',markersize=1)
+
+        ax[1].pcolormesh(self.X,self.Y , filtered.squeeze().values,cmap = cm.cm.balance,vmin=-0.5,vmax=0.5)
+
+        for idx in discarded.index:
+            x_cont = discarded.loc[idx]['contour_x']
+            y_cont = discarded.loc[idx]['contour_y']
+            plot_args = {'alpha':0.5,'markersize':1}
+            match discarded.loc[idx].reason:
+                case 'eccentricity':
+                    ax[1].plot(x_cont,y_cont,'.r',**plot_args)
+                case 'area':
+                    ax[1].plot(x_cont,y_cont,'.',color='gray',**plot_args)
+                case 'similarity':
+                    ax[1].plot(x_cont,y_cont,'.c',**plot_args)
+                case 'ellipse_area':
+                    ax[1].plot(x_cont,y_cont,'.m',**plot_args)
+                case 'eddy_is_island':
+                    ax[1].plot(x_cont,y_cont,'.',color='orange',**plot_args)
+                case 'gaussian_fit_failed':
+                    ax[1].plot(x_cont,y_cont,'.',color='pink',**plot_args)
+                case _:
+                    ax[1].plot(x_cont,y_cont,'.b',alpha=0.5,markersize=1)
+
+        label = ['Fail eccentricity','Area fail','Contour != ellipse', 'Ellipse area fail', 'Eddy is island', 'Gaussian fit failed','Contour != Gaussian']
+
+        colors=['r','gray','c','m','orange','pink','b']
+        [ax[1].plot([0,0],[0,0], '.',color=colors[c], label = label[c], alpha=0.5 )for c in range(len(colors))]
+
+        ax[0].set_title('Identified')
+        ax[1].set_title('Discarded')
+
+        ax[1].legend(loc=3)
+
     
 class Fit_Surface():
 
@@ -443,6 +619,7 @@ class Fit_Surface():
         UCoordbounds = np.array([[ self.initial_guess[0] + xdelta ], [self.initial_guess[1] + ydelta ]])
 
         # Limit the bounds for the initial guess to 50% of their ellipse value. 
+
         Lellipsebounds = np.array([[ init-0.5*init ] for init in self.initial_guess[2:]])
         Uellipsebounds = np.array([[ init+0.5*init ] for init in self.initial_guess[2:]])
 
@@ -460,9 +637,9 @@ class Fit_Surface():
         # res = minimize(gaussian_residual, self.initial_guess, args=(coords,self.data),method='SLSQP')
         bounds = self.construct_bounds()
         
-        res = least_squares(gaussian_residual, self.initial_guess, args=(coords,self.data),bounds = bounds)
+        res = least_squares(gaussian_residual, self.initial_guess, args=(coords,self.data), bounds = bounds)
         
-        fitdict = res.x
+        fitdict = np.array(res.x)
         
         return fitdict
         
@@ -626,12 +803,14 @@ def fit_ellipse(x,y,diagnostics=False):
     theta_r         = np.linspace(0,2*np.pi,len(y));
     ellipse_x_r     = X0 + a*np.cos(theta_r)
     ellipse_y_r     = Y0 + b*np.sin(theta_r)
-    rotated_ellipse =  np.dot(R, np.array([ellipse_x_r,ellipse_y_r]))
+    rotated_ellipse = np.dot(R, np.array([ellipse_x_r,ellipse_y_r]))
 
     # Ensure that a is always larger than b
-    b, a = np.sort([a,b])
+    b, a = np.sort([a,b])   
+    
+    ellipse_params = np.array((a,b,anglexaxis_rad))
 
-    return rotated_ellipse.T, (a,b,anglexaxis_rad)
+    return rotated_ellipse.T, ellipse_params
 
 
 import math 
@@ -660,7 +839,7 @@ def compute_similarity(curve1,curve2):
     freshet_dist = frdist(curve1,curve2)
 
     result = max(1 - freshet_dist / (geo_avg_curve_len / math.sqrt(2)), 0)
-    return round(result, 4)
+    return np.array(round(result, 4))
 
 def _c(ca, i, j, p, q):
 

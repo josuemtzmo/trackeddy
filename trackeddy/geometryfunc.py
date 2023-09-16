@@ -48,7 +48,7 @@ def area_latlon_polygon(lonlat):
 
     radius = 6378137
     area_km = (area * 4 * np.pi * radius**2) * 1e-6 # km^2
-    return area_km
+    return np.array(area_km)
 
 def fit_ellipse(x,y,diagnostics=False):
     '''
@@ -236,7 +236,7 @@ def eccentricity(a,b):
         a=b
         b=b1
     eccen=np.sqrt(1-(abs(b)**2/abs(a)**2))
-    return eccen
+    return np.array(eccen)
 
 def find2l(arrayx,arrayy,valuex,valuey):
     '''
