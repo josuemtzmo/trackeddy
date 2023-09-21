@@ -582,12 +582,13 @@ class TrackEddy():
         BL_corner = BL_corner - [ thresh_value, thresh_value ]
 
         #Make sure that corners are never larger or smaller than the dataset dimensions
+        
         while (TR_corner > self.X.shape).any():
             index_max = np.argmax(TR_corner - self.X.shape)
             TR_corner[index_max]=TR_corner[index_max]-1
         
         while (BL_corner < (0,0)).any():
-            index_min = np.argmin(BL_corner - self.X.shape)
+            index_min = np.argmin(BL_corner)
             BL_corner[index_min] = 0
 
         data_near_contour = self.data2track.isel({self.coords['x']: slice(BL_corner[1],TR_corner[1]),self.coords['y']: slice(BL_corner[0],TR_corner[0])})
