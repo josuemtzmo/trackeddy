@@ -310,22 +310,14 @@ class TrackEddy():
                 continue
             
             # TODO pass the previous and current eddy to the _detect_nearest function
-            index, nearest, d = self._detect_nearest(joint_eddies,eddies_current)
+            index, nearest= self._detect_nearest(joint_eddies,eddies_current)
 
-            joint_eddies, eddies_current = self._update_better_eddy(joint_eddies,eddies_current,index,nearest,d)
+            joint_eddies, eddies_current = self._update_better_eddy(joint_eddies,eddies_current,index,nearest)
             #TODO function with decorator that handles the merging of eddy tracks.
             
             joint_eddies = self._merge_reindex_eddies(joint_eddies, eddies_current)
 
-            # try:
-            #     eddies_current.loc[22].plot.line(x='contour_path_x',y='contour_path_y',color='k')
-            #     joint_eddies.loc[22].plot.line(x='contour_path_x',y='contour_path_y',color='r')
-            #     print(level)
-            # except:
-            #     pass
-
         return joint_eddies
-        # return eddies_previous, eddies_current
 
 
     def _detect_nearest(self,p_eddy,n_eddy):
@@ -346,9 +338,9 @@ class TrackEddy():
         distance_between_nearest = ( distance * 6371 ) - np.expand_dims(eddy_radius_n,1)
         # If the distance is negative, then the current eddy is within the previous eddy.
         nearest, _ = np.where(distance_between_nearest < 0)
-        return index, nearest, ball_tree
+        return index, nearest
     
-    def _update_better_eddy(self,p_eddy,n_eddy,index,nearest,d):
+    def _update_better_eddy(self,p_eddy,n_eddy,index,nearest):
         # Get unique identifier for each eddy identified at the previous and current level
         previous_index = p_eddy.index.get_level_values(level=0)
         current_index = n_eddy.index.get_level_values(level=0)
@@ -377,10 +369,8 @@ class TrackEddy():
             if p_ellipse_error > c_ellipse_error and p_gauss_error > c_gauss_error:
                 n_eddy = n_eddy.rename(index={shifted_counter:index[duplicated][0]},level=0)
                 replaced_eddies.append(index[duplicated][0]) 
-                print('better')
             else:
                 # Delete the input that does a worst job compared to the previous level
-                print('worst')
                 n_eddy = n_eddy.drop(shifted_counter,level=0)
         
         if replaced_eddies:
@@ -471,8 +461,6 @@ class TrackEddy():
                 discarded = eddy.discarded(reason='eddy_is_island')
                 continue
 
-            # TODO Extract center of mass of contour.
-
             #TODO FIT GAUSSIAN USING THE eddy_sign
             X, Y = np.meshgrid(data_near_contour[self.coords['x']].values, data_near_contour[self.coords['y']].values)
 
@@ -524,6 +512,7 @@ class TrackEddy():
             eddy_info = pd.DataFrame({'' : []})
         try:
             eddy.exit()
+            discarded
         except UnboundLocalError:
             discarded=[]
         
