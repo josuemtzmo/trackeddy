@@ -41,7 +41,11 @@ from trackeddy.geometryfunc import area_latlon_polygon, eccentricity
 
 def eddy_identifier(f):
     def wrapped(*args, **kwargs):
-        # print(wrapped.calls,f.__name__)
+        if 'exit' in kwargs:
+            wrapped.calls = 0
+            wrapped.df_store = pd.DataFrame({'' : []})
+            return wrapped
+            
         table = f(*args, id = wrapped.calls, **kwargs)
         if wrapped.df_store.empty:
             wrapped.df_store = table
@@ -140,7 +144,7 @@ class Eddy():
         return table
 
     @eddy_identifier
-    def discarded(self,reason,id):
+    def discarded(self,reason,id,exit=False):
         # self.identifier = id
         self.reason = np.array(reason)
         out_properties = ['reason','level','area_eddy','radius_eddy','contour_ellipse_error','contour_center','ellipse_eccen','eddy_sign','eddy_maxima','contour_gaussian_error'] 
@@ -151,9 +155,10 @@ class Eddy():
         return table
     
     def exit(self):
-        calls = eddy_identifier(self.store()).calls
-        print(calls)
-        
+        # Reset decorator counter in both functions.
+        self.store(exit=True)
+        self.discarded(exit=True)
+
         
 
     
@@ -175,23 +180,21 @@ def extract_contours(X, Y, data, level):
 def filter_data(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        if not hasattr(self, 'data2track'):
-            self.treat_nan(*args, self.nan_treatment)
-
+        filtered = self.treat_nan(*args)
         if kwargs.get('filter') == 'both':
-            filtered = func(self, *args, 'space')
-            filtered = func(self, filtered, 'time')
+            filtered = func(self, filtered, 'space')
+            self.data2track = func(self, filtered, 'time')
+        elif  kwargs.get('filter') == 'space' or  kwargs.get('filter') == 'time':
+            self.data2track = func(self, *args, kwargs.get('filter'))
         else:
-            filtered = func(self, *args, kwargs.get('filter'))
-        
-        return filtered
-    
+            self.data2track = filtered
+
     return wrapper
 
 
 
 class TrackEddy():
-    def __init__(self,path, variable, nan_treatment=True, **xrkwargs) -> None:
+    def __init__(self,path, variable, nan_treatment=False, **xrkwargs) -> None:
         self.Dataset = xr.open_mfdataset(path,**xrkwargs)
         self.rawdata = self.Dataset[variable]
         self.nan_treatment = nan_treatment
@@ -281,25 +284,130 @@ class TrackEddy():
 
     def _detect_snapshot(self, time, levels):
         
-        if isinstance(time, int) :
+        if isinstance(time, int) and self.coords['time']:
             data_snapshot = self.rawdata.isel({self.coords['time']:time}).squeeze()
-        elif isinstance(time, str) :
+        elif isinstance(time, str) and self.coords['time']:
             data_snapshot = self.rawdata.isel({self.coords['time']:time}).squeeze()
+        else:
+            data_snapshot = self.rawdata.squeeze()
 
-        data_treated_nan = self.treat_nan(data_snapshot)
+        self._filter_data_(data_snapshot,filter=self.filter)
 
-        filtered = self._filter_data_(data_treated_nan,filter=self.filter)
+        joint_eddies = pd.DataFrame({'' : []})
 
-        eddies_test = []
         for level in levels:
+
+            eddies_current, discarded = self._detect_one_level(level)
             
-            eddies, discarded = self._detect_one_level(filtered,level)
+            # If no eddies identified, then continue
+            if eddies_current.empty:
+            # print(eddies_current.empty)
+                continue
+            
+            if joint_eddies.empty : 
+                joint_eddies = eddies_current
+                # Continue, since no check needs to be done.
+                continue
+            
+            # TODO pass the previous and current eddy to the _detect_nearest function
+            index, nearest, d = self._detect_nearest(joint_eddies,eddies_current)
 
-            eddies_test.append(eddies)
+            joint_eddies, eddies_current = self._update_better_eddy(joint_eddies,eddies_current,index,nearest,d)
+            #TODO function with decorator that handles the merging of eddy tracks.
+            
+            joint_eddies = self._merge_reindex_eddies(joint_eddies, eddies_current)
 
-            # TODO Use BallTree to find the eddies in the eddy radius. 
+            # try:
+            #     eddies_current.loc[22].plot.line(x='contour_path_x',y='contour_path_y',color='k')
+            #     joint_eddies.loc[22].plot.line(x='contour_path_x',y='contour_path_y',color='r')
+            #     print(level)
+            # except:
+            #     pass
+
+        return joint_eddies
+        # return eddies_previous, eddies_current
+
+
+    def _detect_nearest(self,p_eddy,n_eddy):
+
+        # Extract from table the first element in the index 'index' 
+        eddy_info_p_level = p_eddy.xs(0,level=('index'))
+        eddy_info_n_level = n_eddy.xs(0,level=('index'))
+        # Extract coordinates of maxima within the contour. 
+        eddy_coords_p = eddy_info_p_level[['maxima_y','maxima_x']].values
+        eddy_coords_n = eddy_info_n_level[['maxima_y','maxima_x']].values
+        # Extract eddy radius of the new eddies.
+        eddy_radius_n = eddy_info_n_level['radius_eddy'].values
+        # Search nearest points between the previous eddies and the new eddies. 
+        # Important to pass ((lat, lot)). 
+        ball_tree = BallTree( np.deg2rad(eddy_coords_p), metric='haversine')
+        distance, index = ball_tree.query(np.deg2rad(eddy_coords_n))
+        # If distance is smaller than radius of eddy, then mark them as within the eddy radius.
+        distance_between_nearest = ( distance * 6371 ) - np.expand_dims(eddy_radius_n,1)
+        # If the distance is negative, then the current eddy is within the previous eddy.
+        nearest, _ = np.where(distance_between_nearest < 0)
+        return index, nearest, ball_tree
+    
+    def _update_better_eddy(self,p_eddy,n_eddy,index,nearest,d):
+        # Get unique identifier for each eddy identified at the previous and current level
+        previous_index = p_eddy.index.get_level_values(level=0)
+        current_index = n_eddy.index.get_level_values(level=0)
+        # Maximum index in the previous table
+        previous_eddies_count = previous_index.unique().max()
+        # Shift the current index by the largest unique identifier + 1 in the previous eddy table. As if all the new eddies are unique.
+        new_identifier = (current_index+previous_eddies_count+1).unique()
+        new_index = n_eddy.index.set_levels(new_identifier, level=0)
+        n_eddy.index = new_index
+
+        replaced_eddies = []
+        for duplicated in nearest:
+            
+            shifted_counter = duplicated+previous_eddies_count+1
+
+            previous_eddy = p_eddy.xs((index[duplicated][0], 0),level=['identifier','index'])
+            current_eddy = n_eddy.xs((shifted_counter, 0),level=['identifier','index'])
+
+            p_ellipse_error = previous_eddy.contour_ellipse_error.values
+            c_ellipse_error = current_eddy.contour_ellipse_error.values
+
+            p_gauss_error = previous_eddy.contour_gaussian_error.values
+            c_gauss_error = current_eddy.contour_gaussian_error.values
+            
+            #TODO check if this is the best condition. 
+            if p_ellipse_error > c_ellipse_error and p_gauss_error > c_gauss_error:
+                n_eddy = n_eddy.rename(index={shifted_counter:index[duplicated][0]},level=0)
+                replaced_eddies.append(index[duplicated][0]) 
+                print('better')
+            else:
+                # Delete the input that does a worst job compared to the previous level
+                print('worst')
+                n_eddy = n_eddy.drop(shifted_counter,level=0)
         
-        return eddies_test
+        if replaced_eddies:
+            p_eddy = p_eddy.drop(replaced_eddies,level=0)
+
+        return p_eddy, n_eddy
+
+    def _merge_reindex_eddies(self,p_eddy,n_eddy):
+        
+        # Merge eddy tables
+        new_eddy_table = pd.concat([p_eddy,n_eddy])
+        # Get new length of unique identifiers 
+        new_eddy_count = len(new_eddy_table.index.get_level_values(level=0).unique())
+
+        # Create new monotonously increasing index
+        new_identifier = np.arange(0,new_eddy_count,dtype=int)
+        
+        # Reset table to avoid issues with codes.
+        reset_table = new_eddy_table.reset_index().set_index(['identifier','index'])
+
+        # Create new index for the table
+        new_index = reset_table.index.set_levels(new_identifier, level=0)
+        # Assign the new index to the table
+        reset_table.index = new_index
+        
+        #Important that index is sorted, so when computing distances, the values will be assigned to an monotonously increasing index.
+        return reset_table.sort_index(level=['identifier','index'])
 
     def treat_nan(self,data_snapshot, nan_value=0):
         if not self.nan_treatment:
@@ -311,16 +419,12 @@ class TrackEddy():
         return data2track
     
 
-    def _detect_one_level(self, data2track, level):
-
-        self.data2track = self.treat_nan(data2track)
+    def _detect_one_level(self,level):
 
         contours, _ = extract_contours( self.X, self.Y, self.data2track.values, level)
         
-        df_eddy_store = pd.DataFrame({'' : []})
-        df_discarded_store = pd.DataFrame({'' : []})
-
         for contour in contours:
+            
             eddy = Eddy(contour,level)
 
             # Brute force the removal of contours that are too large
@@ -385,7 +489,8 @@ class TrackEddy():
             # masked_gauss = np.where(tmp_mask, eddy.gaussian, eddy.level)
             # eddy.gaussian[ ~ tmp_mask] = eddy.level
             # print(masked_gauss)
-            gauss_contour, _ = extract_contours(X, Y, eddy.gaussian, eddy.eddy_sign * eddy.level)
+            #TODO check when eddy is negative in positive level, it may fail, but they may be identified when tracking in negative levels.
+            gauss_contour, _ = extract_contours(X, Y, eddy.gaussian, eddy.level)
 
             # No contour was extracted. This is an issue with the gaussian fitting optimization.
             if not gauss_contour:
@@ -410,12 +515,18 @@ class TrackEddy():
             # Copy identifier into the eddy object.            
             eddy_info = eddy.store()
 
-            
-            #TODO convert eddy to a table, to join with a table outside. 
-            #TODO return discarded eddy, but only pass the center location and the radius. Only return those that have passed the area checks.
-            # eddies.append(eddy)
-        eddy_info = eddy_info.set_index('identifier')
-        eddy.exit()
+
+        #TODO move this to a decorator.
+        # In case no eddies are identified
+        try:
+            eddy_info = eddy_info.set_index(['identifier','index'])
+        except UnboundLocalError:
+            eddy_info = pd.DataFrame({'' : []})
+        try:
+            eddy.exit()
+        except UnboundLocalError:
+            discarded=[]
+        
         return eddy_info, discarded
     
 
@@ -528,16 +639,45 @@ class TrackEddy():
 
         # After some testing, leaving the nans outside the contour in data_inside_contour allows for better fitting of the gaussian and eddy detection.
         return data_inside_contour, eddy_sign, eddy_maxima_loc, inside_contour
+    
+    def plot_eddy_detection_multilevel(self,df_eddy_multilevel_store):
+        import matplotlib.colors as mcolors
+        import matplotlib.pyplot as plt
+        import cmocean as cm
 
-    def plot_eddy_detection_in_level(self, filtered, eddies, discarded):
+        n_colors =list(mcolors.XKCD_COLORS.keys())
+
+        levels = df_eddy_multilevel_store.level.unique()
+        color_index = np.linspace(0,len(n_colors)-1,len(levels),dtype=int)
+
+        plt.figure(figsize=(10,6),dpi=300)
+        plt.pcolormesh(self.X, self.Y, self.data2track,cmap=cm.cm.balance,vmin=-0.5,vmax=0.5)
+
+        for eddy in df_eddy_multilevel_store.index.get_level_values(level=0):
+            c_path_x = df_eddy_multilevel_store.loc[eddy].contour_path_x
+            c_path_y = df_eddy_multilevel_store.loc[eddy].contour_path_y
+
+            inx = np.where(df_eddy_multilevel_store.loc[eddy].level[0]==levels)[0][0]
+            
+            plt.plot(c_path_x,c_path_y,color=n_colors[color_index[inx]])
+        
+        if len(levels) < 5:
+            for level in range(len(levels)):
+                plt.plot(c_path_x[0],c_path_y[0],color=n_colors[level],label=levels[level])
+            plt.legend()
+
+
+    def plot_eddy_detection_in_level(self, eddies, discarded, plot_args):
+        if not plot_args:
+            plot_args = {'alpha':0.5,'markersize':1}
 
         import matplotlib.pyplot as plt
         import cmocean as cm
         fig,ax = plt.subplots(1,2,figsize=(10,5),dpi=300)
 
-        ax[0].pcolormesh(self.X,self.Y , filtered.squeeze().values,cmap = cm.cm.balance,vmin=-0.5,vmax=0.5)
+        ax[0].pcolormesh(self.X, self.Y, self.data2track.squeeze().values, cmap = cm.cm.balance, vmin=-0.5, vmax=0.5)
 
-        for idx in eddies.index:
+        for idx in eddies.index.get_level_values(0).unique():
             Xcontour = eddies.loc[idx]['contour_path_x']
             Ycontour = eddies.loc[idx]['contour_path_y']
 
@@ -547,12 +687,12 @@ class TrackEddy():
             ax[0].plot(Xcontour,Ycontour,'-m')
             ax[0].plot(x_cont,y_cont,'.k',markersize=1)
 
-        ax[1].pcolormesh(self.X,self.Y , filtered.squeeze().values,cmap = cm.cm.balance,vmin=-0.5,vmax=0.5)
+        ax[1].pcolormesh(self.X,self.Y , self.data2track.squeeze().values,cmap = cm.cm.balance,vmin=-0.5,vmax=0.5)
 
         for idx in discarded.index:
             x_cont = discarded.loc[idx]['contour_x']
             y_cont = discarded.loc[idx]['contour_y']
-            plot_args = {'alpha':0.5,'markersize':1}
+            
             match discarded.loc[idx].reason:
                 case 'eccentricity':
                     ax[1].plot(x_cont,y_cont,'.r',**plot_args)
@@ -567,17 +707,18 @@ class TrackEddy():
                 case 'gaussian_fit_failed':
                     ax[1].plot(x_cont,y_cont,'.',color='pink',**plot_args)
                 case _:
-                    ax[1].plot(x_cont,y_cont,'.b',alpha=0.5,markersize=1)
+                    ax[1].plot(x_cont,y_cont,'.b',**plot_args)
 
         label = ['Fail eccentricity','Area fail','Contour != ellipse', 'Ellipse area fail', 'Eddy is island', 'Gaussian fit failed','Contour != Gaussian']
 
         colors=['r','gray','c','m','orange','pink','b']
-        [ax[1].plot([0,0],[0,0], '.',color=colors[c], label = label[c], alpha=0.5 )for c in range(len(colors))]
+        [ax[1].plot(self.X[0,0],self.Y[0,0], '.',color=colors[c], label = label[c], alpha=0.5 )for c in range(len(colors))]
 
         ax[0].set_title('Identified')
         ax[1].set_title('Discarded')
 
-        ax[1].legend(loc=3)
+        ax[1].legend(loc='upper center',  bbox_to_anchor=(0, -0.05),
+          ncol=3)
 
     
 class Fit_Surface():
