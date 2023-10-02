@@ -231,10 +231,7 @@ def eccentricity(a,b):
     '''
     a=abs(a)
     b=abs(b)
-    if b>a:
-        b1=a
-        a=b
-        b=b1
+
     eccen=np.sqrt(1-(abs(b)**2/abs(a)**2))
     return np.array(eccen)
 

@@ -113,8 +113,8 @@ class Eddy():
                         eddy_dict['contour_y']=attr[1]
                     case 'eddy_maxima':
                         eddy_dict['maxima']=attr[0]
-                        eddy_dict['maxima_x']=attr[1]
-                        eddy_dict['maxima_y']=attr[2]
+                        eddy_dict['maxima_y']=attr[1]
+                        eddy_dict['maxima_x']=attr[2]
                     case 'gaussian_params':
                         eddy_dict[property+'_x']=attr[0]
                         eddy_dict[property+'_y']=attr[1]
@@ -209,30 +209,46 @@ class TrackEddy():
         self.S_filter_setup = {'filter_type':'convolution','mode':'uniform','kernel':10}
 
         self.T_filter_setup = {}
+        self.skip_gaussian_fit = False
 
     def check_coords(self):
-        if ( len(self.Dataset[self.coords['x']].shape) == 1 and len(self.Dataset[self.coords['y']].shape) ==1 ):
-            self.X, self.Y = np.meshgrid(self.Dataset[self.coords['x']],self.Dataset[self.coords['y']])
+        if 'x_var' in self.coords and 'y_var' in self.coords:
+            x_coord_name = self.coords['x_var']
+            y_coord_name = self.coords['y_var']
+        elif self.coords['x'] and self.coords['y']:
+            x_coord_name = self.coords['x']
+            y_coord_name = self.coords['y']
+        else:
+            raise ValueError("Can't find dimensions or variables that correspond to geographic coordinages (lon,lat)")
         
-        elif ( len(self.Dataset[self.coords['x']].shape) == 2 and len(self.Dataset[self.coords['y']].shape) ==2 ):
-            self.X = self.Dataset[self.coords['x']]
-            self.Y = self.Dataset[self.coords['y']]
+
+        if ( len(self.Dataset[x_coord_name].shape) == 1 and len(self.Dataset[y_coord_name].shape) ==1 ):
+            self.X, self.Y = np.meshgrid(self.Dataset[x_coord_name],self.Dataset[y_coord_name])
+        
+        elif ( len(self.Dataset[x_coord_name].shape) == 2 and len(self.Dataset[y_coord_name].shape) ==2 ):
+            self.X = self.Dataset[x_coord_name].values
+            self.Y = self.Dataset[y_coord_name].values
         
         else: 
-            raise ValueError("The coordinates of the dataset should be a 1D or 2D array, check the vars: '{0}', {1}.".format(self.coords['x'],self.coords['y']))
+            raise ValueError("The coordinates of the dataset should be a 1D or 2D array, check the vars: '{0}', {1}.".format(x_coord_name,y_coord_name))
 
 
     # TODO add a wrapper to check if the coords where properly identified, if not rise error.
     def identify_coords(self) -> None:
         self.coords={'time':'','x':'','y':''}
-        for coord_name in self.rawdata.coords.keys():
-            if 'time' in coord_name or coord_name == 't':
-                self.coords['time']=coord_name
-            if 'lon' in coord_name or coord_name == 'x':
-                self.coords['x']=coord_name
-            if 'lat' in coord_name or coord_name == 'y':
-                self.coords['y']=coord_name
-
+        for dim_name in self.rawdata.dims:
+            if 'time' in dim_name or dim_name == 't':
+                self.coords['time']=dim_name
+            if 'lon' in dim_name or dim_name == 'x':
+                self.coords['x']=dim_name
+            if 'lat' in dim_name or dim_name == 'y':
+                self.coords['y']=dim_name
+        for var_name in self.Dataset.keys():
+            if 'lon' in var_name or var_name == 'x':
+                self.coords['x_var']=var_name
+            if 'lat' in var_name or var_name == 'y':
+                self.coords['y_var']=var_name
+            #TODO continue with the x_var to check if data is in a coord or a variable.
 
     def setup(self) -> None:
         pass
@@ -281,6 +297,52 @@ class TrackEddy():
         else:
             raise ValueError("Define the filter_type argument between the options: 'convolution', 'meridional', and 'zonal'")
         return data2track
+    
+    def time_tracking(self,t0=0,tf=None,lin_levels=None):
+        #TODO Move to decorator?
+        if not tf:
+            times = self.Dataset[self.coords['time']]
+        else:
+            times = range(t0,tf)
+
+        track_in_time = pd.DataFrame({'' : []})
+        for time in times:
+            print(time)
+            current_time = self._detect_snapshot(time,lin_levels)
+            current_time['time'] = time 
+            if track_in_time.empty:
+                track_in_time=current_time.reset_index().set_index(['identifier','time','index'])
+                continue
+
+            current_time = current_time.reset_index().set_index(['identifier','time','index'])
+
+            # Nearest detection within the previous time step. TODO: search 2 or 3 time steps back in case there was a miss identification.
+
+            # Reindex to avoid loosing indexes, it's important for the nearest detection
+            
+            # TODO Write function that extracts the previous time and all the eddies that didn't find a track in the previous 5 time steps.
+            previous_time = track_in_time.xs(time-1,level='time').reindex( pd.MultiIndex.from_product([track_in_time.index.levels[0], 
+            track_in_time.index.levels[2]]),fill_value=0)
+
+            if time==9:
+                return track_in_time, current_time
+            
+            # Detect nearest eddies.
+            index, nearest = self._detect_nearest(previous_time,current_time)
+
+            # Update counter of current time to avoid overlap with the previous time
+            current_time, prev_count = self._update_counter(previous_time,current_time)
+
+            # Rename identifier of  nearest eddies to match the previous table identifier 
+            current_time = self._rename_eddies_in_time(current_time,index,nearest,prev_count)
+            
+            # Merge dictionaries.
+            track_in_time = self._merge_reindex_eddies(track_in_time,current_time)
+
+            # Reset index and assign indexes for consistency in the loop and output.
+            track_in_time = track_in_time.reset_index().set_index(['identifier','time','index']).sort_index(level=1)
+
+        return track_in_time
 
     def _detect_snapshot(self, time, levels):
         
@@ -301,7 +363,6 @@ class TrackEddy():
             
             # If no eddies identified, then continue
             if eddies_current.empty:
-            # print(eddies_current.empty)
                 continue
             
             if joint_eddies.empty : 
@@ -340,25 +401,44 @@ class TrackEddy():
         nearest, _ = np.where(distance_between_nearest < 0)
         return index, nearest
     
-    def _update_better_eddy(self,p_eddy,n_eddy,index,nearest):
-        # Get unique identifier for each eddy identified at the previous and current level
+
+    def _rename_eddies_in_time(self, current_time, index, nearest, prev_count):
+        for near in nearest:
+            shifted_counter = near+prev_count+1
+
+            current_time = current_time.rename(index={shifted_counter:index[ near ][0]},level=0)
+
+
+
+            # TODO add conditions to better estimate a track, i.e. compute propagation speed and check distance. 
+            
+        return current_time
+
+    
+    def _update_counter(self,p_eddy,n_eddy):
         previous_index = p_eddy.index.get_level_values(level=0)
         current_index = n_eddy.index.get_level_values(level=0)
         # Maximum index in the previous table
-        previous_eddies_count = previous_index.unique().max()
+        prev_count = previous_index.unique().max()
         # Shift the current index by the largest unique identifier + 1 in the previous eddy table. As if all the new eddies are unique.
-        new_identifier = (current_index+previous_eddies_count+1).unique()
+        new_identifier = (current_index+prev_count+1).unique()
         new_index = n_eddy.index.set_levels(new_identifier, level=0)
         n_eddy.index = new_index
+        return n_eddy, prev_count
+
+    def _update_better_eddy(self,p_eddy,n_eddy,index,nearest):
+        # Get unique identifier for each eddy identified at the previous and current level
+        n_eddy, prev_count = self._update_counter(p_eddy,n_eddy)
 
         replaced_eddies = []
         for duplicated in nearest:
-            
-            shifted_counter = duplicated+previous_eddies_count+1
-
+            shifted_counter = duplicated+prev_count+1
+            previous_eddy = p_eddy.loc[index[duplicated][0]]
+            current_eddy = n_eddy.loc[shifted_counter]
             previous_eddy = p_eddy.xs((index[duplicated][0], 0),level=['identifier','index'])
             current_eddy = n_eddy.xs((shifted_counter, 0),level=['identifier','index'])
 
+            
             p_ellipse_error = previous_eddy.contour_ellipse_error.values
             c_ellipse_error = current_eddy.contour_ellipse_error.values
 
@@ -436,7 +516,8 @@ class TrackEddy():
             # Check if area is similar between fitted ellipse and contour
             # Discarding by area first improves the time. 
             area_ellipse = area_latlon_polygon(eddy.ellipse)
-            if not np.isclose(eddy.area_eddy,area_ellipse, rtol=1-self.identification_criteria['ellipse_fit']): 
+            # The areas need to be at least within 20% of the value defined by the user, default ~ 15%. 
+            if not np.isclose(eddy.area_eddy,area_ellipse, rtol= 0.1 * self.identification_criteria['ellipse_fit']): 
             # Continue to next contour if ellipse fit is bad
                 discarded = eddy.discarded('ellipse_area')
                 continue
@@ -455,17 +536,14 @@ class TrackEddy():
                 continue
 
             # TODO Extract the area from the contour.
-            data_near_contour  = self._data_in_contour(eddy)
+            data_near_contour, x_near_c, y_near_c   = self._data_in_contour(eddy)
             
             if eddy.eddy_maxima[0] == 0:
                 discarded = eddy.discarded(reason='eddy_is_island')
                 continue
 
-            #TODO FIT GAUSSIAN USING THE eddy_sign
-            X, Y = np.meshgrid(data_near_contour[self.coords['x']].values, data_near_contour[self.coords['y']].values)
-
             # Create object to handle fitting of surfaces.
-            F_surface = Fit_Surface(eddy, data_near_contour, X, Y)
+            F_surface = Fit_Surface(eddy, data_near_contour, x_near_c, y_near_c)
             
             # Fit the chosen feature.
             eddy.gaussian, eddy.gaussian_params = F_surface._fitting()
@@ -478,7 +556,7 @@ class TrackEddy():
             # eddy.gaussian[ ~ tmp_mask] = eddy.level
             # print(masked_gauss)
             #TODO check when eddy is negative in positive level, it may fail, but they may be identified when tracking in negative levels.
-            gauss_contour, _ = extract_contours(X, Y, eddy.gaussian, eddy.level)
+            gauss_contour, _ = extract_contours(x_near_c, y_near_c, eddy.gaussian, eddy.level)
 
             # No contour was extracted. This is an issue with the gaussian fitting optimization.
             if not gauss_contour:
@@ -524,15 +602,20 @@ class TrackEddy():
 
         pt = np.expand_dims(np.mean(eddy.contour,axis=0),0)
 
-        # To speed up the process of finding the nearest point, we mask values near the point that are close by 10% of its value, with a largest cap of 3 degrees if coordinates are geographical. The atol fixes the issue in x or y coordinates close to 0.
-        Xmask = np.isclose(self.X,pt[0][0],rtol=0.1, atol=3)
-        Ymask = np.isclose(self.Y,pt[0][1],rtol=0.1, atol=3)
+        # To speed up the process of finding the nearest point, we mask values near the point that are close by 5% of its value, with a largest cap of 3 degrees if coordinates are geographical. The atol fixes the issue in x or y coordinates close to 0.
+        Xmask = np.isclose(self.X,pt[0][0],rtol=0.05, atol=3)
+        Ymask = np.isclose(self.Y,pt[0][1],rtol=0.05, atol=3)
 
-        sift_x = np.argmax(np.sum(Xmask*Ymask,0))
-        sift_y = np.argmax(np.sum(Xmask*Ymask,1))
-
-        mask_shape = np.unique(np.sum(Xmask*Ymask,0))[1], np.unique(np.sum(Xmask*Ymask,1))[1]
-
+        # This step finds some rough coordinates to crop the domain so the BallTree search is quicker.
+        sum_x = np.sum(Xmask*Ymask,0)
+        sim_y = np.sum(Xmask*Ymask,1)
+        # Corners of the box
+        shift_x = np.argmax(sum_x)
+        shift_y = np.argmax(sim_y)
+        
+        # Extract last item, since it will always be different than 0.
+        mask_shape = np.unique(sum_x)[-1], np.unique(sim_y)[-1]
+        
         x = self.X[Xmask*Ymask]
         y = self.Y[Xmask*Ymask]
 
@@ -551,17 +634,25 @@ class TrackEddy():
         coord_slice = np.hstack( np.unravel_index(ind, mask_shape) ).squeeze()
 
         # Shift back to the original coordinates
-        coord_ind = coord_slice + [sift_y,sift_x]
+        coord_ind = coord_slice + [shift_y,shift_x]
         
-        eddy.data_near_contour,contour_coords_grid = self._get_data_in_contour( coord_ind )
+        eddy.data_near_contour,contour_coords_grid, x_near_c, y_near_c = self._get_data_in_contour( coord_ind )
 
         # data_near_contour is loaded here, this should speed up the gaussian fit, since we don't need to reload the data
         masked_data_near_contour, eddy_sign, eddy_maxima, eddy_contour_mask = self._mask_data_in_contour(contour_coords_grid,eddy.data_near_contour,eddy.level)
+        
+        # Support to extract the coordinates of maximum with and without a regular grid
+        Y_coord = int(eddy_maxima[1])
+        X_coord = int(eddy_maxima[2])
+        eddy_maxima[2] = x_near_c[Y_coord,X_coord]
+        eddy_maxima[1] = y_near_c[Y_coord,X_coord]
+
+        #TODO Continue here, it seems that changing this affects the gaussian fitting and other things.
 
         eddy.eddy_sign = eddy_sign
         eddy.eddy_maxima = eddy_maxima
         eddy.contour_mask = eddy_contour_mask
-        return masked_data_near_contour
+        return masked_data_near_contour, x_near_c, y_near_c
 
     def _get_data_in_contour(self, coord_ind,threshold = 'auto'):
         
@@ -592,10 +683,13 @@ class TrackEddy():
             BL_corner[index_min] = 0
 
         data_near_contour = self.data2track.isel({self.coords['x']: slice(BL_corner[1],TR_corner[1]),self.coords['y']: slice(BL_corner[0],TR_corner[0])})
+
+        x = self.X[BL_corner[0]:TR_corner[0], BL_corner[1]:TR_corner[1]]
+        y = self.Y[BL_corner[0]:TR_corner[0], BL_corner[1]:TR_corner[1]]
         
         contour_coords_grid = coord_ind - BL_corner
 
-        return data_near_contour, contour_coords_grid
+        return data_near_contour, contour_coords_grid, x, y
     
     def _mask_data_in_contour(self,coord_ind_contour, data_near_contour,level,mask='contour'):
         
@@ -618,10 +712,10 @@ class TrackEddy():
         eddy_argmaxima = ( eddy_sign * data_inside_contour ).argmax()
         eddy_idxmaxima = np.unravel_index(eddy_argmaxima, data_inside_contour.shape)
         
-        eddy_xlocmax = data_near_contour[self.coords['x']].isel({self.coords['x']: eddy_idxmaxima[1]})
-        eddy_ylocmax = data_near_contour[self.coords['y']].isel({self.coords['y']: eddy_idxmaxima[0]})
+        eddy_xlocmax = eddy_idxmaxima[1]
+        eddy_ylocmax = eddy_idxmaxima[0]
 
-        eddy_maxima_loc = np.vstack((eddy_maxima, eddy_xlocmax, eddy_ylocmax))
+        eddy_maxima_loc = np.vstack((eddy_maxima, eddy_ylocmax, eddy_xlocmax))
 
         if mask == 'forcefit':
             # TODO reimplement the forcefit option, make a masked ring and then set to zero.
@@ -657,7 +751,7 @@ class TrackEddy():
             plt.legend()
 
 
-    def plot_eddy_detection_in_level(self, eddies, discarded, plot_args):
+    def plot_eddy_detection_in_level(self, eddies, discarded, **plot_args):
         if not plot_args:
             plot_args = {'alpha':0.5,'markersize':1}
 
@@ -718,15 +812,15 @@ class Fit_Surface():
         self.X = X
         self.Y = Y
         self.eddy_max = eddy.eddy_maxima[0]
-        self.x_eddy = eddy.eddy_maxima[1]
-        self.y_eddy = eddy.eddy_maxima[2]
+        self.x_eddy = eddy.eddy_maxima[2]
+        self.y_eddy = eddy.eddy_maxima[1]
         self.level = eddy.level
         
         # Initial guess to start fitting feature
         self.initial_guess = np.hstack((self.x_eddy,self.y_eddy,eddy.ellipse_params))
         #TODO is the best to pass the coords from the eddy_data or should I provide the self.X and self.Y cropped? In fact, it may not matter. 
         
-        self.data = eddy_data - eddy.level
+        self.data = eddy_data# - eddy.level
         self.mode = mode
 
         
@@ -749,10 +843,10 @@ class Fit_Surface():
         LCoordbounds = np.array([[ self.initial_guess[0] - xdelta ], [self.initial_guess[1] - ydelta ]])
         UCoordbounds = np.array([[ self.initial_guess[0] + xdelta ], [self.initial_guess[1] + ydelta ]])
 
-        # Limit the bounds for the initial guess to 50% of their ellipse value. 
+        # Limit the bounds for the initial guess to 70% of their ellipse value. 
 
-        Lellipsebounds = np.array([[ init-0.5*init ] for init in self.initial_guess[2:]])
-        Uellipsebounds = np.array([[ init+0.5*init ] for init in self.initial_guess[2:]])
+        Lellipsebounds = np.array([[ init-0.7*init ] for init in self.initial_guess[2:]])
+        Uellipsebounds = np.array([[ init+0.7*init ] for init in self.initial_guess[2:]])
 
         Lbounds = np.vstack((LCoordbounds,Lellipsebounds))
         Ubounds = np.vstack((UCoordbounds,Uellipsebounds))
