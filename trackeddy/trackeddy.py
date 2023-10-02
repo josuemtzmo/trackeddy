@@ -298,10 +298,10 @@ class TrackEddy():
             raise ValueError("Define the filter_type argument between the options: 'convolution', 'meridional', and 'zonal'")
         return data2track
     
-    def time_tracking(self,t0=0,tf=None,lin_levels=None):
+    def time_tracking(self,t0=0,tf=None,lin_levels=None,ntimes=5):
         #TODO Move to decorator?
         if not tf:
-            times = self.Dataset[self.coords['time']]
+            times = range(0,len(self.Dataset[self.coords['time']]))
         else:
             times = range(t0,tf)
 
@@ -311,7 +311,7 @@ class TrackEddy():
             current_time = self._detect_snapshot(time,lin_levels)
             current_time['time'] = time 
             if track_in_time.empty:
-                track_in_time=current_time.reset_index().set_index(['identifier','time','index'])
+                track_in_time=current_time.reset_index().set_index(['identifier','time','index']).sort_index(level=['identifier','time','index'])
                 continue
 
             current_time = current_time.reset_index().set_index(['identifier','time','index'])
@@ -320,13 +320,13 @@ class TrackEddy():
 
             # Reindex to avoid loosing indexes, it's important for the nearest detection
             
-            # TODO Write function that extracts the previous time and all the eddies that didn't find a track in the previous 5 time steps.
-            previous_time = track_in_time.xs(time-1,level='time').reindex( pd.MultiIndex.from_product([track_in_time.index.levels[0], 
-            track_in_time.index.levels[2]]),fill_value=0)
+            # Extracts only the previous time.
+            # previous_time = track_in_time.xs(time-1,level='time').reindex( pd.MultiIndex.from_product([track_in_time.index.levels[0], track_in_time.index.levels[2]]),fill_value=0)
 
-            if time==9:
-                return track_in_time, current_time
-            
+            # TODO Check this function that is causing issues. 
+            # Extracts the previous time and all the eddies that didn't find a track in the previous 5 time steps.
+            previous_time = unlink_eddies_in_previous_times(track_in_time, time-1,ntimes=ntimes)
+
             # Detect nearest eddies.
             index, nearest = self._detect_nearest(previous_time,current_time)
 
@@ -335,14 +335,16 @@ class TrackEddy():
 
             # Rename identifier of  nearest eddies to match the previous table identifier 
             current_time = self._rename_eddies_in_time(current_time,index,nearest,prev_count)
-            
+
             # Merge dictionaries.
             track_in_time = self._merge_reindex_eddies(track_in_time,current_time)
 
             # Reset index and assign indexes for consistency in the loop and output.
-            track_in_time = track_in_time.reset_index().set_index(['identifier','time','index']).sort_index(level=1)
+            track_in_time = track_in_time.reset_index().set_index(['identifier','time','index']).sort_index(level=['identifier','time','index'])
 
         return track_in_time
+    
+
 
     def _detect_snapshot(self, time, levels):
         
@@ -416,12 +418,12 @@ class TrackEddy():
 
     
     def _update_counter(self,p_eddy,n_eddy):
-        previous_index = p_eddy.index.get_level_values(level=0)
-        current_index = n_eddy.index.get_level_values(level=0)
+        previous_index = p_eddy.index.levels[0]
+        current_index = n_eddy.index.levels[0]
         # Maximum index in the previous table
-        prev_count = previous_index.unique().max()
+        prev_count = previous_index.max()
         # Shift the current index by the largest unique identifier + 1 in the previous eddy table. As if all the new eddies are unique.
-        new_identifier = (current_index+prev_count+1).unique()
+        new_identifier = (current_index+prev_count+1)
         new_index = n_eddy.index.set_levels(new_identifier, level=0)
         n_eddy.index = new_index
         return n_eddy, prev_count
@@ -463,7 +465,7 @@ class TrackEddy():
         # Merge eddy tables
         new_eddy_table = pd.concat([p_eddy,n_eddy])
         # Get new length of unique identifiers 
-        new_eddy_count = len(new_eddy_table.index.get_level_values(level=0).unique())
+        new_eddy_count = len(new_eddy_table.index.levels[0])
 
         # Create new monotonously increasing index
         new_identifier = np.arange(0,new_eddy_count,dtype=int)
@@ -761,7 +763,7 @@ class TrackEddy():
 
         ax[0].pcolormesh(self.X, self.Y, self.data2track.squeeze().values, cmap = cm.cm.balance, vmin=-0.5, vmax=0.5)
 
-        for idx in eddies.index.get_level_values(0).unique():
+        for idx in eddies.index.levels[0]:
             Xcontour = eddies.loc[idx]['contour_path_x']
             Ycontour = eddies.loc[idx]['contour_path_y']
 
@@ -804,7 +806,59 @@ class TrackEddy():
         ax[1].legend(loc='upper center',  bbox_to_anchor=(0, -0.05),
           ncol=3)
 
+
+
+def _get_non_duplicated_identifiers(merged_identifiers):
     
+    values, counts = np.unique(merged_identifiers, return_counts=True)
+
+    duplicated=[]
+    for count in range(0,len(counts)):
+        if counts[count] >=2:
+            duplicated.append(count)
+
+    values = np.delete(values, duplicated)
+    return values
+
+def unlink_eddies_in_previous_times(previous_time,time,ntimes=5):
+
+    # Move to decorator
+    if time < ntimes:
+        ntimes=time
+    # Extract identifier of eddies identified as the last imput in the table.
+    last_identified_eddies = previous_time.xs(time,level='time').index.levels[0]
+
+    # Loop and arrays to contain extracted identifier of eddies identified in the last ntimes in the table.
+    unlinked_tracks_in_time = last_identified_eddies
+    unlinked_times = np.ones_like(last_identified_eddies)*time
+    # Loop back in time to check if missing a eddy track
+    for prev_time in np.arange(time-ntimes,time):
+        # Extracted identifier of eddies identified in the last time-ntimes in the table.
+        previous_identified_eddies = previous_time.xs(prev_time,level='time').index.levels[0]
+
+        merged_identifiers= np.hstack((last_identified_eddies,previous_identified_eddies))
+        
+        values = _get_non_duplicated_identifiers(merged_identifiers)
+
+        unlinked_tracks_in_time = np.hstack((unlinked_tracks_in_time,values))
+        unlinked_times = np.hstack((unlinked_times,np.ones_like(values)*prev_time))
+
+    # Perhaps not the cleanest code, but it ensures that only the last time for all the detected eddies is the output.
+    unlinked_tracks_in_time = np.unique(unlinked_tracks_in_time)
+
+    times = previous_time.loc[unlinked_tracks_in_time].reset_index().groupby('identifier').max('time')['time'].values
+
+    eddies_to_track = previous_time.loc[unlinked_tracks_in_time].groupby(['identifier','index']).last('time')
+
+    eddies_to_track['time']=[ times[index] for index,n in eddies_to_track.index]
+
+    eddies_to_track = eddies_to_track.reset_index().set_index(['identifier','time','index'])
+
+    previous_time = eddies_to_track.reindex(previous_time.index.levels[0],level=0,fill_value=0)
+
+    return eddies_to_track
+
+
 class Fit_Surface():
 
     def __init__(self,eddy,eddy_data,X,Y,mode='gaussian') -> None:
@@ -960,35 +1014,13 @@ def fit_ellipse(x,y,diagnostics=False):
     xp = x-mean_x
     yp = y-mean_y
     
-    # D1 = np.vstack([xp**2, xp*yp, yp**2]).T
-    # D2 = np.vstack([xp, yp, np.ones(len(xp))]).T
-    # S1 = D1.T @ D1
-    # S2 = D1.T @ D2
-    # S3 = D2.T @ D2
-    # T = -np.linalg.solve(S3,S2.T)
-    # M = S1 + S2 @ T
-    # C = np.array(((0, 0, 2), (0, -1, 0), (2, 0, 0)), dtype=float)
-    # M = np.linalg.solve(C, M)
-    # eigval, eigvec = np.linalg.eig(M)
-    # con = 4 * eigvec[0] * eigvec[2] - eigvec[1]**2
-    # ak = eigvec[:, np.nonzero(con > 0)[0]]
-    
-    # H2 = np.dot(eigvec,np.diag(eigval),np.linalg.inv(eigvec))
-    # Error = np.linalg.norm(M - H2)
-
-    # # print(Error)
-    # # print(np.concatenate((ak, T @ ak)).ravel())
-    # try:
-    #     a,b,c,d,e,f = np.concatenate((ak, T @ ak)).ravel()
-    # except:
-    #     a,b,c,d,e,f = np.zeros(6)
-
     X = np.array([xp**2,xp*yp,yp**2,xp,yp]).T
     
     a = np.sum(X,axis=0)
     b = np.dot(X.T,X)
     
     x2  = np.linalg.solve(b.T, a.T)
+    
     a,b,c,d,e=x2
 
     if b == 0 and a<c:
