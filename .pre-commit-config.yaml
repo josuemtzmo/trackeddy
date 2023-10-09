@@ -27,6 +27,8 @@ repos:
       args: ["--ignore", "F722,F821,E203,W503,F405,C901", "--max-line-length", "88","--max-complexity","5"]
       exclude: |
         (?x)(
+            ^validation/.*py|
+            ^examples/.*py|
             ^src/.*c|
             ^tests/.*py
         )
