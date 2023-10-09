@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from scipy import ndimage
+from sklearn.neighbors import BallTree
 
 
 def _rename_eddies_in_time(current_time, index, nearest, prev_count):
