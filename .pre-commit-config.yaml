@@ -24,8 +24,7 @@ repos:
     rev: 5.0.4
     hooks:
     - id: flake8
-      args: ["--ignore", "F722,F821,E203,W503,F405", "--max-line-length", "88","--max-complexity","5"]
-      # These files are not supported by BlenderNC development, and exclude tests.
+      args: ["--ignore", "F722,F821,E203,W503,F405,C901", "--max-line-length", "88","--max-complexity","5"]
       exclude: |
         (?x)(
             ^src/.*c|
