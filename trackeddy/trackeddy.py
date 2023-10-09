@@ -4,194 +4,17 @@ import pandas as pd
 from scipy import ndimage
 from astropy import convolution
 from sklearn.neighbors import BallTree
-from scipy.optimize import least_squares, Bounds
 
 
-from trackeddy import _cntr as cntr
-from functools import wraps
 
-# from frechetdist import frdist
 
 from trackeddy.geometryfunc import area_latlon_polygon, eccentricity
+from trackeddy.printfunc import Printer
+from trackeddy.physics import approx_RD_lat
+from trackeddy.decorators import filter_data
 
-
-# class eddy_identifier():
-#     """
-#     eddy_identifier A decorator
-
-#     Parameters
-#     ----------
-#     f : _type_
-#         _description_
-#     """
-#     def __init__(self, inline_func, *args, **kwargs):
-#         self.calls = 0
-#         self.df_store = pd.DataFrame({'' : []})
-#         self.inline_func = inline_func
-
-#     def __call__(self, *args, **kwargs):
-#         table = self.inline_func(*args, id = self.calls, **kwargs)
-#         if self.df_store.empty:
-#             self.df_store = table
-#         else:
-#             self.df_store = pd.concat((self.df_store, table))
-#         self.calls += 1
-#         return self.df_store
-        
-
-def eddy_identifier(f):
-    def wrapped(*args, **kwargs):
-        if 'exit' in kwargs:
-            wrapped.calls = 0
-            wrapped.df_store = pd.DataFrame({'' : []})
-            return wrapped
-            
-        table = f(*args, id = wrapped.calls, **kwargs)
-        if wrapped.df_store.empty:
-            wrapped.df_store = table
-        else:
-            wrapped.df_store = pd.concat((wrapped.df_store, table))
-        wrapped.calls += 1
-        return wrapped.df_store
-    wrapped.calls = 0
-    wrapped.df_store = pd.DataFrame({'' : []})
-    return wrapped
-
-
-class Eddy():
-    def __init__(self,contour,level) -> None:
-        self.contour = contour
-        self.level = np.array(level)
-        self.area_eddy = 0
-        self.radius_eddy = 0
-        self.ellipse = None
-        self.ellipse_params=None
-        self.contour_ellipse_error = 0
-        self.ellipse_eccen = 0
-        self.contour_center=None
-        self.eddy_sign = 0
-        self.eddy_maxima = 0
-        self.gaussian_params=None
-        self.contour_gaussian_error = 0
-
-        # TODO remove these.
-        self.contour_mask=None
-        self.gaussian=None
-        self.data_near_contour=None
-
-    def to_dict(self,out_properties=None):
-
-        if not out_properties:
-            out_properties = ['identifier','contour','level','area_eddy','radius_eddy','ellipse_params','contour_ellipse_error','ellipse_eccen','contour_center','eddy_sign','eddy_maxima','gaussian_params','contour_gaussian_error']
-
-        eddy_dict = {}
-        for property in out_properties:
-            attr = getattr(self,property)
-
-            if not isinstance(attr,np.ndarray):
-                attr = np.array(attr)
-            #     raise ValueError('The convertion to dict is expecting ndarray objects, check the eddy.{0} variable.'.format(property))
-
-            attr = attr.squeeze()
-            if len(attr.shape) > 2:
-                pass
-                # TODO Ravel data to export matrixes. 
-                # eddy_dict['contour_x']=attr[:,0]
-            elif len(attr.shape) == 2 and 2 in attr.shape:
-                eddy_dict['contour_path_x']=attr[:,0]
-                eddy_dict['contour_path_y']=attr[:,1]
-            elif not attr.shape:
-                eddy_dict[property]=attr
-            else:
-                match property:
-                    case 'ellipse_params':
-                        eddy_dict[property+'_a']=attr[0]
-                        eddy_dict[property+'_b']=attr[1]
-                        eddy_dict[property+'_theta']=attr[2]
-                    case 'contour_center':
-                        eddy_dict['contour_x']=attr[0]
-                        eddy_dict['contour_y']=attr[1]
-                    case 'eddy_maxima':
-                        eddy_dict['maxima']=attr[0]
-                        eddy_dict['maxima_y']=attr[1]
-                        eddy_dict['maxima_x']=attr[2]
-                    case 'gaussian_params':
-                        eddy_dict[property+'_x']=attr[0]
-                        eddy_dict[property+'_y']=attr[1]
-                        eddy_dict[property+'_sigma_x']=attr[2]
-                        eddy_dict[property+'_sigma_y']=attr[3]
-                        eddy_dict[property+'_theta']=attr[4]
-                    case _:
-                        raise ValueError("{0} doesn't exist, make sure the property is a attribute of the eddy class.".format(property))
-                    
-        return eddy_dict            
-        
-    def to_table(self,out_properties=None,**kwards):
-
-        eddy_dict = self.to_dict(out_properties)
-        table = pd.DataFrame.from_dict(eddy_dict,**kwards).reset_index()
-        
-        return table
-
-    def diagnose_eddy(self):
-        # Print or plot the eddy
-        pass
-    
-    @eddy_identifier
-    def store(self,id):
-        self.identifier=id
-        table = self.to_table()
-        return table
-
-    @eddy_identifier
-    def discarded(self,reason,id,exit=False):
-        # self.identifier = id
-        self.reason = np.array(reason)
-        out_properties = ['reason','level','area_eddy','radius_eddy','contour_ellipse_error','contour_center','ellipse_eccen','eddy_sign','eddy_maxima','contour_gaussian_error'] 
-        dict = self.to_dict(out_properties)
-        table = pd.DataFrame(dict,index=[id])
-
-        #TODO concatenate all the discarded eddies.
-        return table
-    
-    def exit(self):
-        # Reset decorator counter in both functions.
-        self.store(exit=True)
-        self.discarded(exit=True)
-
-        
-
-    
-def extract_contours(X, Y, data, level):
-    # Convert to arrays to use the cntr library
-    c = cntr.Cntr(X, Y, data)
-    # Extract contours in the level  
-    res = c.trace(level)
-    # result is a list of arrays of vertices and path codes
-    # (see docs for matplotlib.path.Path)
-
-    nseg = len(res) // 2
-    segments = res[:nseg] 
-    codes = res[nseg:]
-
-    return segments,codes
-
-
-def filter_data(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        filtered = self.treat_nan(*args)
-        if kwargs.get('filter') == 'both':
-            filtered = func(self, filtered, 'space')
-            self.data2track = func(self, filtered, 'time')
-        elif  kwargs.get('filter') == 'space' or  kwargs.get('filter') == 'time':
-            self.data2track = func(self, *args, kwargs.get('filter'))
-        else:
-            self.data2track = filtered
-
-    return wrapper
-
-
+from trackeddy.eddy import Eddy
+from trackeddy.geometry import *
 
 class TrackEddy():
     def __init__(self,path, variable, nan_treatment=False, **xrkwargs) -> None:
@@ -306,16 +129,17 @@ class TrackEddy():
             times = range(t0,tf)
 
         track_in_time = pd.DataFrame({'' : []})
+
+        pp = Printer(); 
+
         for time in times:
-            print(time)
             current_time = self._detect_snapshot(time,lin_levels)
             current_time['time'] = time 
             if track_in_time.empty:
                 track_in_time=current_time.reset_index().set_index(['identifier','time','index']).sort_index(level=['identifier','time','index'])
                 continue
 
-            current_time = current_time.reset_index().set_index(['identifier','time','index'])
-
+            current_time = current_time.reset_index().set_index(['identifier','time','index']) 
             # Nearest detection within the previous time step. TODO: search 2 or 3 time steps back in case there was a miss identification.
 
             # Reindex to avoid loosing indexes, it's important for the nearest detection
@@ -323,7 +147,6 @@ class TrackEddy():
             # Extracts only the previous time.
             # previous_time = track_in_time.xs(time-1,level='time').reindex( pd.MultiIndex.from_product([track_in_time.index.levels[0], track_in_time.index.levels[2]]),fill_value=0)
 
-            # TODO Check this function that is causing issues. 
             # Extracts the previous time and all the eddies that didn't find a track in the previous 5 time steps.
             previous_time = unlink_eddies_in_previous_times(track_in_time, time-1,ntimes=ntimes)
 
@@ -342,6 +165,7 @@ class TrackEddy():
             # Reset index and assign indexes for consistency in the loop and output.
             track_in_time = track_in_time.reset_index().set_index(['identifier','time','index']).sort_index(level=['identifier','time','index'])
 
+            pp.timepercentprint(t0,tf,1,time,'# of E '+ str(len(track_in_time.index.levels[0])))
         return track_in_time
     
 
@@ -496,6 +320,9 @@ class TrackEddy():
         contours, _ = extract_contours( self.X, self.Y, self.data2track.values, level)
         
         for contour in contours:
+            # Discard contour if contour is a singular point or if it contains nans
+            if np.allclose(np.mean(contour,axis=0), contour[0],equal_nan=True):
+                continue
             
             eddy = Eddy(contour,level)
 
@@ -503,14 +330,14 @@ class TrackEddy():
             eddy.area_eddy = area_latlon_polygon(eddy.contour)
             eddy.radius_eddy = np.array(np.sqrt(eddy.area_eddy/np.pi))
 
-            eddy.contour_center = np.mean(eddy.contour,0)
+            eddy.contour_center = np.nanmean(eddy.contour,0)
 
-            # Continue to next contour if eddy size is too large.
-            # TODO add criteria selected by user here.
-            if eddy.radius_eddy > 200:
+            # Continue to next contour if eddy size is larger than the user defined value multiplied by the Rossby deformation radius.
+            Rd = approx_RD_lat(eddy.contour_center[1])
+            max_size = self.identification_criteria['max_area'] * Rd
+            if eddy.radius_eddy > max_size:
                 discarded = eddy.discarded('area')
                 continue
-                
             
             # TODO clean the fit_ellipse function and input only eddy.contour
             eddy.ellipse, eddy.ellipse_params = fit_ellipse(eddy.contour[:,0],eddy.contour[:,1])
@@ -542,6 +369,11 @@ class TrackEddy():
             
             if eddy.eddy_maxima[0] == 0:
                 discarded = eddy.discarded(reason='eddy_is_island')
+                continue
+            
+            # Ignore gaussian fitting, if user changes parameter.
+            if self.skip_gaussian_fit:
+                eddy_info = eddy.store()
                 continue
 
             # Create object to handle fitting of surfaces.
@@ -807,7 +639,6 @@ class TrackEddy():
           ncol=3)
 
 
-
 def _get_non_duplicated_identifiers(merged_identifiers):
     
     values, counts = np.unique(merged_identifiers, return_counts=True)
@@ -857,350 +688,3 @@ def unlink_eddies_in_previous_times(previous_time,time,ntimes=5):
     previous_time = eddies_to_track.reindex(previous_time.index.levels[0],level=0,fill_value=0)
 
     return eddies_to_track
-
-
-class Fit_Surface():
-
-    def __init__(self,eddy,eddy_data,X,Y,mode='gaussian') -> None:
-
-        self.X = X
-        self.Y = Y
-        self.eddy_max = eddy.eddy_maxima[0]
-        self.x_eddy = eddy.eddy_maxima[2]
-        self.y_eddy = eddy.eddy_maxima[1]
-        self.level = eddy.level
-        
-        # Initial guess to start fitting feature
-        self.initial_guess = np.hstack((self.x_eddy,self.y_eddy,eddy.ellipse_params))
-        #TODO is the best to pass the coords from the eddy_data or should I provide the self.X and self.Y cropped? In fact, it may not matter. 
-        
-        self.data = eddy_data# - eddy.level
-        self.mode = mode
-
-        
-    def _fitting(self):
-
-        coords=(self.X,self.Y,self.eddy_max)
-
-        fitdict = self.fit_curve(coords)
-        
-        fitted_curve = gaussian(coords,  *fitdict)
-        fitted_data=fitted_curve.reshape(*self.X.shape)
-
-        return fitted_data, fitdict
-    
-    def construct_bounds(self):
-
-        xdelta = np.mean(np.diff(self.X,axis=1))
-        ydelta = np.mean(np.diff(self.Y,axis=0))
-
-        LCoordbounds = np.array([[ self.initial_guess[0] - xdelta ], [self.initial_guess[1] - ydelta ]])
-        UCoordbounds = np.array([[ self.initial_guess[0] + xdelta ], [self.initial_guess[1] + ydelta ]])
-
-        # Limit the bounds for the initial guess to 70% of their ellipse value. 
-
-        Lellipsebounds = np.array([[ init-0.7*init ] for init in self.initial_guess[2:]])
-        Uellipsebounds = np.array([[ init+0.7*init ] for init in self.initial_guess[2:]])
-
-        Lbounds = np.vstack((LCoordbounds,Lellipsebounds))
-        Ubounds = np.vstack((UCoordbounds,Uellipsebounds))
-
-        bounds = np.hstack((Lbounds,Ubounds)).T
-        bounds.sort(axis=0)
-
-        return bounds
-        
-
-    def fit_curve(self, coords):
-
-        # res = minimize(gaussian_residual, self.initial_guess, args=(coords,self.data),method='SLSQP')
-        bounds = self.construct_bounds()
-        
-        res = least_squares(gaussian_residual, self.initial_guess, args=(coords,self.data), bounds = bounds)
-        
-        fitdict = np.array(res.x)
-        
-        return fitdict
-        
-def gaussian(coords, xo, yo, sigma_x, sigma_y, theta):  
-    '''
-    *************** gaussian *******************
-    Build a 2D gaussian.
-    Notes:
-        Remmember to do g.ravel().reshape(len(x),len(y)) for plotting purposes. 
-    Args:
-        coords [x,y] (list|array): Coordinates in x and y.
-        amplitude (float): Amplitud of gaussian.
-        x0 , yo (float): Center of Gausian.
-        sigma_x,sigma_y (float): Deviation.
-        theta (Float): Orientation.
-        offset (Float): Gaussian Offset.
-    Returns:
-        g.ravel() (list|array) - Gaussian surface in a list.
-    Usage:
-        Check scan_eddym function.
-    '''
-    x=coords[0]
-    y=coords[1]
-    amplitude = coords[2]
-
-    cos_phi = np.cos(theta)
-    sin_phi = np.sin(theta)
-    a = (cos_phi**2)/(2*sigma_x**2) + (sin_phi**2)/(2*sigma_y**2)
-    b = (np.sin(2*theta))/(4*sigma_x**2) - (np.sin(2*theta))/(4*sigma_y**2)
-    c = (sin_phi**2)/(2*sigma_x**2) + (cos_phi**2)/(2*sigma_y**2)
-    g = amplitude*np.exp(-(a*(x-xo)**2 + 2*b*(x-xo)*(y-yo) + c*(y-yo)**2))
-    
-    return g.ravel()
-
-def gaussian_residual(popt, coords, data2fit):
-
-    gauss = gaussian(coords,*popt).reshape(np.shape(data2fit))
-    
-    # residual = abs(data2fit - gauss)
-    
-    # residual = np.nansum(abs(data2fit - gauss))
-    # residual = np.nanmean(abs(data2fit - gauss))
-    #This seems to outperform the exp()
-    residual = np.nanstd(abs(data2fit - gauss)) * np.nanmean(abs(data2fit - gauss))
-
-    # residual = np.exp(np.float64(np.nanmean(abs(data2fit - gauss)))) - 1
-    return residual
-
-
-def fit_ellipse(x,y,diagnostics=False):
-    '''
-    **************** fit_ellipse *****************
-    Fitting of an ellipse to an array of positions.
-    
-    Function translated form Matlab to python by Josue Martinez Moreno,
-    the original source:
-    Copyright (c) 2003, Ohad Gal 
-    All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without 
-    modification, are permitted provided that the following conditions are 
-    met:
-
-    * Redistributions of source code must retain the above copyright 
-    notice, this list of conditions and the following disclaimer. 
-    * Redistributions in binary form must reproduce the above copyright 
-    notice, this list of conditions and the following disclaimer in 
-    the documentation and/or other materials provided with the distribution
-    For more information go to the main source:
-    https://www.mathworks.com/matlabcentral/fileexchange/3215-fit-ellipse?requestedDomain=www.mathworks.com
-    Notes:
-    
-    Args:
-        x,y (array): Coordinates of the datapoints to fit an ellipse.
-        diagnostics (boolean): Used to display all the statistics and plots to identify bugs. 
-    Returns:
-        ellipse_t (dict) - This dictionary contains useful parameters describing completly the ellipsoid ajusted.
-        status (boolean) - This value will be true if and only if the the fit corresponds to a ellipse.
-    Usage:
-    R = np.arange(0,2*pi, 0.01)
-    x = 1.5*np.cos(R) + 2 + 0.1*np.random.rand(len(R))
-    y = np.sin(R) + 1. + 0.1*np.random.rand(len(R))
-    ellipse,status=fit_ellipse(x,y,diagnostics=False)
-    '''
-    orientation_tolerance = 1e-3
-
-    x=x[:]
-    y=y[:]
-    
-    mean_x=np.mean(x)
-    mean_y=np.mean(y)
-    
-    xp = x-mean_x
-    yp = y-mean_y
-    
-    X = np.array([xp**2,xp*yp,yp**2,xp,yp]).T
-    
-    a = np.sum(X,axis=0)
-    b = np.dot(X.T,X)
-    
-    x2  = np.linalg.solve(b.T, a.T)
-    
-    a,b,c,d,e=x2
-
-    if b == 0 and a<c:
-        anglexaxis_rad=0
-    elif b == 0 and c<a:
-        anglexaxis_rad=np.pi/2
-    else:
-        anglexaxis_rad = np.arctan((c-a-np.sqrt((a-c)**2+b**2))/b)
-
-    if ( min(abs(b/a),abs(b/c)) > orientation_tolerance ):
-        # TODO: Replace this non sign definite orientation_rad for anglexaxis 
-        # which is a sign definite.
-        orientation_rad = 1/2 * np.arctan(b/(c-a))
-        cos_phi = np.cos( orientation_rad )
-        sin_phi = np.sin( orientation_rad )
-        a,b,c,d,e = [a*cos_phi**2 - b*cos_phi*sin_phi + c*sin_phi**2,0,a*sin_phi**2 + b*cos_phi*sin_phi + \
-                     c*cos_phi**2,d*cos_phi - e*sin_phi,d*sin_phi + e*cos_phi]
-        mean_x,mean_y=cos_phi*mean_x - sin_phi*mean_y,sin_phi*mean_x + cos_phi*mean_y       
-    else:
-        orientation_rad = 0
-        cos_phi = np.cos(orientation_rad)
-        sin_phi = np.sin(orientation_rad)
-    
-    # final ellipse parameters
-    X0          = mean_x - (d/2)/a
-    Y0          = mean_y - (e/2)/c
-    F           = 1 + (d**2)/(4*a) + (e**2)/(4*c)
-    a           = np.sqrt(abs(F/a))
-    b           = np.sqrt(abs(F/c))
-
-    long_axis   = 2*max(a,b)
-    short_axis  = 2*min(a,b)
-
-    # rotate the axes backwards to find the center point of the original TILTED ellipse
-    R           = np.array([[ cos_phi,sin_phi],[-sin_phi,cos_phi ]])
-    
-    theta_r         = np.linspace(0,2*np.pi,len(y));
-    ellipse_x_r     = X0 + a*np.cos(theta_r)
-    ellipse_y_r     = Y0 + b*np.sin(theta_r)
-    rotated_ellipse = np.dot(R, np.array([ellipse_x_r,ellipse_y_r]))
-
-    # Ensure that a is always larger than b
-    b, a = np.sort([a,b])   
-    
-    ellipse_params = np.array((a,b,anglexaxis_rad))
-
-    return rotated_ellipse.T, ellipse_params
-
-
-import math 
-def arc_length(curve):
-    '''
-    Args:
-    points: type arrays two values [[x, y], [x, y]]
-    Returns:
-    acc_length: curve length
-    Descriptions:
-    Calculate the length of the curve
-    '''
-
-    acc_length = 0
-    for i in range(0, len(curve)-1):
-        acc_length += math.dist(curve[i], curve[i+1])
-
-    return acc_length
-
-
-def compute_similarity(curve1,curve2):
-
-    geo_avg_curve_len = math.sqrt(
-    arc_length(curve1) *  arc_length(curve2))
-
-    freshet_dist = frdist(curve1,curve2)
-
-    result = max(1 - freshet_dist / (geo_avg_curve_len / math.sqrt(2)), 0)
-    return np.array(round(result, 4))
-
-def _c(ca, i, j, p, q):
-
-    if ca[i, j] > -1:
-        return ca[i, j]
-    elif i == 0 and j == 0:
-        ca[i, j] = np.linalg.norm(p[i]-q[j])
-    elif i > 0 and j == 0:
-        ca[i, j] = max(_c(ca, i-1, 0, p, q), np.linalg.norm(p[i]-q[j]))
-    elif i == 0 and j > 0:
-        ca[i, j] = max(_c(ca, 0, j-1, p, q), np.linalg.norm(p[i]-q[j]))
-    elif i > 0 and j > 0:
-        ca[i, j] = max(
-            min(
-                _c(ca, i-1, j, p, q),
-                _c(ca, i-1, j-1, p, q),
-                _c(ca, i, j-1, p, q)
-            ),
-            np.linalg.norm(p[i]-q[j])
-            )
-    else:
-        ca[i, j] = float('inf')
-
-    return ca[i, j]
-
-
-def frdist(P, Q):
-    """
-    Computes the discrete Fréchet distance between
-    two curves. The Fréchet distance between two curves in a
-    metric space is a measure of the similarity between the curves.
-    The discrete Fréchet distance may be used for approximately computing
-    the Fréchet distance between two arbitrary curves,
-    as an alternative to using the exact Fréchet distance between a polygonal
-    approximation of the curves or an approximation of this value.
-
-    This is a Python 3.* implementation of the algorithm produced
-    in Eiter, T. and Mannila, H., 1994. Computing discrete Fréchet distance.
-    Tech. Report CD-TR 94/64, Information Systems Department, Technical
-    University of Vienna.
-    http://www.kr.tuwien.ac.at/staff/eiter/et-archive/cdtr9464.pdf
-
-    Function dF(P, Q): real;
-        input: polygonal curves P = (u1, . . . , up) and Q = (v1, . . . , vq).
-        return: δdF (P, Q)
-        ca : array [1..p, 1..q] of real;
-        function c(i, j): real;
-            begin
-                if ca(i, j) > −1 then return ca(i, j)
-                elsif i = 1 and j = 1 then ca(i, j) := d(u1, v1)
-                elsif i > 1 and j = 1 then ca(i, j) := max{ c(i − 1, 1), d(ui, v1) }
-                elsif i = 1 and j > 1 then ca(i, j) := max{ c(1, j − 1), d(u1, vj) }
-                elsif i > 1 and j > 1 then ca(i, j) :=
-                max{ min(c(i − 1, j), c(i − 1, j − 1), c(i, j − 1)), d(ui, vj ) }
-                else ca(i, j) = ∞
-                return ca(i, j);
-            end; /* function c */
-
-        begin
-            for i = 1 to p do for j = 1 to q do ca(i, j) := −1.0;
-            return c(p, q);
-        end.
-
-    Parameters
-    ----------
-    P : Input curve - two dimensional array of points
-    Q : Input curve - two dimensional array of points
-
-    Returns
-    -------
-    dist: float64
-        The discrete Fréchet distance between curves `P` and `Q`.
-
-    Examples
-    --------
-    >>> from frechetdist import frdist
-    >>> P=[[1,1], [2,1], [2,2]]
-    >>> Q=[[2,2], [0,1], [2,4]]
-    >>> frdist(P,Q)
-    >>> 2.0
-    >>> P=[[1,1], [2,1], [2,2]]
-    >>> Q=[[1,1], [2,1], [2,2]]
-    >>> frdist(P,Q)
-    >>> 0
-    """
-
-    p = P if len(P) >= len(Q) else Q
-    q = Q if len(P) >= len(Q) else P
-
-    p = np.array(p, np.float64)
-    q = np.array(q, np.float64)
-
-    len_p = len(p)
-    len_q = len(q)
-
-    # if len_p == 0 or len_q == 0:
-    #     raise ValueError('Input curves are empty.')
-
-    # if len_p != len_q or len(p[0]) != len(q[0]):
-    #     raise ValueError('Input curves do not have the same dimensions.')
-
-
-
-    ca = (np.ones((len_p, len_q), dtype=np.float64) * -1)
-
-    dist = _c(ca, len_p-1, len_q-1, p, q)
-    return dist
