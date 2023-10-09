@@ -22,7 +22,6 @@ class Printer:
 
     def timepercentprint(
         self,
-        minv,
         maxv,
         step,
         i,
@@ -35,21 +34,19 @@ class Printer:
         progress = int(10 / (maxv / (step * (i + 1))))
         emptyprog = 10 - progress
 
+        percent2ndloop = ">"
+
         sys.stdout.write(
-            """\r 0% [{0}>{1}]{2}% | Elapsed Time: {3} s |
-            Estimated Time: {4} s | Info: {5} |""".format(
-                "=" * progress,
-                " " * emptyprog,
+            "\r 0% [{0}]{1}% | Time: {2} s | Estimated Time: {3} s | Info:{4} |".format(
+                "=" * progress + percent2ndloop + " " * emptyprog,
                 round(percent),
                 etime,
                 stmtime,
                 neddies,
             )
         )
-        if percent != 100 and i != maxv:
+        self.data.append(stmtime)
+        if i != maxv:
             sys.stdout.flush()
         else:
-            # print(self.data)
-            # plt.plot(self.data)
-            # plt.show()
             print("")

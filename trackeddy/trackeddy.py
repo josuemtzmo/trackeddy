@@ -182,15 +182,13 @@ class TrackEddy:
                 )
                 continue
 
+            # Reindex to avoid loosing indexes, it's important for the
+            # nearest detection
             current_time = current_time.reset_index().set_index(
                 ["identifier", "time", "index"]
             )
-            # Nearest detection within the previous time step.
-            # TODO: search 2 or 3 time steps back in case there was a
-            # miss identification.
 
-            # Reindex to avoid loosing indexes, it's important for the
-            # nearest detection
+            # TODO: Output to disk, instead of online tracking.
 
             # Extracts the previous time and all the eddies that didn't
             # find a track in the previous 5 time steps.
@@ -223,7 +221,7 @@ class TrackEddy:
             )
 
             pp.timepercentprint(
-                t0, tf, 1, time, "# of E " + str(len(track_in_time.index.levels[0]))
+                tf, 1, time, "# of E " + str(len(track_in_time.index.levels[0]))
             )
         return track_in_time
 
