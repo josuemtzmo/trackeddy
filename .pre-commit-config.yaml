@@ -16,7 +16,7 @@ repos:
     hooks:
     - id: black
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: 5.12.0
     hooks:
     - id: isort
       args: ["--profile", "black", "-l", "88"]
@@ -28,7 +28,7 @@ repos:
       # These files are not supported by BlenderNC development, and exclude tests.
       exclude: |
         (?x)(
-            ^blendernc/addon_updater.*py|
+            ^src/.*c|
             ^tests/.*py
         )
 -   repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
