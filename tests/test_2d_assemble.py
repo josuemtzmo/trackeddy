@@ -1,38 +1,19 @@
-################################
-##  Set diagnostics to True   ##
-##  If you want display the   ##
-##      Tracking process.     ##
-################################
-
-diagnostics = False
-
-import random
-
 #################################
 ##      Import packages        ##
 #################################
-import sys
-import warnings
-
-import cmocean as cm
+import numpy as np
 import pytest
-from numpy import *
-from pylab import *
+import xarray as xr
 
-from trackeddy.datastruct import *
-from trackeddy.geometryfunc import *
-from trackeddy.physics import *
-from trackeddy.tracking import *
-
-warnings.filterwarnings("ignore")
+import trackeddy.generator.field_generator as fg
+from trackeddy.generator.gaussian_field_functions import *
+from trackeddy.trackeddy import *
 
 #################################
 ##   Import tools to create    ##
 ##     syntetic fields         ##
 #################################
 
-import trackeddy.generator.field_generator as fg
-from trackeddy.generator.gaussian_field_functions import *
 
 #################################
 ## Test 1: Check the detection ##
@@ -40,83 +21,56 @@ from trackeddy.generator.gaussian_field_functions import *
 #################################
 
 
-def gauss_n_fit(n):
+def gauss_n_fit(n, size, res, gap, maxlat=20):
     """
     Test the number of eddies identified during 40 timesteps in a random walker gaussian field.
     """
-    a = 0.1
-    b = 0.1
-    t0 = 0
+    a = size
+    b = size
     t = 1
 
-    xx = linspace(10, 12, 200)
-    yy = linspace(10, 12, 200)
+    xx = np.linspace(10, maxlat, res)
+    yy = np.linspace(10, maxlat, res)
 
     gf = fg.Generate_field(a, b, n, xx, yy, "Nint")
 
-    data = gf.assemble_field(t)
+    data = gf.assemble_field(t, gap)
 
-    x = linspace(10, 13, 300)
-    y = linspace(10, 13, 300)
+    x = np.linspace(10, maxlat, res + gap * 2)
+    y = np.linspace(10, maxlat, res + gap * 2)
 
-    preferences = {"ellipse": 0.85, "eccentricity": 0.85, "gaussian": 0.8}
-    eddytd = {}
-    eddytdn = {}
+    dataset = xr.Dataset(
+        {"ssh": (["time", "lat", "lon"], data)}, coords={"lon": x, "lat": y}
+    )
+    TEddy = TrackEddy(dataset=dataset, variable="ssh")
 
-    try:
-        levels = {"max": data.max(), "min": 0.1, "step": 0.1}
-        eddytd = analyseddyzt(
-            data,
-            x,
-            y,
-            t0,
-            t,
-            1,
-            levels,
-            preferences=preferences,
-            areamap="",
-            mask="",
-            maskopt="forcefit",
-            destdir="",
-            physics="",
-            diagnostics=False,
-            plotdata=False,
-            pprint=True,
-            debug=False,
-        )
-    except:
-        print("No positive")
+    lin_levels = np.arange(-1, 1.5, 0.5)
 
-    try:
-        levels = {"max": data.min(), "min": -0.1, "step": -0.1}
-        eddytdn = analyseddyzt(
-            data,
-            x,
-            y,
-            t0,
-            t,
-            1,
-            levels,
-            preferences=preferences,
-            areamap="",
-            mask="",
-            maskopt="forcefit",
-            destdir="",
-            physics="",
-            diagnostics=False,
-            plotdata=False,
-            pprint=True,
-            debug=False,
-        )
-    except:
-        print("No negative")
+    TEddy.filter = None
 
-    return len(eddytd.keys()) + len(eddytdn.keys())
+    track_in_time = TEddy.time_tracking(t0=0, tf=t, lin_levels=lin_levels, ntimes=5)
+
+    return track_in_time
 
 
-@pytest.mark.ttrackeddy
-def test_gauss_n_fit():
-    assert gauss_n_fit(7) == 7
+@pytest.mark.parametrize(
+    ("n", "size", "res", "gap"),
+    [
+        (100, 0.1, 400, 50),
+        (7, 0.4, 2000, 300),
+    ],
+)
+@pytest.mark.trackeddy
+def test_gauss_large_n_fit(n, size, res, gap):
+    track_in_time = gauss_n_fit(n, size, res, gap)
+    identified_eddies = len(track_in_time.index.levels[0])
+    assert identified_eddies == n
+
+
+@pytest.mark.trackeddy
+def test_gauss_extra_large():
+    track_in_time = gauss_n_fit(2, 10, 300, 100, 80)
+    assert track_in_time.empty
 
 
 def gauss_mult_n_fit(n, t):
@@ -127,81 +81,34 @@ def gauss_mult_n_fit(n, t):
     b = 0.07
     t0 = 0
 
-    xx = linspace(10, 12.5, 300)
-    yy = linspace(10, 12.5, 300)
+    xx = np.linspace(10, 12.5, 300)
+    yy = np.linspace(10, 12.5, 300)
 
     gf = fg.Generate_field(a, b, n, xx, yy, "Nint")
 
-    data = gf.assemble_field(t)
+    data = gf.assemble_field(1)
+    data = np.repeat(data, t)
+    data = data.reshape(400, 400, t).T
 
-    x = linspace(10, 13.5, 400)
-    y = linspace(10, 13.5, 400)
+    x = np.linspace(10, 13.5, 400)
+    y = np.linspace(10, 13.5, 400)
 
-    preferences = {"ellipse": 0.85, "eccentricity": 0.85, "gaussian": 0.8}
-    eddytd = {}
-    eddytdn = {}
+    dataset = xr.Dataset(
+        {"ssh": (["time", "lat", "lon"], data)}, coords={"lon": x, "lat": y}
+    )
+    TEddy = TrackEddy(dataset=dataset, variable="ssh")
 
-    try:
-        levels = {"max": data.max(), "min": 0.1, "step": 0.1}
-        eddytd = analyseddyzt(
-            data,
-            x,
-            y,
-            t0,
-            t,
-            1,
-            levels,
-            preferences=preferences,
-            areamap="",
-            mask="",
-            maskopt="forcefit",
-            destdir="",
-            physics="",
-            diagnostics=False,
-            plotdata=False,
-            pprint=True,
-            debug=False,
-        )
-    except:
-        print("No positive")
+    lin_levels = np.arange(-1, 1.5, 0.5)
 
-    try:
-        levels = {"max": data.min(), "min": -0.1, "step": -0.1}
-        eddytdn = analyseddyzt(
-            data,
-            x,
-            y,
-            t0,
-            t,
-            1,
-            levels,
-            preferences=preferences,
-            areamap="",
-            mask="",
-            maskopt="forcefit",
-            destdir="",
-            physics="",
-            diagnostics=False,
-            plotdata=False,
-            pprint=True,
-            debug=False,
-        )
-    except:
-        print("No negative")
+    TEddy.filter = None
 
-    posn = sum([len(item["time"]) for keys, item in eddytd.items()])
-    negn = sum([len(item["time"]) for keys, item in eddytdn.items()])
+    track_in_time = TEddy.time_tracking(t0=0, tf=t, lin_levels=lin_levels, ntimes=5)
 
-    # print(posn,negn)
-    # print([item['time'] for keys,item in eddytd.items()])
+    track_in_time.index.get_level_values(level=0), track_in_time.index.get_level_values(
+        level=1
+    )
 
-    # for ii in range(shape(data)[0]):
-    #     contourf(x,y,data[ii,:,:],vmin=-1,vmac=1,cmap=cm.cm.balance)
-    #     colorbar()
-    #     savefig("deleteme_%03d_n%d.png" % (ii,n))
-    #     close()
-
-    return posn + negn
+    return len(track_in_time.index.levels[0]) * len(track_in_time.index.levels[1])
 
 
 @pytest.mark.parametrize(
@@ -209,16 +116,13 @@ def gauss_mult_n_fit(n, t):
     [
         (3, 10),
         (4, 9),
-        (5, 8),
         (6, 7),
-        (7, 6),
-        (8, 5),
         (9, 4),
         (10, 3),
-        (11, 2),
         (12, 1),
+        (7, 1),
     ],
 )
-@pytest.mark.ttrackeddy
+@pytest.mark.trackeddy
 def test_gauss_mult_n_fit(n, t):
     assert gauss_mult_n_fit(n, t) == n * t

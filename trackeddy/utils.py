@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pandas as pd
 from scipy import ndimage
@@ -150,3 +152,118 @@ def _mask_data_in_contour(coord_ind_contour, data_near_contour, level, mask="con
     # data_inside_contour allows for better fitting of the gaussian
     # and eddy detection.
     return data_inside_contour, eddy_sign, eddy_maxima_loc, inside_contour
+
+
+def _get_non_duplicated_identifiers(merged_identifiers):
+    values, counts = np.unique(merged_identifiers, return_counts=True)
+
+    duplicated = []
+    for count in range(0, len(counts)):
+        if counts[count] >= 2:
+            duplicated.append(count)
+
+    values = np.delete(values, duplicated)
+    return values
+
+
+def unlink_eddies_in_previous_times(previous_time, time, ntimes=5):
+    # Move to decorator
+    if time < ntimes:
+        ntimes = time
+    # Extract identifier of eddies identified as the last imput in the table.
+    last_identified_eddies = previous_time.xs(time, level="time").index.levels[0]
+
+    # Loop and arrays to contain extracted identifier of eddies identified
+    # in the last ntimes in the table.
+    unlinked_tracks_in_time = last_identified_eddies
+    unlinked_times = np.ones_like(last_identified_eddies) * time
+    # Loop back in time to check if missing a eddy track
+    for prev_time in np.arange(time - ntimes, time):
+        # Extracted identifier of eddies identified in the last time-ntimes
+        # in the table.
+        previous_identified_eddies = previous_time.xs(
+            prev_time, level="time"
+        ).index.levels[0]
+
+        merged_identifiers = np.hstack(
+            (last_identified_eddies, previous_identified_eddies)
+        )
+
+        values = _get_non_duplicated_identifiers(merged_identifiers)
+
+        unlinked_tracks_in_time = np.hstack((unlinked_tracks_in_time, values))
+        unlinked_times = np.hstack((unlinked_times, np.ones_like(values) * prev_time))
+
+    # Perhaps not the cleanest code, but it ensures that only the last time
+    # for all the detected eddies is the output.
+    unlinked_tracks_in_time = np.unique(unlinked_tracks_in_time)
+
+    times = (
+        previous_time.loc[unlinked_tracks_in_time]
+        .reset_index()
+        .groupby("identifier")
+        .max("time")["time"]
+        .values
+    )
+
+    eddies_to_track = (
+        previous_time.loc[unlinked_tracks_in_time]
+        .groupby(["identifier", "index"])
+        .last("time")
+    )
+
+    eddies_to_track["time"] = [times[index] for index, n in eddies_to_track.index]
+
+    eddies_to_track = eddies_to_track.reset_index().set_index(
+        ["identifier", "time", "index"]
+    )
+
+    previous_time = eddies_to_track.reindex(
+        previous_time.index.levels[0], level=0, fill_value=0
+    )
+
+    return eddies_to_track
+
+
+def track_online(track_in_time, current_time, time, ntimes):
+    # Extracts the previous time and all the eddies that didn't
+    # find a track in the previous 5 time steps.
+    previous_time = unlink_eddies_in_previous_times(
+        track_in_time, time - 1, ntimes=ntimes
+    )
+
+    # Detect nearest eddies.
+    index, nearest = _detect_nearest(previous_time, current_time)
+
+    # Update counter of current time to avoid overlap with the
+    # previous time
+    current_time, prev_count = _update_counter(previous_time, current_time)
+
+    # Rename identifier of  nearest eddies to match the previous
+    # table identifier
+    current_time = _rename_eddies_in_time(current_time, index, nearest, prev_count)
+
+    # Merge dictionaries.
+    track_in_time = _merge_reindex_eddies(track_in_time, current_time)
+
+    # Reset index and assign indexes for consistency in the loop
+    # and output.
+    track_in_time = (
+        track_in_time.reset_index()
+        .set_index(["identifier", "time", "index"])
+        .sort_index(level=["identifier", "time", "index"])
+    )
+    return track_in_time
+
+
+def store_snapshot(track_in_time, path, time, format="csv", **kwargs):
+
+    out_path = os.path.join(path, "identified_eddies_{0:05}.{1}".format(time, format))
+
+    match format:
+        case "csv":
+            track_in_time.to_csv(out_path, **kwargs)
+        case "json":
+            track_in_time.to_json(out_path, **kwargs)
+        case "hd5":
+            track_in_time.to_hdf(out_path, **kwargs)

@@ -83,10 +83,16 @@ class Fit_Surface:
         # Limit the bounds for the initial guess to 70% of their ellipse value.
 
         Lellipsebounds = np.array(
-            [[init - 0.7 * init] for init in self.initial_guess[2:]]
+            [
+                [init - 0.7 * init] if init != 0 else [-1e-4]
+                for init in self.initial_guess[2:]
+            ]
         )
         Uellipsebounds = np.array(
-            [[init + 0.7 * init] for init in self.initial_guess[2:]]
+            [
+                [init + 0.7 * init] if init != 0 else [1e-4]
+                for init in self.initial_guess[2:]
+            ]
         )
 
         Lbounds = np.vstack((LCoordbounds, Lellipsebounds))
@@ -391,9 +397,20 @@ def frdist(P, Q):
     len_p = len(p)
     len_q = len(q)
 
+    # Force comparison between curves smaller than 300 points to avoid
+    # RecursionError in _c
+    c = 2
+    while len_p > 300 and len_q > 300:
+        p = p[0::c]
+        q = q[0::c]
+        len_p = len(p)
+        len_q = len(q)
+        c += 1
+
     ca = np.ones((len_p, len_q), dtype=np.float64) * -1
 
     dist = _c(ca, len_p - 1, len_q - 1, p, q)
+
     return dist
 
 

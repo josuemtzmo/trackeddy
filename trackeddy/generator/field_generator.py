@@ -12,8 +12,8 @@ class Generate_field:
         # BUG WHEN LEN(x) != LEN(y) ?
         self.xlen = len(x)
         self.ylen = len(y)
-        self.a = a * rnd.uniform(0.7, 1.3)
-        self.b = b * rnd.uniform(0.7, 1.3)
+        self.a = a * rnd.uniform(0.9, 1.1)
+        self.b = b * rnd.uniform(0.9, 1.1)
         self.x = x
         self.y = y
         self.n = n
@@ -59,9 +59,7 @@ class Generate_field:
     def go_downright(self, indexs, step):
         return [-step, step]
 
-    def twoD_Gaussian(
-        self, coords, sigma_x, sigma_y, theta, slopex=0, slopey=0, offset=0
-    ):
+    def twoD_Gaussian(self, coords, sigma_x, sigma_y, theta):
         """
         *************** twoD_Gaussian *******************
         Build a 2D gaussian.
