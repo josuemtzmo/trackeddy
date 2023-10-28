@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Martínez-Moreno"
+    given-names: "Josué"
+    orcid: "https://orcid.org/0000-0001-5898-7635"
+  - family-names: "Hogg"
+    given-names: "Andrew McC."
+    orcid: "https://orcid.org/0000-0003-3330-082X"
+  - family-names: "Kiss"
+    given-names: "Andrew E."
+    orcid: "https://orcid.org/0000-0001-8960-9557"
+  - family-names: "Constantinou"
+    given-names: "Navid C."
+    orcid: "https://orcid.org/0000-0002-8149-4094"
+  - family-names: "Morrison"
+    given-names: "Adele K."
+    orcid: "https://orcid.org/0000-0002-9904-4980"
+  title: "Kinetic energy of eddy-like features from sea surface altimetry"
+  journal: "Journal of Advances in Modeling Earth Systems"
+  doi: "10.1029/2019MS001769"
+  volume: 11
+  issue: 10
+  start: 3090 # First page number
+  end: 3105 # Last page number
+  year: 2019
