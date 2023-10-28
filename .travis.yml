@@ -15,7 +15,7 @@ install:
   - conda install -c anaconda basemap
   - conda install -c conda-forge --file ./install_requirements.txt
   - pip install -e .
-script: pytest -m ttrackeddy --cov=trackeddy
+script: pytest -m trackeddy --cov=trackeddy
 after_success:
   -  bash <(curl -s https://codecov.io/bash)
 notifications:
