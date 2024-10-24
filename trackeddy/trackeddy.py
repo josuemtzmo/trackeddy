@@ -64,12 +64,12 @@ class TrackEddy:
         self.out_format = "csv"
 
     def check_coords(self):
-        if "x_var" in self.coords and "y_var" in self.coords:
-            x_coord_name = self.coords["x_var"]
-            y_coord_name = self.coords["y_var"]
-        elif self.coords["x"] and self.coords["y"]:
+        if self.coords["x"] and self.coords["y"]:
             x_coord_name = self.coords["x"]
             y_coord_name = self.coords["y"]
+        elif "x_var" in self.coords and "y_var" in self.coords:
+            x_coord_name = self.coords["x_var"]
+            y_coord_name = self.coords["y_var"]
         else:
             raise ValueError(
                 """Can't find dimensions or variables that correspond to
